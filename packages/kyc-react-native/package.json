@@ -1,0 +1,122 @@
+{
+  "name": "@blinkbitcoin/kyc-react-native",
+  "version": "0.0.0-development",
+  "description": "Plug-and-play identity-verification (KYC) flow component for React Native (native provider SDK or hardened WebView)",
+  "source": "./src/index.ts",
+  "main": "./lib/commonjs/index.js",
+  "module": "./lib/module/index.js",
+  "types": "./lib/typescript/commonjs/src/index.d.ts",
+  "react-native": "./src/index.ts",
+  "exports": {
+    ".": {
+      "react-native": "./src/index.ts",
+      "import": {
+        "types": "./lib/typescript/module/src/index.d.ts",
+        "default": "./lib/module/index.js"
+      },
+      "require": {
+        "types": "./lib/typescript/commonjs/src/index.d.ts",
+        "default": "./lib/commonjs/index.js"
+      }
+    },
+    "./hosted": {
+      "react-native": "./src/hosted.ts",
+      "import": {
+        "types": "./lib/typescript/module/src/hosted.d.ts",
+        "default": "./lib/module/hosted.js"
+      },
+      "require": {
+        "types": "./lib/typescript/commonjs/src/hosted.d.ts",
+        "default": "./lib/commonjs/hosted.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["src", "lib", "!**/__tests__", "!**/__mocks__"],
+  "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "bob build",
+    "clean": "rm -rf lib"
+  },
+  "keywords": ["react-native", "kyc", "identity-verification", "sumsub"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@apollo/client": "^4.0.0",
+    "@react-native-community/netinfo": ">=11.0.0",
+    "graphql": "^16.8.0 || ^17.0.0",
+    "react": ">=19.0.0",
+    "react-native": ">=0.83.0",
+    "react-native-webview": ">=14.0.0"
+  },
+  "devDependencies": {
+    "@apollo/client": "^4.2.12",
+    "@graphql-codegen/cli": "^7.3.1",
+    "@graphql-codegen/typescript": "^6.0.2",
+    "@graphql-codegen/typescript-operations": "^6.0.5",
+    "@react-native-community/netinfo": "^12.0.1",
+    "@react-native/babel-preset": "0.86.3",
+    "@react-native/jest-preset": "^0.86.3",
+    "@react-native/typescript-config": "0.86.3",
+    "@types/jest": "^30.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-test-renderer": "^19.1.0",
+    "graphql": "^16.14.2",
+    "jest": "^30.5.0",
+    "react": "19.2.8",
+    "react-native": "0.86.3",
+    "react-native-builder-bob": "^0.43.0",
+    "react-native-webview": "^14.0.1",
+    "react-test-renderer": "19.2.8",
+    "typescript": "^6.0.3"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      [
+        "commonjs",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  },
+  "dependencies": {
+    "@blinkbitcoin/kyc-core": "0.0.0-development"
+  },
+  "peerDependenciesMeta": {
+    "@apollo/client": {
+      "optional": true
+    },
+    "graphql": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blinkbitcoin/kyc.git",
+    "directory": "packages/kyc-react-native"
+  },
+  "sideEffects": false,
+  "type": "commonjs",
+  "engines": {
+    "node": ">= 18"
+  }
+}
