@@ -1,0 +1,164 @@
+name: Checks
+
+# Reusable only: ci.yml calls this as the first stage of every run. Everything
+# here is static and cheap (~1-2 min); Unit waits for all of it and E2E waits
+# for Unit, so a lint error or a bad commit message never spends unit-test or
+# emulator minutes. Concurrency is the caller's.
+on:
+  workflow_call:
+    outputs:
+      docs-only:
+        description: "'true' when every changed file is documentation (PRs only; never true for push / release / dispatch)"
+        value: ${{ jobs.changes.outputs.docs-only }}
+
+# Must not exceed the caller's (ci.yml grants contents: read). The PR title
+# and SHAs come from the event payload, so no pull-requests scope is needed.
+permissions:
+  contents: read
+
+jobs:
+  # Classifies the change so ci.yml can stop after Checks for docs-only PRs
+  # (Unit and E2E skip; a skipped job counts as passing for required checks,
+  # unlike a workflow that never ran). Only PRs are classified: main pushes
+  # already skip docs via paths-ignore in ci.yml, releases and dispatches
+  # always run everything. "Docs" is docs/, *.md, LICENSE and the issue / PR
+  # templates - nothing else: workflow files change the thing under test,
+  # package.json and scripts feed the build. A docs/diagrams/src/*.mmd change
+  # still gets the diagram-freshness check from Code (Checks always run).
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      docs-only: ${{ steps.classify.outputs.docs-only }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # base...head diff
+
+      - name: Classify changed files
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/ci/changed-class.sh
+
+  code:
+    name: Code
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (workspace root)
+        run: npm ci
+
+      - name: Dependency audit (known upstream issues allowlisted)
+        run: npx audit-ci --config audit-ci.jsonc
+
+      - name: Lint GitHub Actions workflows (actionlint)
+        run: |
+          docker run --rm -v "$PWD":/repo --workdir /repo rhysd/actionlint:latest -color
+
+      # The workflows call scripts/** instead of carrying inline shell, so the
+      # scripts need the lint actionlint gave the inline blocks.
+      - name: Lint repo shell scripts (shellcheck)
+        run: make shellcheck
+
+      - name: Check generated diagrams are current
+        run: make diagrams-check
+
+      - name: Lint + typecheck + format check
+        run: make check-code
+
+  packages:
+    name: Packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (workspace root)
+        run: npm ci
+
+      - name: Build packages
+        run: npm run build
+
+      - name: Package shape (publint + arethetypeswrong)
+        run: npm run check:packages
+
+      - name: Pack + install smoke (webform Apollo-free boundary)
+        run: bash scripts/pack-smoke.sh
+
+  # Conventional Commits on the PR's commits and its title (squash merges take
+  # the title as the commit on main). Rules: commitlint.config.mjs. PRs only;
+  # a title-only edit is re-checked by commitlint.yml (a re-run of this job
+  # would still see the title from the original event payload).
+  commits:
+    name: Commits
+    # Dependabot's messages are shaped by dependabot.yml's commit-message
+    # config; no need to re-lint its bot-authored commits. Keyed on the PR
+    # author, not github.actor: a human updating the branch would otherwise
+    # re-trigger the lint against Dependabot's commits.
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # commitlint needs the base..head range
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (workspace root)
+        run: npm ci --ignore-scripts
+
+      - name: Lint PR commits
+        run: npx commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.event.pull_request.head.sha }}" --verbose
+
+      - name: Lint PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | npx commitlint --verbose
+
+  # Docs are hand-maintained alongside code (docs/index.md). Warns (never
+  # fails) when architecture-relevant files change without any docs/ update
+  # in the same push/PR; fails only for a diagram source without its SVG.
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # Github context via env vars, not inline interpolation (script injection hygiene)
+      EVENT_NAME: ${{ github.event_name }}
+      BASE_REF: ${{ github.base_ref }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2 # Need history for diff
+
+      - name: Check for architecture changes without doc updates
+        run: make docs-check

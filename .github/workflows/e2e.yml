@@ -1,0 +1,514 @@
+name: Tests / E2E
+
+# Reusable only: ci.yml calls this for every branch (push to main, PRs,
+# releases). Concurrency is the caller's.
+#
+# The iOS job is opt-in. It needs a macOS runner, and GitHub-hosted macOS is
+# billed at 10x Linux: one ~15 min iOS run costs ~150 Linux minutes, and it
+# used to run on every push. The caller decides (repo variable / PR label,
+# see ci.yml); a skipped job costs nothing and still counts as success for
+# the caller's `needs.e2e.result`.
+#
+# Shell lives in scripts/e2e/*.sh (the E2E stack, runnable on a laptop: see
+# `make help`) and scripts/ci/*.sh (runner-only plumbing); steps here are
+# one-liners. `make shellcheck` lints them.
+on:
+  workflow_call:
+    inputs:
+      ios:
+        description: Run the iOS simulator suite (needs a macOS runner)
+        type: boolean
+        default: false
+      ios-runner:
+        description: runs-on label(s) for the iOS job (string or JSON array)
+        type: string
+        default: macos-latest
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (workspace root)
+        run: npm ci
+
+      - name: Check schema artifact and generated client code are current
+        run: make codegen-check
+
+      - name: Start test database
+        run: make test-db-up
+
+      - name: Run database migrations
+        run: npm run migrate:test
+        working-directory: apps/api
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        working-directory: apps/api
+
+      - name: Stop test database
+        if: always()
+        run: make test-db-down
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies (workspace root)
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install Playwright browser
+        run: npx playwright install chromium --with-deps
+
+      - name: Start test database
+        run: make test-db-up
+
+      - name: Run migrations (test database)
+        run: npm run migrate:test -w apps/api
+
+      - name: Run browser E2E (Playwright starts backend + Vite)
+        run: npm run test:e2e -w examples/react-demo
+
+      - name: Stop test database
+        if: always()
+        run: make test-db-down
+
+  # The native build has its own job so the simulator job's setup (Postgres,
+  # backend, Metro, simulator boot) overlaps it instead of following it, and
+  # so a re-run of a failed simulator job reuses the .app from the earlier
+  # attempt instead of rebuilding.
+  build-ios:
+    name: Build iOS
+    # Gated like `ios` (see the header): no macOS runner unless the caller asks.
+    if: inputs.ios
+    runs-on: ${{ inputs.ios-runner }}
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # Debug builds load their JS from Metro, so the .app only depends on the
+      # native inputs: the ios/ project (incl. Podfile.lock), app.json, the
+      # Ruby lockfile, and the lockfile-resolved versions of the demo's runtime
+      # deps + @react-native* dev deps (scripts/native-deps-hash.sh - what
+      # autolinking and codegen read). Everything else in package-lock.json is
+      # JS-only, so a jest/eslint/backend bump still hits this cache and skips
+      # Ruby, Pods and Xcode entirely. Bump the v-suffix if an input the script
+      # cannot see changes.
+      - name: Compute native dependency hash
+        id: native-deps
+        run: echo "hash=$(bash scripts/native-deps-hash.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore iOS app build
+        id: ios-app
+        uses: actions/cache@v6
+        with:
+          path: examples/react-native-demo/ios/build/Build/Products/Debug-iphonesimulator/ReactNativeSandbox.app
+          key: ios-app-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.native-deps.outputs.hash }}-${{ hashFiles('examples/react-native-demo/ios/**', 'examples/react-native-demo/app.json', 'examples/react-native-demo/Gemfile.lock') }}
+
+      # Pods need node_modules (the Podfile resolves react-native from it).
+      - name: Setup Node.js
+        if: steps.ios-app.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies (workspace root)
+        if: steps.ios-app.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Setup Ruby
+        if: steps.ios-app.outputs.cache-hit != 'true'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Cache CocoaPods
+        if: steps.ios-app.outputs.cache-hit != 'true'
+        uses: actions/cache@v6
+        with:
+          path: |
+            examples/react-native-demo/ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: pods-${{ runner.os }}-${{ hashFiles('examples/react-native-demo/ios/Podfile.lock') }}
+          restore-keys: pods-${{ runner.os }}-
+
+      - name: Install CocoaPods dependencies
+        if: steps.ios-app.outputs.cache-hit != 'true'
+        run: make pods
+
+      # Generic simulator destination, see scripts/e2e/ios-build.sh.
+      - name: Build iOS app for simulator
+        if: steps.ios-app.outputs.cache-hit != 'true'
+        run: make ios-build
+
+      # Tar keeps executable bits and symlinks; upload-artifact's own zip
+      # does not, and simctl refuses the result. retention-days: 1 - only
+      # the simulator job of this run needs it.
+      - name: Publish .app for the simulator job
+        run: tar -C examples/react-native-demo/ios/build/Build/Products/Debug-iphonesimulator -cf "$RUNNER_TEMP/ReactNativeSandbox.app.tar" ReactNativeSandbox.app
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ios-app
+          path: ${{ runner.temp }}/ReactNativeSandbox.app.tar
+          retention-days: 1
+          overwrite: true # a full re-run re-uploads the same name
+          if-no-files-found: error
+
+  ios:
+    name: iOS
+    # Off unless the caller asks (see the header). Once self-hosted Apple
+    # silicon runners exist, `ios-runner` points at them and GitHub-hosted
+    # macOS is never touched again.
+    if: inputs.ios
+    runs-on: ${{ inputs.ios-runner }}
+    timeout-minutes: 60
+    needs: [build-ios]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies (workspace root)
+        run: npm ci
+
+      - name: Cache Maestro CLI
+        uses: actions/cache@v6
+        with:
+          path: ~/.maestro
+          key: maestro-${{ runner.os }}-2.6.1 # keep in sync with scripts/ci/maestro-install.sh
+
+      - name: Install Maestro CLI (version pinned in scripts/ci/maestro-install.sh)
+        run: bash scripts/ci/maestro-install.sh
+
+      # Runner images rotate simulator generations (iPhone 15 -> 16 -> 17...);
+      # pick whatever iPhone the image actually ships instead of hardcoding.
+      # Booting starts here so it overlaps everything below (build or cache
+      # restore, Postgres, backend, Metro).
+      - name: Pick a simulator device
+        run: bash scripts/e2e/ios-simulator.sh pick
+
+      # Metro starts in the background here so its boot overlaps Postgres and
+      # the backend; it is awaited (and the bundle prewarmed) right before
+      # Maestro runs.
+      - name: Start Metro bundler (background)
+        run: bash scripts/e2e/metro-start.sh
+
+      # macOS runners have no Docker - run the test database via Homebrew
+      # Postgres instead, matching docker-compose.test.yml (test/test@5433,
+      # tmpfs-equivalent: the runner is ephemeral anyway).
+      - name: Start test database (Homebrew Postgres, port 5433)
+        run: bash scripts/ci/postgres-brew.sh
+
+      - name: Run database migrations
+        run: npm run migrate:test
+        working-directory: apps/api
+
+      - name: Start backend with mock provider
+        run: make e2e-backend-up
+
+      - name: Wait for iOS Simulator (booting since device pick)
+        run: bash scripts/e2e/ios-simulator.sh wait
+
+      # The .app comes from build-ios as a tar (upload-artifact zips and drops
+      # executable bits + symlinks, which breaks simctl install).
+      - name: Fetch .app built by build-ios
+        uses: actions/download-artifact@v8
+        with:
+          name: ios-app
+          path: ${{ runner.temp }}
+
+      - name: Install app on simulator
+        run: bash scripts/e2e/ios-simulator.sh install "$RUNNER_TEMP/ReactNativeSandbox.app.tar"
+
+      # Prewarming the bundle keeps the first Maestro launch from racing a
+      # cold compile.
+      - name: Wait for Metro + prewarm bundle
+        run: bash scripts/e2e/metro-wait.sh ios
+
+      - name: Run Maestro tests
+        # Suite + one suite-level retry is normally a few minutes. Backstop
+        # above the 10 min per-attempt bound inside maestro-bound.sh, which
+        # also skips the retry after a hang (#41).
+        timeout-minutes: 15
+        env:
+          # CI simulators are slow to install+launch the XCUITest driver;
+          # the default startup timeout regularly trips on cold runners.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '600000'
+        run: make e2e-ios # per-flow + one suite-level retry, see scripts/e2e/ios-maestro.sh
+
+      - name: Stop backend
+        if: always()
+        run: make e2e-backend-down
+
+      - name: Upload Maestro test results + crash reports
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: maestro-results
+          path: |
+            ~/.maestro/tests/
+            ~/Library/Logs/DiagnosticReports/
+            ${{ runner.temp }}/metro.log
+            ${{ runner.temp }}/backend.log
+          retention-days: 7
+
+  # Same split as build-ios: the emulator job's setup overlaps this, and a
+  # re-run of a failed emulator job reuses the APK from the earlier attempt.
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # Debug builds load their JS from Metro, so the APK only depends on the
+      # native inputs: the android/ project, app.json, and the lockfile-resolved
+      # versions of the demo's runtime deps + @react-native* dev deps
+      # (scripts/native-deps-hash.sh - what autolinking and codegen read).
+      # Everything else in package-lock.json is JS-only, so a jest/eslint/
+      # backend bump still hits this cache and skips Java and Gradle
+      # entirely. Bump the v-suffix if an input the script cannot see changes.
+      - name: Compute native dependency hash
+        id: native-deps
+        run: echo "hash=$(bash scripts/native-deps-hash.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Android APK build
+        id: android-apk
+        uses: actions/cache@v6
+        with:
+          path: examples/react-native-demo/android/app/build/outputs/apk/debug/app-debug.apk
+          key: android-apk-v2-${{ steps.native-deps.outputs.hash }}-${{ hashFiles('examples/react-native-demo/android/**', 'examples/react-native-demo/app.json') }}
+
+      - name: Setup Node.js
+        if: steps.android-apk.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Setup Java (for Gradle)
+        if: steps.android-apk.outputs.cache-hit != 'true'
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Install dependencies (workspace root)
+        if: steps.android-apk.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Build Android app (debug)
+        if: steps.android-apk.outputs.cache-hit != 'true'
+        working-directory: examples/react-native-demo/android
+        run: ./gradlew assembleDebug --no-daemon --build-cache
+
+      # retention-days: 1 - only the emulator job of this run needs it.
+      - name: Publish APK for the emulator job
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-apk
+          path: examples/react-native-demo/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 1
+          compression-level: 0 # an APK is already a zip
+          overwrite: true # a full re-run re-uploads the same name
+          if-no-files-found: error
+
+  android:
+    name: Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: [build-android]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # The stock runner has ~14GB free; node_modules + the Android system
+      # image + Docker don't fit - a run that
+      # skipped this hit "Your device does not have enough disk space to run
+      # avd". Drop preinstalled toolchains we never use (several GB each).
+      - name: Free disk space
+        run: bash scripts/ci/free-disk.sh
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies (workspace root)
+        run: npm ci
+
+      - name: Cache Maestro CLI
+        uses: actions/cache@v6
+        with:
+          path: ~/.maestro
+          key: maestro-${{ runner.os }}-2.6.1 # keep in sync with scripts/ci/maestro-install.sh
+
+      - name: Install Maestro CLI (version pinned in scripts/ci/maestro-install.sh)
+        run: bash scripts/ci/maestro-install.sh
+
+      # Hardware acceleration for the emulator (GitHub-hosted Linux runners
+      # expose KVM but the device node needs opening up)
+      - name: Enable KVM (also exports ANDROID_SDK_DIR for the cache paths below)
+        run: bash scripts/ci/enable-kvm.sh
+
+      - name: Start test database
+        run: make test-db-up
+
+      - name: Run database migrations
+        run: npm run migrate:test
+        working-directory: apps/api
+
+      - name: Start backend with mock provider
+        run: make e2e-backend-up
+
+      # The emulator reaches the backend as 10.0.2.2:4000 (host loopback
+      # alias - see examples/react-native-demo/src/config.ts); Metro is
+      # reached via adb reverse in scripts/e2e/android-maestro.sh. Metro
+      # starts in the background so its boot overlaps the emulator caches; it
+      # is awaited (and the bundle prewarmed) right before the emulator runs.
+      - name: Start Metro bundler (background)
+        run: bash scripts/e2e/metro-start.sh
+
+      # Same path scripts/e2e/android-maestro.sh installs from.
+      - name: Fetch APK built by build-android
+        uses: actions/download-artifact@v8
+        with:
+          name: android-apk
+          path: examples/react-native-demo/android/app/build/outputs/apk/debug
+
+      # The system image is ~1.2GB and the emulator-runner action re-downloads
+      # it on every run (~95s, twice when the AVD snapshot also misses).
+      # sdkmanager treats an already-installed current revision as a no-op.
+      - name: Cache Android system image
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.ANDROID_SDK_DIR }}/system-images/android-34
+          key: android-system-image-v1-android-34-default-x86_64
+
+      # AVD snapshot caching per the emulator-runner README: a cold run
+      # generates the snapshot once; warm runs boot from it in seconds.
+      - name: Cache AVD snapshot
+        uses: actions/cache@v6
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-v4-34-x86_64-default
+
+      - name: Create AVD snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: default
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          # Baked into the snapshot: the software-GPU emulator stalls Pixel
+          # Launcher during boot/snapshot restore and its ANR dialog ("Pixel
+          # Launcher isn't responding") then covers the app - Maestro's
+          # hierarchy only sees the dialog and every flow times out. Setting
+          # it right before Maestro is too late for an ANR already queued.
+          script: |
+            adb shell settings put global hide_error_dialogs 1
+            adb shell settings put secure anr_show_background 0
+            echo "Generated AVD snapshot for caching (error dialogs hidden)."
+
+      - name: Wait for Metro + prewarm bundle
+        run: bash scripts/e2e/metro-wait.sh android
+
+      - name: Run Maestro tests on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        # Normal is ~2 min (102-124s over the last 9 green jobs). Backstop
+        # above the 10 min suite bound inside maestro-bound.sh; that inner
+        # bound is the one that keeps logcat, this one kills the script (#41).
+        timeout-minutes: 12
+        env:
+          # Same reason as the iOS job: Maestro gives its instrumentation
+          # driver 15s by default to come up, and a cold runner can take
+          # longer to install + start it (every flow then fails in 0s with
+          # "Not able to reach the gRPC server"). The action passes job env
+          # through to `script`. 5 min: ~2.5x the slowest green step, and a
+          # starved driver then fails with Maestro's own message before the
+          # script's 10 min suite bound trips (#41).
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '300000'
+        with:
+          api-level: 34
+          arch: x86_64
+          # AOSP image on purpose, not google_apis: the demo app has no Play
+          # Services dependency (system WebView only), and the Google image's
+          # ~15 Google apps + gms saturated the 2-core software-GPU guest right
+          # after the snapshot restore (gms ANRs, YouTube/Gmail/Chrome being
+          # killed for binder traffic) - which is when Maestro installs its
+          # driver. Every flaky failure signature (driver gRPC UNAVAILABLE,
+          # app-launch never rendering, WebView asserts timing out) was that
+          # starvation. Stays on the default 2 cores: 4 on a 4-vCPU runner
+          # that also hosts Metro, the backend and Postgres starved the guest
+          # even worse.
+          target: default
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # One line only: the action runs each script line as its own `sh -c`
+          script: bash scripts/e2e/android-maestro.sh
+
+      - name: Upload Maestro test results
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: maestro-results-android
+          path: |
+            ~/.maestro/tests/
+            ${{ runner.temp }}/android-logs/
+            ${{ runner.temp }}/metro.log
+            ${{ runner.temp }}/backend.log
+          retention-days: 7

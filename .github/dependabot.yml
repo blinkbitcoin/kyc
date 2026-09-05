@@ -1,0 +1,42 @@
+# Keeps the major-tag-pinned actions (@v4 etc.) current without SHA-pinning
+# maintenance burden - PRs arrive when actions release new majors.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci # -> "ci(deps): bump ..." (Conventional Commits)
+      include: scope
+    groups:
+      actions:
+        patterns: ['*']
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore # -> "chore(deps): bump ..." / "chore(deps-dev): ..."
+      include: scope
+    groups:
+      npm-minor-patch:
+        update-types: ['minor', 'patch']
+    open-pull-requests-limit: 5
+    ignore:
+      # Ecosystem-blocked majors - remove when the platform catches up:
+      # RN preset peers eslint ^8||^9; RN 0.86 is a Babel 7 toolchain
+      - dependency-name: eslint
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@babel/preset-typescript'
+        update-types: ['version-update:semver-major']
+      # typescript-eslint peers typescript <6.1; TS 7 is the native compiler
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # React Native minors are framework upgrades (Gradle wrapper, Podfile,
+      # codegen headers, template changes) - done deliberately with the
+      # upgrade helper, not as a dependency bump. Patches still flow.
+      - dependency-name: react-native
+        update-types: ['version-update:semver-minor', 'version-update:semver-major']
+      - dependency-name: '@react-native/*'
+        update-types: ['version-update:semver-minor', 'version-update:semver-major']
