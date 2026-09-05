@@ -8,12 +8,11 @@ import { getUserIdFromAuthHeader } from './auth';
 import { getAllowedOrigins } from './config';
 import { resolvers, typeDefs } from './schema';
 import { setActiveSpanAttributes } from './tracing';
+import type { GraphQLContext } from './types';
+
+export type { GraphQLContext };
 
 const BODY_LIMIT = '64kb';
-
-export interface GraphQLContext {
-  userId: string | null;
-}
 
 const isProduction = (): boolean => process.env.NODE_ENV === 'production';
 

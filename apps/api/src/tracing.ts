@@ -9,6 +9,8 @@
 
 import type { Attributes, Span } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
+import type { VerificationProvider } from './providers/port';
+import type { CreateSessionOptions, TokenSubject } from './types';
 
 const recordFailure = (span: Span, error: unknown): void => {
   span.recordException(error instanceof Error ? error : String(error));
@@ -53,3 +55,65 @@ export const withSpanSync = <T>(name: string, attributes: Attributes, fn: (span:
 export const setActiveSpanAttributes = (attributes: Attributes): void => {
   trace.getActiveSpan()?.setAttributes(attributes);
 };
+
+/**
+ * Wrap a provider so every call is a span.
+ *
+ * PII discipline: the attributes are the provider name, our own user id,
+ * the platform and the resulting status/verification booleans. Provider
+ * applicant ids are NOT recorded - they identify a natural person at the
+ * provider, and the session id (set on the active span by the resolvers via
+ * setActiveSpanAttributes) is enough to correlate.
+ */
+export const instrumentProvider = (
+  provider: VerificationProvider,
+  name: string
+): VerificationProvider => ({
+  ...(provider.getStatusByUserId && {
+    getStatusByUserId: (userId: string) =>
+      withSpan(
+        'kyc.provider.get_status_by_user_id',
+        { 'kyc.provider': name, 'enduser.id': userId },
+        async (span) => {
+          const status = await provider.getStatusByUserId!(userId);
+          span.setAttribute('kyc.status', status);
+          return status;
+        }
+      ),
+  }),
+
+  createSession: (userId: string, opts: CreateSessionOptions) =>
+    withSpan(
+      'kyc.provider.create_session',
+      { 'kyc.provider': name, 'enduser.id': userId, 'kyc.platform': opts.platform },
+      () => provider.createSession(userId, opts)
+    ),
+
+  refreshToken: (subject: TokenSubject, opts: CreateSessionOptions) =>
+    withSpan(
+      'kyc.provider.refresh_token',
+      { 'kyc.provider': name, 'enduser.id': subject.userId, 'kyc.platform': opts.platform },
+      () => provider.refreshToken(subject, opts)
+    ),
+
+  getStatus: (providerApplicantId: string) =>
+    withSpan('kyc.provider.get_status', { 'kyc.provider': name }, async (span) => {
+      const status = await provider.getStatus(providerApplicantId);
+      span.setAttribute('kyc.status', status);
+      return status;
+    }),
+
+  verifyWebhook: (headers, rawBody, ip) =>
+    withSpanSync('kyc.provider.verify_webhook', { 'kyc.provider': name }, (span) => {
+      const verified = provider.verifyWebhook(headers, rawBody, ip);
+      span.setAttribute('kyc.webhook.verified', verified);
+      return verified;
+    }),
+
+  parseWebhookEvent: (rawBody) =>
+    withSpanSync('kyc.provider.parse_webhook_event', { 'kyc.provider': name }, (span) => {
+      const event = provider.parseWebhookEvent(rawBody);
+      span.setAttribute('kyc.webhook.malformed', event === null);
+      return event;
+    }),
+});
