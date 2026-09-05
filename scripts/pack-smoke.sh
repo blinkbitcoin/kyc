@@ -21,16 +21,27 @@ const assert = require('node:assert');
 const hosted = require('@blinkbitcoin/kyc-core/hosted');
 assert.equal(typeof hosted.isLaunchable, 'function');
 assert.equal(typeof hosted.isTokenRefreshable, 'function');
+assert.equal(typeof hosted.createHostedSource, 'function');
+assert.equal(typeof hosted.interpretBridgeMessage, 'function');
+assert.equal(typeof hosted.getErrorMessage, 'function');
+const testing = require('@blinkbitcoin/kyc-core/testing');
+assert.equal(typeof testing.createFakeLaunchableSource, 'function');
 let apolloInstalled = false;
 try { require.resolve('@apollo/client'); apolloInstalled = true; } catch {}
 assert.equal(apolloInstalled, false, '@apollo/client must NOT be installed for hosted-only use');
 const loaded = Object.keys(require.cache).filter((f) => /node_modules[\\/](@apollo|graphql)/.test(f));
-assert.deepEqual(loaded, [], '/hosted must not load Apollo or graphql');
-console.log('pack smoke: /hosted resolves Apollo-free');
+assert.deepEqual(loaded, [], '/hosted and /testing must not load Apollo or graphql');
+// The FULL entry needs the optional Apollo peers - without them installed it
+// must fail loudly at require-time (that boundary is the reason /hosted
+// exists). If this ever starts succeeding, the optional-peer contract broke.
+let fullLoaded = false;
+try { require('@blinkbitcoin/kyc-core'); fullLoaded = true; } catch {}
+assert.equal(fullLoaded, false, 'full entry must require the Apollo peers');
+console.log('pack smoke: /hosted + /testing resolve Apollo-free; full entry correctly needs Apollo');
 NODE
 NODE_OPTIONS="" node --input-type=module -e "
-import { isLaunchable } from '@blinkbitcoin/kyc-core/hosted';
-if (typeof isLaunchable !== 'function') process.exit(1);
+import { createHostedSource } from '@blinkbitcoin/kyc-core/hosted';
+if (typeof createHostedSource !== 'function') process.exit(1);
 console.log('pack smoke: ESM import of /hosted works');
 "
 echo "PACK SMOKE PASSED"

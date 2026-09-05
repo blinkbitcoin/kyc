@@ -14,7 +14,7 @@ pipeline is green; the verification flow lands phase by phase (see
 | Workspace | Path | Role |
 |-----------|------|------|
 | `backend` | `apps/api/` | Express 5 + Apollo Server 5 GraphQL API, Knex/PostgreSQL; `health` query + the `ErrorCode` wire contract today, provider adapters (Sumsub/mock) + webhooks + hosted page land in later phases |
-| `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: `VerificationSource` + capability guards, bridge protocol, `ErrorCode` contract (no React/DOM) |
+| `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: `VerificationSource` + capability guards, `kyc-bridge` protocol, hosted + proxy sources, Apollo client factory, GraphQL operations, `ErrorCode` contract (no React/DOM). Entries: `.`, `/hosted` (Apollo-free), `/testing` (fake source) |
 | `@blinkbitcoin/kyc-sumsub` | `packages/kyc-sumsub/` | Sumsub adapters: shared mapping + `/react-native` + `/web` entries |
 | `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `Verification` component + `useVerification` (hardened WebView for hosted mode) over core |
 | `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Publishable React **web** library: `Verification` component + `useVerification` (iframe for hosted mode) over core |
@@ -80,9 +80,11 @@ npm run migrate              # Knex migrations (TS, run via tsx)
 npm run migrate:test         # Same against the .env.test database
 ```
 
-- Today the API exposes only `/health` and `/graphql` (a `health` query and
-  the `ErrorCode` wire contract) - session creation, the Sumsub adapter,
-  the webhook, and the hosted page land phase by phase (see
+- The API's SDL carries the verification-session contract
+  (`verificationSessionStart`, `verificationSessionRefresh`,
+  `verificationSession`) plus the `ErrorCode` wire contract; only `health` has
+  a resolver today - session creation, the Sumsub adapter, the webhook and the
+  hosted page land phase by phase (see
   [the design](docs/superpowers/specs/2026-09-05-kyc-design.md)).
 - The wire contract is the `ErrorCode` enum in `apps/api/schema.graphql`
   (emitted from `src/typeDefs.ts`). After schema changes run `make codegen`;
@@ -105,7 +107,8 @@ npm run migrate:test         # Same against the .env.test database
   Sumsub's sources live in `@blinkbitcoin/kyc-sumsub`. Add a provider = a
   new `VerificationSource`; the component never changes.
 - The platform-agnostic code (the `VerificationSource` abstraction + guards,
-  the bridge protocol, the `ErrorCode` contract + generated types) lives in
+  the `kyc-bridge` protocol, `createHostedSource` / `createProxySource`, the
+  Apollo client factory, the `ErrorCode` contract + generated types) lives in
   **`@blinkbitcoin/kyc-core`** (`packages/kyc-core/`), depended on by the
   Sumsub, RN and web packages. Codegen runs in core
   (`packages/kyc-core/src/generated/`); never hand-edit or duplicate the

@@ -87,4 +87,13 @@ describe('hosted entry (Apollo-free guarantee)', () => {
     );
     expect(offenders).toEqual([]);
   });
+
+  it('the full index DOES reach Apollo (sanity check that the walker works)', () => {
+    const { externals } = collectImportGraph(
+      path.join(SRC, 'index.ts'),
+      '@blinkbitcoin/kyc-core',
+      SRC,
+    );
+    expect(externals.some(spec => spec.startsWith('@apollo/'))).toBe(true);
+  });
 });

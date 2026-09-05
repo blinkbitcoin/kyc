@@ -22,7 +22,7 @@ lands phase by phase (see [the design](docs/superpowers/specs/2026-09-05-kyc-des
 ```
 ├── apps/api/                    # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres)
 ├── packages/
-│   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, bridge protocol, ErrorCode
+│   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode
 │   ├── kyc-sumsub/               # 📦 Sumsub adapters: shared mapping, /react-native (native SDK), /web (web SDK)
 │   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (`Verification` component + `useVerification`, hardened WebView for hosted mode)
 │   └── kyc-react/               # 📦 THE PRODUCT - web (`Verification` component + `useVerification`, iframe for hosted mode)
@@ -77,7 +77,13 @@ Underlying npm scripts (`npm test`, `npm run typecheck`, `npm run lint`,
 - GraphQL error codes are a wire contract: the `ErrorCode` enum in
   `apps/api/schema.graphql` (emitted from `src/typeDefs.ts`) and the generated
   client types in `packages/kyc-core/src/generated/` - run `make codegen`
-  after schema changes; drift fails tests and a CI step
+  after schema changes; drift fails tests and a CI step. Client-only codes
+  (`NETWORK_ERROR`, `PERMISSION_DENIED`, `SDK_UNAVAILABLE`, `TOKEN_EXPIRED`,
+  `TOKEN_REFRESH_FAILED`, `BRIDGE_PROTOCOL`) live in `ClientErrorCodes` in
+  `packages/kyc-core/src/errors.ts` and must never enter the schema enum
+- `@blinkbitcoin/kyc-core` has three entries: `.` (needs the Apollo peers),
+  `/hosted` and `/testing` (both Apollo-free, enforced by import-graph tests
+  and by `scripts/pack-smoke.sh`)
 - The libraries take no URLs/tokens/platform detection - host apps inject via
   a `VerificationSource` from `@blinkbitcoin/kyc-core` (Sumsub sources come
   from `@blinkbitcoin/kyc-sumsub`); demo wiring lives in `examples/*/src/`.

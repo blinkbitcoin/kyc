@@ -8,8 +8,17 @@ no DOM, no native modules.
 
 | Import | Contents | Needs Apollo? |
 |--------|----------|---------------|
-| `@blinkbitcoin/kyc-core` | Everything | Yes, once the proxy source lands (optional peers) |
-| `@blinkbitcoin/kyc-core/hosted` | Contract types, guards, error codes | **No — Apollo-free by construction** (guard-tested) |
+| `@blinkbitcoin/kyc-core` | Everything below plus `createProxySource`, `createKycApolloClient`, `getApolloErrorCode`, the GraphQL operations and their generated types | Yes — `@apollo/client` + `graphql` (optional peers) |
+| `@blinkbitcoin/kyc-core/hosted` | Contract types + capability guards, the `kyc-bridge` protocol (`interpretBridgeMessage`, `createSetTokenMessage`, `createSetTokenScript`), `createHostedSource`, `getErrorMessage`, `ErrorCodes` / `ClientErrorCodes` | **No — Apollo-free by construction** (guard-tested) |
+| `@blinkbitcoin/kyc-core/testing` | `createFakeLaunchableSource` — a UI-free `LaunchableSource` you script (`outcome`) or drive from buttons (`controller`) | **No** (guard-tested) |
 
-Status: bootstrap. The sources (`createProxySource`, hosted bridge protocol)
-follow in the core phase — see `docs/superpowers/specs/2026-09-05-kyc-design.md`.
+Error codes come from two maps: `ErrorCodes` is the GraphQL wire contract
+generated from `apps/api/schema.graphql`; `ClientErrorCodes` (`NETWORK_ERROR`,
+`PERMISSION_DENIED`, `SDK_UNAVAILABLE`, `TOKEN_EXPIRED`,
+`TOKEN_REFRESH_FAILED`, `BRIDGE_PROTOCOL`) only ever originate on the client
+and never appear in the schema. `getErrorMessage(code, serverMessage?)` covers
+both.
+
+Status: the `Verification` component and `useVerification` hook live in the
+platform packages and land with their phases — see
+`docs/superpowers/specs/2026-09-05-kyc-design.md`.
