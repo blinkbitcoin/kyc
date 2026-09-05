@@ -1,0 +1,15 @@
+# Maestro E2E: launch smoke test - the app boots and the workspace package
+# resolves. Fast-fail signal for broken builds.
+appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android: com.reactnativesandbox
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp
+      - extendedWaitUntil:
+          visible:
+            id: "app-ready"
+          timeout: 60000
+      - assertVisible: "KYC demo"
+      - assertVisible:
+          id: "package-name"
