@@ -11,6 +11,7 @@
 // misreading it. No DOM, no React, no Apollo: this module is part of the
 // Apollo-free ./hosted entry.
 
+import { ClientErrorCodes } from '../errors';
 import { isVerificationStatus } from './types';
 
 import type { VerificationEvent } from './types';
@@ -21,8 +22,12 @@ export const BRIDGE_SOURCE = 'kyc-bridge';
 /** Bump only for a breaking envelope change; older versions are rejected. */
 export const BRIDGE_PROTOCOL_VERSION = 1;
 
-/** Code used when a page reports an error without one of its own. */
-export const BRIDGE_ERROR_CODE = 'BRIDGE_PROTOCOL';
+/**
+ * Code used when a page reports an error without one of its own. Sourced
+ * from `ClientErrorCodes` (errors.ts is Apollo-free, same as this module)
+ * rather than restated as a literal, so the two can never drift apart.
+ */
+export const BRIDGE_ERROR_CODE = ClientErrorCodes.BRIDGE_PROTOCOL;
 
 /** The event types the protocol can carry (the normalized vocabulary). */
 export type BridgeEventType = VerificationEvent['type'];

@@ -144,6 +144,13 @@ export const createFakeLaunchableSource = (
     },
 
     launch(_session, onEvent) {
+      if (resolveLaunch) {
+        return Promise.reject({
+          code: ClientErrorCodes.SDK_UNAVAILABLE,
+          message: 'launch already in progress',
+        } as VerificationSourceError);
+      }
+
       return new Promise<VerificationResult>((resolve, reject) => {
         emit = onEvent;
         resolveLaunch = resolve;

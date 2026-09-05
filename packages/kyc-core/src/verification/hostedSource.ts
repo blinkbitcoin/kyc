@@ -84,9 +84,16 @@ const resolveSession = async (
   };
 };
 
-export const createHostedSource = (
+/** Supplying `refreshToken` makes the returned source a `TokenRefreshableSource`. */
+export function createHostedSource(
+  options: HostedSourceOptions & { refreshToken: HostedRefreshToken },
+): TokenRefreshableSource;
+export function createHostedSource(
   options: HostedSourceOptions,
-): VerificationSource => {
+): VerificationSource;
+export function createHostedSource(
+  options: HostedSourceOptions,
+): VerificationSource {
   const start = (): Promise<VerificationSession> => resolveSession(options);
   const { refreshToken } = options;
 
@@ -104,4 +111,4 @@ export const createHostedSource = (
     interpret: interpretBridgeMessage,
   };
   return source;
-};
+}

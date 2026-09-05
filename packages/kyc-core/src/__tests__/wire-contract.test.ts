@@ -11,7 +11,6 @@ import {
   isKnownErrorCode,
 } from '../errors';
 import { ErrorCode } from '../generated/error-code';
-import { BRIDGE_ERROR_CODE } from '../verification/bridge';
 
 describe('ErrorCodes wire contract', () => {
   it('matches the schema-generated ErrorCode enum exactly', () => {
@@ -48,10 +47,6 @@ describe('ClientErrorCodes', () => {
     for (const [key, value] of Object.entries(ClientErrorCodes)) {
       expect(value).toBe(key);
     }
-  });
-
-  it('agrees with the bridge fallback code', () => {
-    expect(ClientErrorCodes.BRIDGE_PROTOCOL).toBe(BRIDGE_ERROR_CODE);
   });
 
   it('isClientErrorCode recognizes client codes only', () => {

@@ -1,6 +1,8 @@
 import { createHostedSource } from '../hostedSource';
 import { isTokenRefreshable } from '../types';
 
+import type { TokenRefreshableSource, VerificationSource } from '../types';
+
 describe('createHostedSource - static url', () => {
   it('resolves the url with the default provider, deriving allowedOrigin from it', async () => {
     const source = createHostedSource({ url: 'https://api.test/hosted/s-1' });
@@ -179,5 +181,22 @@ describe('createHostedSource - capabilities', () => {
       type: 'cancel',
     });
     expect(source.interpret({ type: 'cancel' })).toBeNull();
+  });
+});
+
+describe('createHostedSource - overload types (compile-time only)', () => {
+  it('types a refreshToken-bearing options object as TokenRefreshableSource', () => {
+    // This assignment is the assertion: it only compiles if the overload
+    // resolves to TokenRefreshableSource, not the base VerificationSource.
+    const refreshable: TokenRefreshableSource = createHostedSource({
+      url: 'https://a.test',
+      refreshToken: async () => 'tok',
+    });
+
+    const plain: VerificationSource = createHostedSource({
+      url: 'https://a.test',
+    });
+    expect(isTokenRefreshable(plain)).toBe(false);
+    expect(isTokenRefreshable(refreshable)).toBe(true);
   });
 });

@@ -121,6 +121,28 @@ describe('createFakeLaunchableSource - scripted outcomes', () => {
   });
 });
 
+describe('createFakeLaunchableSource - concurrent launch', () => {
+  it('rejects a second launch while one is pending, leaving the first intact', async () => {
+    const { events, onEvent } = collect();
+    const source = createFakeLaunchableSource({ outcome: 'manual' });
+    const first = source.launch(session, onEvent);
+
+    await expect(source.launch(session, onEvent)).rejects.toEqual({
+      code: 'SDK_UNAVAILABLE',
+      message: 'launch already in progress',
+    });
+
+    source.controller.approve();
+    await expect(first).resolves.toMatchObject({ status: 'approved' });
+    expect(events).toEqual([
+      { type: 'applicantLoaded', applicantId: 'fake-applicant' },
+      { type: 'submitted' },
+      { type: 'statusChanged', status: 'approved' },
+      { type: 'complete', status: 'approved', applicantId: 'fake-applicant' },
+    ]);
+  });
+});
+
 describe('createFakeLaunchableSource - manual control', () => {
   it('waits for the controller and approves on demand', async () => {
     const { events, onEvent } = collect();

@@ -14,6 +14,11 @@ const SRC = path.resolve(__dirname, '..');
 const IMPORT_RE =
   /(?:import|export)\s+(?:type\s+)?[^'"]*from\s+['"]([^'"]+)['"]/g;
 
+// Matches what IMPORT_RE misses: `import('x')` / `require('x')` calls
+// (dynamic imports, CJS interop) and bare side-effect imports (`import 'x'`).
+const DYNAMIC_IMPORT_RE =
+  /(?:^|[^\w])(?:import|require)\s*\(\s*['"]([^'"]+)['"]\s*\)|^\s*import\s+['"]([^'"]+)['"]/gm;
+
 const resolveRelative = (fromFile: string, spec: string): string | null => {
   const base = path.resolve(path.dirname(fromFile), spec);
   for (const candidate of [
@@ -37,6 +42,30 @@ export const collectImportGraph = (
   const externals = new Set<string>();
   const queue = [entry];
 
+  const visitSpec = (fromFile: string, spec: string): void => {
+    if (spec.startsWith('.')) {
+      const resolved = resolveRelative(fromFile, spec);
+      if (!resolved) {
+        throw new Error(`unresolved import ${spec} from ${fromFile}`);
+      }
+      queue.push(resolved);
+    } else if (spec === selfPackage || spec.startsWith(`${selfPackage}/`)) {
+      // Self-reference to this monorepo package: map onto its src entries
+      const sub =
+        spec === selfPackage ? 'index' : spec.slice(selfPackage.length + 1);
+      const resolved = resolveRelative(
+        path.join(selfSrcDir, 'x.ts'),
+        `./${sub}`,
+      );
+      if (!resolved) {
+        throw new Error(`unresolved import ${spec} from ${fromFile}`);
+      }
+      queue.push(resolved);
+    } else {
+      externals.add(spec);
+    }
+  };
+
   while (queue.length > 0) {
     const file = queue.pop() as string;
     if (seen.has(file)) {
@@ -45,25 +74,12 @@ export const collectImportGraph = (
     seen.add(file);
     const source = fs.readFileSync(file, 'utf8');
     for (const match of source.matchAll(IMPORT_RE)) {
-      const spec = match[1];
-      if (spec.startsWith('.')) {
-        const resolved = resolveRelative(file, spec);
-        if (resolved) {
-          queue.push(resolved);
-        }
-      } else if (spec === selfPackage || spec.startsWith(`${selfPackage}/`)) {
-        // Self-reference to this monorepo package: map onto its src entries
-        const sub =
-          spec === selfPackage ? 'index' : spec.slice(selfPackage.length + 1);
-        const resolved = resolveRelative(
-          path.join(selfSrcDir, 'x.ts'),
-          `./${sub}`,
-        );
-        if (resolved) {
-          queue.push(resolved);
-        }
-      } else {
-        externals.add(spec);
+      visitSpec(file, match[1]);
+    }
+    for (const match of source.matchAll(DYNAMIC_IMPORT_RE)) {
+      const spec = match[1] ?? match[2];
+      if (spec) {
+        visitSpec(file, spec);
       }
     }
   }

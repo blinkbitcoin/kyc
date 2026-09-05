@@ -21,6 +21,11 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
 //   package only re-exports the three Enum/Input types operations.ts
 //   consumes, and typescript-operations emits exactly those on its own.
 // - src/generated/error-code.ts: the runtime ErrorCode enum (wire contract).
+//   `onlyEnums` also makes this plugin emit the schema's other two enums,
+//   VerificationPlatform and VerificationStatus, into this same file - they
+//   are NOT part of this package's public API (only ErrorCode is exported
+//   from here); the string-union versions consumers actually see live in
+//   generated/graphql.ts (via `enumsAsTypes` above).
 const config: CodegenConfig = {
   schema: '../../apps/api/schema.graphql',
   documents: ['src/operations.ts'],
