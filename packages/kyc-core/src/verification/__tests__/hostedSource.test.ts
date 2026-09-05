@@ -1,0 +1,144 @@
+import { createHostedSource } from '../hostedSource';
+import { isTokenRefreshable } from '../types';
+
+describe('createHostedSource - static url', () => {
+  it('resolves the url with the default provider', async () => {
+    const source = createHostedSource({ url: 'https://api.test/hosted/s-1' });
+
+    await expect(source.start()).resolves.toEqual({
+      provider: 'hosted',
+      url: 'https://api.test/hosted/s-1',
+      allowedOrigin: undefined,
+    });
+  });
+
+  it('carries the origin pin and a custom provider name', async () => {
+    const source = createHostedSource({
+      url: 'https://api.test/hosted/s-1',
+      allowedOrigin: 'https://api.test',
+      provider: 'sumsub',
+    });
+
+    await expect(source.start()).resolves.toEqual({
+      provider: 'sumsub',
+      url: 'https://api.test/hosted/s-1',
+      allowedOrigin: 'https://api.test',
+    });
+  });
+});
+
+describe('createHostedSource - getSession', () => {
+  it('awaits the host callback and keeps the session it returns', async () => {
+    const source = createHostedSource({
+      getSession: async () => ({
+        provider: 'sumsub',
+        sessionId: 's-1',
+        url: 'https://api.test/hosted/s-1',
+        allowedOrigin: 'https://api.test',
+        applicantId: 'a-1',
+      }),
+    });
+
+    await expect(source.start()).resolves.toEqual({
+      provider: 'sumsub',
+      sessionId: 's-1',
+      url: 'https://api.test/hosted/s-1',
+      allowedOrigin: 'https://api.test',
+      applicantId: 'a-1',
+    });
+  });
+
+  it('accepts a synchronous callback and falls back to the configured origin', async () => {
+    const source = createHostedSource({
+      allowedOrigin: 'https://api.test',
+      getSession: () => ({
+        provider: 'mock',
+        url: 'https://api.test/hosted/s-2',
+      }),
+    });
+
+    await expect(source.start()).resolves.toEqual({
+      provider: 'mock',
+      url: 'https://api.test/hosted/s-2',
+      allowedOrigin: 'https://api.test',
+    });
+  });
+
+  it('prefers getSession over a configured url', async () => {
+    const source = createHostedSource({
+      url: 'https://api.test/unused',
+      getSession: () => ({ provider: 'mock', url: 'https://api.test/used' }),
+    });
+
+    await expect(source.start()).resolves.toMatchObject({
+      url: 'https://api.test/used',
+    });
+  });
+
+  it('rejects when the callback returns a session without a url', async () => {
+    const source = createHostedSource({
+      getSession: () => ({ provider: 'mock' }),
+    });
+
+    await expect(source.start()).rejects.toEqual({
+      code: 'VALIDATION_ERROR',
+      message: 'getSession() returned a session without a url',
+    });
+  });
+
+  it('propagates a rejection from the callback unchanged', async () => {
+    const failure = { code: 'UNAUTHORIZED' };
+    const source = createHostedSource({
+      getSession: () => Promise.reject(failure),
+    });
+
+    await expect(source.start()).rejects.toBe(failure);
+  });
+});
+
+describe('createHostedSource - misconfiguration', () => {
+  it('rejects when neither url nor getSession is given', async () => {
+    const source = createHostedSource({});
+
+    await expect(source.start()).rejects.toEqual({
+      code: 'VALIDATION_ERROR',
+      message:
+        'createHostedSource requires either a url or a getSession callback',
+    });
+  });
+});
+
+describe('createHostedSource - capabilities', () => {
+  it('is not token refreshable by default', () => {
+    expect(
+      isTokenRefreshable(createHostedSource({ url: 'https://a.test' })),
+    ).toBe(false);
+  });
+
+  it('is token refreshable when a refreshToken callback is given', async () => {
+    const refreshToken = jest.fn().mockResolvedValue('tok-2');
+    const source = createHostedSource({ url: 'https://a.test', refreshToken });
+
+    expect(isTokenRefreshable(source)).toBe(true);
+    if (isTokenRefreshable(source)) {
+      await expect(
+        source.refreshToken({ provider: 'mock', sessionId: 's-1' }),
+      ).resolves.toBe('tok-2');
+    }
+    expect(refreshToken).toHaveBeenCalledWith({
+      provider: 'mock',
+      sessionId: 's-1',
+    });
+  });
+
+  it('interprets bridge messages and ignores everything else', () => {
+    const source = createHostedSource({ url: 'https://a.test' });
+
+    expect(
+      source.interpret({ source: 'kyc-bridge', v: 1, type: 'cancel' }),
+    ).toEqual({
+      type: 'cancel',
+    });
+    expect(source.interpret({ type: 'cancel' })).toBeNull();
+  });
+});

@@ -31,3 +31,10 @@ export type {
 } from './bridge';
 
 export { getErrorMessage } from './messages';
+
+export { createHostedSource } from './hostedSource';
+export type {
+  HostedRefreshToken,
+  HostedSessionProvider,
+  HostedSourceOptions,
+} from './hostedSource';
