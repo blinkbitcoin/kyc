@@ -27,6 +27,17 @@
         "default": "./dist/hosted.cjs"
       }
     },
+    "./testing": {
+      "react-native": "./src/testing.ts",
+      "import": {
+        "types": "./dist/testing.d.mts",
+        "default": "./dist/testing.mjs"
+      },
+      "require": {
+        "types": "./dist/testing.d.ts",
+        "default": "./dist/testing.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": ["src", "dist", "!**/__tests__"],
