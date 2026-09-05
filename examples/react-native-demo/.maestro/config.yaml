@@ -1,5 +1,6 @@
 # Maestro workspace config. app-launch is the boot smoke and, once more flows
-# exist, the ONLY flow that launches the app (see esign for the rationale).
+# exist, the ONLY flow that launches the app (subsequent flows reset via the
+# demo's UI instead of relaunching, to keep the suite fast).
 executionOrder:
   flowsOrder:
     - app-launch

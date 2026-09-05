@@ -31,7 +31,7 @@ name: CI
 #     green - so `make release` is fire-and-forget.
 #   - Prerelease (`next` dist-tag): every push to main (or a manual
 #     dispatch) ships <next-patch-after-latest-tag>-pre.<run>.<sha>.
-#   Either way the three packages get the same version and the platform
+#   Either way the four packages get the same version and the platform
 #   packages pin core to exactly that version (the only range that also
 #   works for prereleases).
 #
@@ -212,18 +212,23 @@ jobs:
       - name: Build (core first - the platform packages need its dist)
         run: npm run build
 
-      - name: Publish @blinkbitcoin/esign-core
-        run: npm publish -w packages/esign-core --tag ${{ steps.ver.outputs.disttag }}
+      - name: Publish @blinkbitcoin/kyc-core
+        run: npm publish -w packages/kyc-core --tag ${{ steps.ver.outputs.disttag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish @blinkbitcoin/esign-react-native
-        run: npm publish -w packages/esign-react-native --tag ${{ steps.ver.outputs.disttag }}
+      - name: Publish @blinkbitcoin/kyc-sumsub
+        run: npm publish -w packages/kyc-sumsub --tag ${{ steps.ver.outputs.disttag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish @blinkbitcoin/esign-react
-        run: npm publish -w packages/esign-react --tag ${{ steps.ver.outputs.disttag }}
+      - name: Publish @blinkbitcoin/kyc-react-native
+        run: npm publish -w packages/kyc-react-native --tag ${{ steps.ver.outputs.disttag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish @blinkbitcoin/kyc-react
+        run: npm publish -w packages/kyc-react --tag ${{ steps.ver.outputs.disttag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -249,7 +254,7 @@ jobs:
       # it were required. Nothing in the tarball can change that (it has the
       # field; pack-smoke.sh proves the tarball itself is right). So the
       # contract asserted here is the one the registry can deliver:
-      #   1. a default install still never LOADS Apollo through /webform
+      #   1. a default install still never LOADS Apollo through /hosted
       #   2. `--omit=peer` yields the documented Apollo-free install
       - name: Checkout code (for scripts/release)
         uses: actions/checkout@v7

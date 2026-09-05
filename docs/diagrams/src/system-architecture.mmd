@@ -1,0 +1,22 @@
+flowchart TB
+  subgraph host["Your app"]
+    RN["@blinkbitcoin/kyc-react-native<br/>Verification + useVerification"]
+    WEB["@blinkbitcoin/kyc-react<br/>Verification + useVerification"]
+  end
+  CORE["@blinkbitcoin/kyc-core<br/>VerificationSource + guards + bridge + ErrorCode"]
+  SUMSUB["@blinkbitcoin/kyc-sumsub<br/>mapping · /react-native · /web"]
+  API["apps/api<br/>VerificationProvider port · mock · sumsub<br/>/graphql · /webhook/kyc/:provider · /hosted/:sessionId"]
+  PROVIDER["Sumsub"]
+  RN --> CORE
+  WEB --> CORE
+  RN -- "mode 1: native SDK" --> SUMSUB
+  WEB -- "mode 1: web SDK (follow-up)" --> SUMSUB
+  RN -- "mode 2: hosted page (WebView)" --> API
+  WEB -- "mode 2: hosted page (iframe)" --> API
+  RN -- "mode 3: proxy (Apollo)" --> API
+  WEB -- "mode 3: proxy (Apollo)" --> API
+  SUMSUB --> PROVIDER
+  API --> SUMSUB
+  API --> PROVIDER
+  style CORE fill:#e7f5ff
+  style API fill:#fff3bf

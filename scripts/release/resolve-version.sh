@@ -34,11 +34,11 @@ else
 fi
 
 if [ -z "${DRY_RUN:-}" ]; then
-  for p in packages/esign-core packages/esign-react-native packages/esign-react; do
+  for p in packages/kyc-core packages/kyc-sumsub packages/kyc-react-native packages/kyc-react; do
     (cd "$p" && npm pkg set version="$VERSION")
   done
-  for p in packages/esign-react-native packages/esign-react; do
-    (cd "$p" && npm pkg set "dependencies.@blinkbitcoin/esign-core=$VERSION")
+  for p in packages/kyc-sumsub packages/kyc-react-native packages/kyc-react; do
+    (cd "$p" && npm pkg set "dependencies.@blinkbitcoin/kyc-core=$VERSION")
   done
 fi
 { echo "version=$VERSION"; echo "disttag=$DISTTAG"; } >> "$OUT"

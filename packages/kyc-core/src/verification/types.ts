@@ -78,7 +78,7 @@ export interface LaunchableSource extends VerificationSource {
   ): Promise<VerificationResult>;
 }
 
-/** Capability checks - structural, like esign's isRestartable. */
+/** Capability checks - structural (duck-typed), not nominal. */
 export const isTokenRefreshable = (
   source: VerificationSource,
 ): source is TokenRefreshableSource =>

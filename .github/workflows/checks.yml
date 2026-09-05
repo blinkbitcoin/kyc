@@ -104,7 +104,7 @@ jobs:
       - name: Package shape (publint + arethetypeswrong)
         run: npm run check:packages
 
-      - name: Pack + install smoke (webform Apollo-free boundary)
+      - name: Pack + install smoke (hosted Apollo-free boundary)
         run: bash scripts/pack-smoke.sh
 
   # Conventional Commits on the PR's commits and its title (squash merges take

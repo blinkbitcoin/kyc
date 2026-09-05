@@ -2,7 +2,7 @@
 // docs/diagrams/src/*.mmd. The .mmd files are canonical (editable /
 // individually renderable); the combined page embeds the pre-rendered
 // docs/diagrams/dist/*.svg (rendered by `make diagrams` via mermaid-cli) so
-// it loads instantly on GitHub instead of booting eight mermaid iframes.
+// it loads instantly on GitHub instead of booting a mermaid iframe.
 // Run `make diagrams` after editing a source. CI fails on drift (see
 // test.yml); a missing SVG fails the assembly here.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -21,16 +21,10 @@ const SECTIONS = [
     file: 'system-architecture.mmd',
     title: 'System Architecture',
     outro:
-      'The public-URL mode needs no backend at all; Apollo/GraphQL is loaded only\n' +
-      'by the proxy source (the `/webform` package entries never reach it).',
+      'Mode 1 runs the provider SDK in-process (host supplies the access token);\n' +
+      'mode 2 embeds a hosted page speaking the `kyc-bridge` protocol; mode 3 adds\n' +
+      'the proxy GraphQL session on `apps/api`. Only the proxy source loads Apollo.',
   },
-  { file: 'data-flow-proxy.mmd', title: 'Data Flow Diagram (proxy mode)' },
-  { file: 'signing-flow.mmd', title: 'Signing Flow Process' },
-  { file: 'database-erd.mmd', title: 'Database ERD' },
-  { file: 'component-hierarchy.mmd', title: 'Component Hierarchy' },
-  { file: 'webhook-flow.mmd', title: 'Webhook Flow' },
-  { file: 'graphql-request-flow.mmd', title: 'GraphQL Request Flow' },
-  { file: 'webforms-flow.mmd', title: 'Web Forms Mode Flow' },
 ];
 
 const blocks = SECTIONS.map(({ file, title, outro }) => {

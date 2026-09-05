@@ -1,6 +1,6 @@
 // Renders the README coverage badge from measured numbers instead of a
 // hardcoded shields.io URL. Aggregates line coverage across the workspaces
-// that enforce 100% (the three publishable packages + the backend) by
+// that enforce 100% (the four publishable packages + the backend) by
 // reading the `json-summary` reporter output each of them emits under
 // `<workspace>/coverage/coverage-summary.json`. The demo apps are excluded
 // on purpose: they carry floors, not 100%, and their real coverage is E2E.
@@ -36,9 +36,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 // Single source of truth for "what the badge measures".
 const WORKSPACES = [
-  'packages/esign-core',
-  'packages/esign-react-native',
-  'packages/esign-react',
+  'packages/kyc-core',
+  'packages/kyc-sumsub',
+  'packages/kyc-react-native',
+  'packages/kyc-react',
   'apps/api',
 ];
 
@@ -148,10 +149,10 @@ function writeReport({ message, detail, rows }) {
     process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || 'local';
   writeFileSync(
     join(REPORT_DIR, 'index.html'),
-    `<!doctype html><meta charset="utf-8"><title>esign coverage ${esc(message)}</title>
+    `<!doctype html><meta charset="utf-8"><title>kyc coverage ${esc(message)}</title>
 <style>body{font:14px/1.5 system-ui,sans-serif;margin:2rem auto;max-width:60rem;padding:0 1rem}table{border-collapse:collapse;width:100%}th,td{padding:.4rem .6rem;border-bottom:1px solid #ddd;text-align:left}th.n,td.n{text-align:right}.muted{color:#777}h1 small{font-weight:normal;color:#777}</style>
 <h1>Coverage ${esc(message)} <small>${esc(detail)} - ${esc(branch)} @ ${esc(sha)}</small></h1>
-<p>Line coverage aggregated over the workspaces that enforce 100% (the three publishable packages and the backend). Demo apps are excluded. Click a workspace for its file-level report.</p>
+<p>Line coverage aggregated over the workspaces that enforce 100% (the four publishable packages and the backend). Demo apps are excluded. Click a workspace for its file-level report.</p>
 <table><thead><tr><th>Workspace</th><th class="n" colspan="2">Lines</th><th class="n" colspan="2">Statements</th><th class="n" colspan="2">Branches</th><th class="n" colspan="2">Functions</th></tr></thead>
 <tbody>${body}</tbody></table>
 `,
