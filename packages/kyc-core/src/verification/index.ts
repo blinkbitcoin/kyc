@@ -29,3 +29,5 @@ export type {
   BridgeMessage,
   BridgeSetTokenMessage,
 } from './bridge';
+
+export { getErrorMessage } from './messages';
