@@ -21,8 +21,21 @@ export const validateSecurityConfig = (env: NodeJS.ProcessEnv = process.env): vo
     missing.push('JWT_SECRET (or set ALLOW_INSECURE_DEV=true for local dev)');
   }
 
-  if ((env.KYC_PROVIDER ?? 'mock') === 'sumsub' && !env.SUMSUB_WEBHOOK_SECRET) {
-    missing.push('SUMSUB_WEBHOOK_SECRET (or set ALLOW_INSECURE_DEV=true for local dev)');
+  if ((env.KYC_PROVIDER ?? 'mock') === 'sumsub') {
+    // The adapter cannot mint a token or verify a webhook without all three.
+    for (const name of ['SUMSUB_APP_TOKEN', 'SUMSUB_SECRET_KEY', 'SUMSUB_WEBHOOK_SECRET']) {
+      if (!env[name]) {
+        missing.push(`${name} (or set ALLOW_INSECURE_DEV=true for local dev)`);
+      }
+    }
+  }
+
+  if (env.PUBLIC_BASE_URL) {
+    try {
+      new URL(env.PUBLIC_BASE_URL);
+    } catch {
+      missing.push(`PUBLIC_BASE_URL must be an absolute URL (got "${env.PUBLIC_BASE_URL}")`);
+    }
   }
 
   if (missing.length > 0) {
@@ -37,3 +50,23 @@ export const getAllowedOrigins = (env: NodeJS.ProcessEnv = process.env): string[
     .split(',')
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0);
+
+export const PUBLIC_BASE_URL_DEFAULT = 'http://localhost:4000';
+
+/** Base URL this backend is reachable at, without a trailing slash. */
+export const getPublicBaseUrl = (env: NodeJS.ProcessEnv = process.env): string =>
+  (env.PUBLIC_BASE_URL || PUBLIC_BASE_URL_DEFAULT).replace(/\/+$/, '');
+
+/**
+ * Origin of the hosted page, handed to clients as `allowedOrigin` so they can
+ * pin postMessage. Falls back to the raw base URL if it is unparseable -
+ * validateSecurityConfig refuses to boot in that case anyway.
+ */
+export const getPublicOrigin = (env: NodeJS.ProcessEnv = process.env): string => {
+  const base = getPublicBaseUrl(env);
+  try {
+    return new URL(base).origin;
+  } catch {
+    return base;
+  }
+};

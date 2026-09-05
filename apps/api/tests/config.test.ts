@@ -4,6 +4,8 @@ import { vi } from 'vitest';
 
 import {
   getAllowedOrigins,
+  getPublicBaseUrl,
+  getPublicOrigin,
   isInsecureDevAllowed,
   isJwtRequired,
   isWebhookSignatureRequired,
@@ -45,18 +47,20 @@ describe('validateSecurityConfig', () => {
     expect(() => validateSecurityConfig({ JWT_SECRET: 's' })).not.toThrow();
   });
 
-  it('requires SUMSUB_WEBHOOK_SECRET when the provider is sumsub', () => {
+  it('requires all three Sumsub credentials when the provider is sumsub', () => {
     expect(() => validateSecurityConfig({ JWT_SECRET: 's', KYC_PROVIDER: 'sumsub' })).toThrow(
-      /SUMSUB_WEBHOOK_SECRET/
+      /SUMSUB_APP_TOKEN.*SUMSUB_SECRET_KEY.*SUMSUB_WEBHOOK_SECRET/s
     );
   });
 
-  it('passes for sumsub when both secrets are set', () => {
+  it('passes for sumsub when every credential is set', () => {
     expect(() =>
       validateSecurityConfig({
         JWT_SECRET: 's',
         KYC_PROVIDER: 'sumsub',
-        SUMSUB_WEBHOOK_SECRET: 'k',
+        SUMSUB_APP_TOKEN: 'a',
+        SUMSUB_SECRET_KEY: 'b',
+        SUMSUB_WEBHOOK_SECRET: 'c',
       })
     ).not.toThrow();
   });
@@ -70,6 +74,18 @@ describe('validateSecurityConfig', () => {
       /JWT_SECRET.*SUMSUB_WEBHOOK_SECRET/s
     );
   });
+
+  it('rejects an unparseable PUBLIC_BASE_URL', () => {
+    expect(() => validateSecurityConfig({ JWT_SECRET: 's', PUBLIC_BASE_URL: 'not a url' })).toThrow(
+      /PUBLIC_BASE_URL must be an absolute URL/
+    );
+  });
+
+  it('accepts a well-formed PUBLIC_BASE_URL', () => {
+    expect(() =>
+      validateSecurityConfig({ JWT_SECRET: 's', PUBLIC_BASE_URL: 'https://kyc.example.com' })
+    ).not.toThrow();
+  });
 });
 
 describe('getAllowedOrigins', () => {
@@ -81,5 +97,25 @@ describe('getAllowedOrigins', () => {
     expect(getAllowedOrigins({ CORS_ALLOWED_ORIGINS: 'https://a.com, https://b.com ,, ' })).toEqual(
       ['https://a.com', 'https://b.com']
     );
+  });
+});
+
+describe('getPublicBaseUrl / getPublicOrigin', () => {
+  it('defaults to localhost:4000', () => {
+    expect(getPublicBaseUrl({})).toBe('http://localhost:4000');
+    expect(getPublicOrigin({})).toBe('http://localhost:4000');
+  });
+
+  it('strips trailing slashes and reduces to the origin', () => {
+    expect(getPublicBaseUrl({ PUBLIC_BASE_URL: 'https://kyc.example.com/api//' })).toBe(
+      'https://kyc.example.com/api'
+    );
+    expect(getPublicOrigin({ PUBLIC_BASE_URL: 'https://kyc.example.com/api/' })).toBe(
+      'https://kyc.example.com'
+    );
+  });
+
+  it('returns the raw value when it cannot be parsed', () => {
+    expect(getPublicOrigin({ PUBLIC_BASE_URL: 'not a url' })).toBe('not a url');
   });
 });
