@@ -81,6 +81,7 @@ export const createProxySource = (
       return {
         provider: session.provider,
         sessionId: session.sessionId,
+        status: session.status,
         accessToken: session.accessToken ?? undefined,
         url: session.url ?? undefined,
         allowedOrigin: session.allowedOrigin ?? undefined,

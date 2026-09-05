@@ -63,6 +63,7 @@ describe('createProxySource.start', () => {
     await expect(source.start()).resolves.toEqual({
       provider: 'mock',
       sessionId: 's-1',
+      status: 'initial',
       accessToken: 'tok-1',
       url: 'https://api.test/hosted/s-1',
       allowedOrigin: 'https://api.test',
@@ -99,6 +100,7 @@ describe('createProxySource.start', () => {
     await expect(source.start()).resolves.toEqual({
       provider: 'sumsub',
       sessionId: 's-2',
+      status: 'initial',
       accessToken: undefined,
       url: undefined,
       allowedOrigin: undefined,

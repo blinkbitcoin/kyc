@@ -60,6 +60,8 @@ export interface VerificationSession {
   /** Origin to accept postMessage from (hosted mode, defense in depth). */
   allowedOrigin?: string;
   applicantId?: string;
+  /** The applicant's status as of session creation/refresh, when the backend reports it. */
+  status?: VerificationStatus;
 }
 
 /** Terminal outcome handed to onComplete. */
@@ -92,6 +94,13 @@ export interface TokenRefreshableSource extends VerificationSource {
 
 /** Native SDK mode: a source that runs the provider's SDK in-process. */
 export interface LaunchableSource extends VerificationSource {
+  /**
+   * `launch` resolves the terminal `VerificationResult`. A `cancel` event
+   * emitted before resolution means the user aborted; the resolved status
+   * is then advisory (typically `incomplete`). Implementations reject with
+   * a `VerificationSourceError` only for failures, never for user
+   * cancellation.
+   */
   launch(
     session: VerificationSession,
     onEvent: (event: VerificationEvent) => void,

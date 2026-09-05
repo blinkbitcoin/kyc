@@ -47,7 +47,10 @@ export interface FakeLaunchableSourceOptions {
   provider?: string;
 }
 
-/** A cancelled applicant is left incomplete; the cancel event is the signal. */
+/**
+ * A cancelled applicant is left incomplete; the cancel event is the signal,
+ * and this resolved status is advisory only (see `LaunchableSource.launch`).
+ */
 const CANCEL_STATUS: VerificationStatus = 'incomplete';
 
 export const createFakeLaunchableSource = (
