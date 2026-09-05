@@ -1,14 +1,25 @@
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express5';
 import cors from 'cors';
+import crypto from 'crypto';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { getUserIdFromAuthHeader } from './auth';
-import { getAllowedOrigins } from './config';
+import { getAllowedOrigins, getPublicBaseUrl } from './config';
+import { getProviderName, isKnownProvider, provider } from './providers';
+import { signMockWebhook } from './providers/mock';
 import { resolvers, typeDefs } from './schema';
+import { getSessionById } from './session';
 import { setActiveSpanAttributes } from './tracing';
 import type { GraphQLContext } from './types';
+import {
+  PERMISSIONS_POLICY,
+  renderNotFoundPage,
+  renderVerificationPage,
+  verificationPageCsp,
+} from './verificationPages';
+import { handleWebhookEvent } from './webhook';
 
 export type { GraphQLContext };
 
@@ -47,6 +58,138 @@ export const createApp = async (): Promise<express.Express> => {
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
+
+  /**
+   * Send an HTML page with a per-response nonce CSP.
+   *
+   * The app-wide helmet() defaults are right for the JSON API but wrong for
+   * an embeddable page: X-Frame-Options and the cross-origin isolation
+   * headers would stop a host WebView or iframe from loading it, and the
+   * default CSP has no nonce. Both are overridden here, per route.
+   */
+  const sendVerificationPage = (
+    res: express.Response,
+    html: string,
+    nonce: string,
+    providerName: string,
+    status = 200
+  ): void => {
+    res.removeHeader('X-Frame-Options');
+    res.removeHeader('Cross-Origin-Embedder-Policy');
+    res.removeHeader('Cross-Origin-Opener-Policy');
+    res.removeHeader('Cross-Origin-Resource-Policy');
+    res.setHeader('Content-Security-Policy', verificationPageCsp(providerName, nonce));
+    res.setHeader('Permissions-Policy', PERMISSIONS_POLICY);
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(status).type('html').send(html);
+  };
+
+  // The hosted page. The unguessable session id is the capability: the URL
+  // is handed to exactly one client by verificationSessionStart, the page is
+  // never cached, and the token it embeds is minted fresh per render (so a
+  // stale start-time token can never reach the SDK).
+  app.get(
+    '/hosted/:sessionId',
+    makeRateLimiter(60_000, 60),
+    async (req: express.Request, res: express.Response) => {
+      const nonce = crypto.randomBytes(16).toString('base64');
+      const session = await getSessionById(req.params.sessionId as string);
+
+      if (!session || session.provider !== getProviderName()) {
+        sendVerificationPage(res, renderNotFoundPage(nonce), nonce, 'mock', 404);
+        return;
+      }
+
+      let accessToken: string;
+      try {
+        const token = await provider.refreshToken(
+          { userId: session.userId, providerApplicantId: session.providerApplicantId ?? undefined },
+          { platform: session.platform as 'WEB', levelName: session.levelName ?? undefined }
+        );
+        accessToken = token.accessToken;
+      } catch (error) {
+        console.error(
+          'Hosted page token minting failed:',
+          error instanceof Error ? error.message : error
+        );
+        sendVerificationPage(res, renderNotFoundPage(nonce), nonce, session.provider, 502);
+        return;
+      }
+
+      const webhookUrl = `${getPublicBaseUrl()}/webhook/kyc/${session.provider}`;
+      const mockBody = (status: string): string =>
+        JSON.stringify({
+          applicantId: session.providerApplicantId,
+          externalUserId: session.userId,
+          status,
+        });
+
+      sendVerificationPage(
+        res,
+        renderVerificationPage({
+          sessionId: session.id,
+          provider: session.provider,
+          accessToken,
+          applicantId: session.providerApplicantId ?? undefined,
+          nonce,
+          ...(session.provider === 'mock' && {
+            webhooks: {
+              approve: {
+                url: webhookUrl,
+                body: mockBody('approved'),
+                signature: signMockWebhook(mockBody('approved')),
+              },
+              decline: {
+                url: webhookUrl,
+                body: mockBody('declined'),
+                signature: signMockWebhook(mockBody('declined')),
+              },
+            },
+          }),
+        }),
+        nonce,
+        session.provider
+      );
+    }
+  );
+
+  app.post(
+    '/webhook/kyc/:provider',
+    makeRateLimiter(60_000, 120),
+    express.text({ type: 'application/json', limit: BODY_LIMIT }),
+    async (req: express.Request, res: express.Response) => {
+      const providerName = req.params.provider as string;
+      // Only the configured provider may deliver webhooks, so a mock payload
+      // can never drive a Sumsub deployment.
+      if (!isKnownProvider(providerName) || providerName !== getProviderName()) {
+        res.status(404).json({ error: 'Unknown provider' });
+        return;
+      }
+
+      const rawBody = typeof req.body === 'string' ? req.body : '';
+
+      if (!provider.verifyWebhook(req.headers, rawBody, req.ip)) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+
+      const event = provider.parseWebhookEvent(rawBody);
+      if (!event) {
+        console.error('Webhook error: invalid payload');
+        res.status(400).json({ error: 'Invalid payload' });
+        return;
+      }
+
+      try {
+        const outcome = await handleWebhookEvent(event, providerName);
+        res.status(200).json({ received: true, outcome });
+      } catch (error) {
+        console.error('Webhook processing error:', error instanceof Error ? error.message : error);
+        res.status(500).json({ error: 'Processing failed' });
+      }
+    }
+  );
 
   app.use(
     '/graphql',
