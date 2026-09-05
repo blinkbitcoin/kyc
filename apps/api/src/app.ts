@@ -32,7 +32,9 @@ export const createApp = async (): Promise<express.Express> => {
     app.set('trust proxy', 1);
   }
 
-  app.use(helmet({ contentSecurityPolicy: false }));
+  // JSON-only API (no HTML rendered here), so helmet's default CSP applies
+  // unmodified rather than being disabled.
+  app.use(helmet());
 
   const server = new ApolloServer<GraphQLContext>({
     typeDefs,
