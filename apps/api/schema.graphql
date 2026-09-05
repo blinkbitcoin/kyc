@@ -1,0 +1,17 @@
+type Query {
+  health: HealthCheck!
+}
+
+type HealthCheck {
+  status: String!
+  timestamp: String!
+}
+
+enum ErrorCode {
+  UNAUTHORIZED
+  VALIDATION_ERROR
+  PROVIDER_UNAVAILABLE
+  SESSION_NOT_FOUND
+  SESSION_CREATION_FAILED
+  PERSISTENCE_FAILED
+}
