@@ -1,4 +1,9 @@
-import { isLaunchable, isTokenRefreshable } from '../index';
+import {
+  isLaunchable,
+  isTokenRefreshable,
+  isVerificationStatus,
+  VERIFICATION_STATUSES,
+} from '../index';
 import type { VerificationSession, VerificationSource } from '../types';
 
 const session: VerificationSession = { provider: 'mock' };
@@ -30,5 +35,28 @@ describe('isTokenRefreshable', () => {
   it('is true when refreshToken() is a function', () => {
     const refreshable = { ...plain, refreshToken: async () => 'token' };
     expect(isTokenRefreshable(refreshable)).toBe(true);
+  });
+});
+
+describe('isVerificationStatus', () => {
+  it('accepts every status in the vocabulary', () => {
+    expect(VERIFICATION_STATUSES).toEqual([
+      'initial',
+      'incomplete',
+      'pending',
+      'approved',
+      'declined',
+      'finallyRejected',
+    ]);
+    for (const status of VERIFICATION_STATUSES) {
+      expect(isVerificationStatus(status)).toBe(true);
+    }
+  });
+
+  it('rejects anything else', () => {
+    expect(isVerificationStatus('APPROVED')).toBe(false);
+    expect(isVerificationStatus('')).toBe(false);
+    expect(isVerificationStatus(undefined)).toBe(false);
+    expect(isVerificationStatus({ status: 'approved' })).toBe(false);
   });
 });

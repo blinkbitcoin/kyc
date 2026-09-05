@@ -14,6 +14,26 @@ export type VerificationStatus =
   | 'declined'
   | 'finallyRejected';
 
+/**
+ * The runtime companion to VerificationStatus, in lifecycle order. Untrusted
+ * input (bridge messages, provider payloads) is validated against this list.
+ */
+export const VERIFICATION_STATUSES: readonly VerificationStatus[] = [
+  'initial',
+  'incomplete',
+  'pending',
+  'approved',
+  'declined',
+  'finallyRejected',
+] as const;
+
+/** Narrow untrusted input to a normalized status. */
+export const isVerificationStatus = (
+  value: unknown,
+): value is VerificationStatus =>
+  typeof value === 'string' &&
+  (VERIFICATION_STATUSES as readonly string[]).includes(value);
+
 /** Normalized event the component acts on, regardless of provider. */
 export type VerificationEvent =
   | { type: 'applicantLoaded'; applicantId: string }
