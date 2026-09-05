@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "types": ["vitest/globals"],
+    "paths": {
+      "@blinkbitcoin/kyc-react": ["../../packages/kyc-react/src"],
+      "@blinkbitcoin/kyc-core": ["../../packages/kyc-core/src/index.ts"],
+      "@blinkbitcoin/kyc-core/hosted": ["../../packages/kyc-core/src/hosted.ts"]
+    }
+  },
+  "include": ["src", "e2e", "playwright.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}
