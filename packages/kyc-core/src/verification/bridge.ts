@@ -135,7 +135,12 @@ export const createBridgeMessage = (
   ...(payload ? { payload } : {}),
 });
 
-/** Build the app -> page token-refresh message. */
+/**
+ * Build the app -> page token-refresh message for the **postMessage**
+ * contract (web hosts posting into an iframe). The page must check both
+ * `source` and `v` before trusting it - this is the full envelope, not the
+ * bare token the injected-script contract below sends.
+ */
 export const createSetTokenMessage = (
   token: string,
 ): BridgeSetTokenMessage => ({
@@ -145,13 +150,22 @@ export const createSetTokenMessage = (
   token,
 });
 
+/** Escape a JSON-stringified value so it is safe inside a `<script>` tag and an injectJavaScript string. */
+const escapeForScript = (json: string): string =>
+  json
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+
 /**
- * The same message as an injectable snippet for react-native-webview's
- * `injectJavaScript` (web hosts post `createSetTokenMessage` to the frame
- * instead). JSON.stringify does the escaping; the trailing `true;` is what
+ * Build the app -> page token-refresh call for the **injected-script**
+ * contract (react-native-webview's `injectJavaScript`): the page's
+ * `window.__kycBridge.setToken` is called with the bare token string, not
+ * an envelope - there is no `source`/`v` to check here, only the guard for
+ * `__kycBridge` not being defined yet. The trailing `true;` is what
  * injectJavaScript expects as a return value.
  */
 export const createSetTokenScript = (token: string): string =>
-  `window.__kycBridge && window.__kycBridge.setToken(${JSON.stringify(
-    createSetTokenMessage(token),
+  `window.__kycBridge && window.__kycBridge.setToken(${escapeForScript(
+    JSON.stringify(token),
   )});\ntrue;`;

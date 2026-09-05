@@ -41,6 +41,16 @@ export interface HostedSourceOptions {
 
 const DEFAULT_PROVIDER = 'hosted';
 
+/**
+ * Extract the origin (scheme + host + port) from a URL. Used instead of the
+ * DOM `URL` global's `.origin`, which is unreliable on React Native (no
+ * built-in `URL` on Hermes without a polyfill, and polyfilled origins can
+ * differ subtly from the browser's). Returns undefined for anything that is
+ * not a well-formed http(s) URL, rather than throwing.
+ */
+const originOf = (url: string): string | undefined =>
+  /^(https?:\/\/[^/?#]+)/i.exec(url)?.[1];
+
 const resolveSession = async (
   options: HostedSourceOptions,
 ): Promise<VerificationSession> => {
@@ -54,7 +64,8 @@ const resolveSession = async (
     }
     return {
       ...session,
-      allowedOrigin: session.allowedOrigin ?? options.allowedOrigin,
+      allowedOrigin:
+        session.allowedOrigin ?? options.allowedOrigin ?? originOf(session.url),
     };
   }
 
@@ -69,7 +80,7 @@ const resolveSession = async (
   return {
     provider: options.provider ?? DEFAULT_PROVIDER,
     url: options.url,
-    allowedOrigin: options.allowedOrigin,
+    allowedOrigin: options.allowedOrigin ?? originOf(options.url),
   };
 };
 

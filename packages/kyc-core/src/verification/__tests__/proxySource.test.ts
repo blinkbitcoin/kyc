@@ -132,7 +132,7 @@ describe('createProxySource.start', () => {
       platform: 'IOS',
     });
 
-    await expect(source.start()).rejects.toEqual({
+    await expect(source.start()).rejects.toMatchObject({
       code: 'SESSION_CREATION_FAILED',
     });
   });
@@ -143,7 +143,7 @@ describe('createProxySource.start', () => {
       platform: 'IOS',
     });
 
-    await expect(source.start()).rejects.toEqual({
+    await expect(source.start()).rejects.toMatchObject({
       code: 'SESSION_CREATION_FAILED',
       message: 'offline',
     });
@@ -155,9 +155,21 @@ describe('createProxySource.start', () => {
       platform: 'IOS',
     });
 
-    await expect(source.start()).rejects.toEqual({
+    const error = await source.start().catch((e: Error) => e);
+    expect(error).toMatchObject({ code: 'SESSION_CREATION_FAILED' });
+    expect((error as Error).message).toBe('');
+  });
+
+  it('maps a foreign coded error (e.g. DOMException AbortError) to SESSION_CREATION_FAILED, not its own code', async () => {
+    const foreign = Object.assign(new Error('aborted'), { code: 20 });
+    const source = createProxySource({
+      client: mockClient(jest.fn().mockRejectedValue(foreign)),
+      platform: 'IOS',
+    });
+
+    await expect(source.start()).rejects.toMatchObject({
       code: 'SESSION_CREATION_FAILED',
-      message: undefined,
+      message: 'aborted',
     });
   });
 });
@@ -186,7 +198,9 @@ describe('createProxySource.refreshToken', () => {
       platform: 'IOS',
     });
 
-    await expect(source.refreshToken({ provider: 'mock' })).rejects.toEqual({
+    await expect(
+      source.refreshToken({ provider: 'mock' }),
+    ).rejects.toMatchObject({
       code: 'TOKEN_REFRESH_FAILED',
       message: 'the session has no sessionId to refresh',
     });
@@ -200,7 +214,7 @@ describe('createProxySource.refreshToken', () => {
 
     await expect(
       source.refreshToken({ provider: 'mock', sessionId: 's-1' }),
-    ).rejects.toEqual({ code: 'TOKEN_REFRESH_FAILED' });
+    ).rejects.toMatchObject({ code: 'TOKEN_REFRESH_FAILED' });
   });
 
   it('rejects with the server code when the refresh mutation fails', async () => {
@@ -224,6 +238,39 @@ describe('createProxySource.refreshToken', () => {
 
     await expect(
       source.refreshToken({ provider: 'mock', sessionId: 's-1' }),
-    ).rejects.toEqual({ code: 'TOKEN_REFRESH_FAILED', message: 'offline' });
+    ).rejects.toMatchObject({
+      code: 'TOKEN_REFRESH_FAILED',
+      message: 'offline',
+    });
+  });
+
+  it('handles a non-Error, non-coded rejection', async () => {
+    const source = createProxySource({
+      client: mockClient(jest.fn().mockRejectedValue('weird')),
+      platform: 'IOS',
+    });
+
+    const error = await source
+      .refreshToken({ provider: 'mock', sessionId: 's-1' })
+      .catch((e: Error) => e);
+    expect(error).toMatchObject({ code: 'TOKEN_REFRESH_FAILED' });
+    expect((error as Error).message).toBe('');
+  });
+
+  it('maps a foreign coded error (e.g. a Node ECONNREFUSED) to TOKEN_REFRESH_FAILED, not its own code', async () => {
+    const foreign = Object.assign(new Error('refused'), {
+      code: 'ECONNREFUSED',
+    });
+    const source = createProxySource({
+      client: mockClient(jest.fn().mockRejectedValue(foreign)),
+      platform: 'IOS',
+    });
+
+    await expect(
+      source.refreshToken({ provider: 'mock', sessionId: 's-1' }),
+    ).rejects.toMatchObject({
+      code: 'TOKEN_REFRESH_FAILED',
+      message: 'refused',
+    });
   });
 });

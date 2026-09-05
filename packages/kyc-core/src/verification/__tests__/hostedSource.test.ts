@@ -2,12 +2,22 @@ import { createHostedSource } from '../hostedSource';
 import { isTokenRefreshable } from '../types';
 
 describe('createHostedSource - static url', () => {
-  it('resolves the url with the default provider', async () => {
+  it('resolves the url with the default provider, deriving allowedOrigin from it', async () => {
     const source = createHostedSource({ url: 'https://api.test/hosted/s-1' });
 
     await expect(source.start()).resolves.toEqual({
       provider: 'hosted',
       url: 'https://api.test/hosted/s-1',
+      allowedOrigin: 'https://api.test',
+    });
+  });
+
+  it('leaves allowedOrigin undefined for a non-http(s) url', async () => {
+    const source = createHostedSource({ url: 'about:blank' });
+
+    await expect(source.start()).resolves.toEqual({
+      provider: 'hosted',
+      url: 'about:blank',
       allowedOrigin: undefined,
     });
   });
@@ -61,6 +71,35 @@ describe('createHostedSource - getSession', () => {
       provider: 'mock',
       url: 'https://api.test/hosted/s-2',
       allowedOrigin: 'https://api.test',
+    });
+  });
+
+  it('derives allowedOrigin from the session url when neither the session nor the options give one', async () => {
+    const source = createHostedSource({
+      getSession: () => ({
+        provider: 'mock',
+        url: 'https://provider.test/hosted/s-3',
+      }),
+    });
+
+    await expect(source.start()).resolves.toEqual({
+      provider: 'mock',
+      url: 'https://provider.test/hosted/s-3',
+      allowedOrigin: 'https://provider.test',
+    });
+  });
+
+  it('prefers an explicit allowedOrigin option over one derived from the session url', async () => {
+    const source = createHostedSource({
+      allowedOrigin: 'https://pinned.test',
+      getSession: () => ({
+        provider: 'mock',
+        url: 'https://provider.test/hosted/s-4',
+      }),
+    });
+
+    await expect(source.start()).resolves.toMatchObject({
+      allowedOrigin: 'https://pinned.test',
     });
   });
 

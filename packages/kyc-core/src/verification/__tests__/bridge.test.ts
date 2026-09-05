@@ -182,17 +182,31 @@ describe('app -> page token refresh', () => {
     expect(interpretBridgeMessage(createSetTokenMessage('t-1'))).toBeNull();
   });
 
-  it('builds an injectable script that calls window.__kycBridge.setToken', () => {
+  it('builds an injectable script that calls setToken with the bare token, not the envelope', () => {
     const script = createSetTokenScript('t-1');
     expect(script).toContain('window.__kycBridge');
-    expect(script).toContain('setToken');
-    expect(script).toContain(JSON.stringify(createSetTokenMessage('t-1')));
+    expect(script).toContain('window.__kycBridge.setToken("t-1")');
+    expect(script).not.toContain('kyc-bridge');
     expect(script.trim().endsWith('true;')).toBe(true);
   });
 
-  it('escapes a token that would otherwise break out of the script', () => {
-    expect(createSetTokenScript('a"b\\c')).toContain(
-      JSON.stringify(createSetTokenMessage('a"b\\c')),
+  it('guards against a page that has not defined __kycBridge yet', () => {
+    expect(createSetTokenScript('t-1')).toMatch(
+      /^window\.__kycBridge && window\.__kycBridge\.setToken/,
     );
+  });
+
+  it('quotes a token that would otherwise break out of the script', () => {
+    expect(createSetTokenScript('a"b\\c')).toContain(JSON.stringify('a"b\\c'));
+  });
+
+  it('escapes characters unsafe inside an HTML <script> tag or a JS string literal', () => {
+    const script = createSetTokenScript('</script><b>&  ');
+    expect(script).not.toContain('</script>');
+    expect(script).not.toContain(' ');
+    expect(script).not.toContain(' ');
+    expect(script).toContain('\\u003c');
+    expect(script).toContain('\\u2028');
+    expect(script).toContain('\\u2029');
   });
 });

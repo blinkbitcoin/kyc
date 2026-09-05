@@ -12,6 +12,25 @@ no DOM, no native modules.
 | `@blinkbitcoin/kyc-core/hosted` | Contract types + capability guards, the `kyc-bridge` protocol (`interpretBridgeMessage`, `createSetTokenMessage`, `createSetTokenScript`), `createHostedSource`, `getErrorMessage`, `ErrorCodes` / `ClientErrorCodes` | **No — Apollo-free by construction** (guard-tested) |
 | `@blinkbitcoin/kyc-core/testing` | `createFakeLaunchableSource` — a UI-free `LaunchableSource` you script (`outcome`) or drive from buttons (`controller`) | **No** (guard-tested) |
 
+## The `kyc-bridge` protocol
+
+Two independent contracts move data between the app and the hosted page, and
+they are not interchangeable:
+
+- **page -> app** (both platforms): the page posts
+  `{ source: 'kyc-bridge', v: 1, type, payload? }` and `interpretBridgeMessage`
+  normalizes it into a `VerificationEvent`, or returns `null` for anything
+  that is not a well-formed message of this protocol.
+- **app -> page, injected script** (React Native, `injectJavaScript`):
+  `createSetTokenScript(token)` returns a snippet that calls
+  `window.__kycBridge.setToken(token)` with the **bare token string** - there
+  is no envelope to check on this path, since the script is trusted (it is
+  the app's own code running in the page).
+- **app -> page, postMessage** (web, iframe): `createSetTokenMessage(token)`
+  returns the **full envelope** (`{ source, v, type: 'setToken', token }`);
+  the page must check `source` and `v` before trusting it, the same as any
+  other cross-origin message.
+
 Error codes come from two maps: `ErrorCodes` is the GraphQL wire contract
 generated from `apps/api/schema.graphql`; `ClientErrorCodes` (`NETWORK_ERROR`,
 `PERMISSION_DENIED`, `SDK_UNAVAILABLE`, `TOKEN_EXPIRED`,

@@ -24,16 +24,24 @@ import type {
   VerificationSourceError,
 } from './types';
 
-const toSourceError = (
-  error: unknown,
-  fallbackCode: string,
-): VerificationSourceError => ({
-  code: getApolloErrorCode(error, fallbackCode),
-  message: error instanceof Error ? error.message : undefined,
-});
+/**
+ * Sentinel error class for every rejection this module throws. Tagging with
+ * `instanceof` (rather than duck-typing on `'code' in error`) keeps foreign
+ * coded errors - a `DOMException` AbortError (`.code === 20`), a Node error
+ * with `.code === 'ECONNREFUSED'` - from being mistaken for one of ours and
+ * rethrown unmapped. The shape stays assignable to `VerificationSourceError`.
+ */
+class SourceError extends Error implements VerificationSourceError {
+  code: string;
 
-const isCoded = (error: unknown): boolean =>
-  !!error && typeof error === 'object' && 'code' in error;
+  constructor(code: string, message?: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+const isCoded = (error: unknown): error is SourceError =>
+  error instanceof SourceError;
 
 export interface ProxySourceOptions {
   /** Apollo client wired to the verification backend (createKycApolloClient). */
@@ -67,9 +75,7 @@ export const createProxySource = (
 
       const session = data?.verificationSessionStart;
       if (!session) {
-        throw {
-          code: ErrorCodes.SESSION_CREATION_FAILED,
-        } as VerificationSourceError;
+        throw new SourceError(ErrorCodes.SESSION_CREATION_FAILED);
       }
 
       return {
@@ -84,16 +90,19 @@ export const createProxySource = (
       if (isCoded(error)) {
         throw error;
       }
-      throw toSourceError(error, ErrorCodes.SESSION_CREATION_FAILED);
+      throw new SourceError(
+        getApolloErrorCode(error, ErrorCodes.SESSION_CREATION_FAILED),
+        error instanceof Error ? error.message : undefined,
+      );
     }
   },
 
   async refreshToken(previous: VerificationSession): Promise<string> {
     if (!previous.sessionId) {
-      throw {
-        code: ClientErrorCodes.TOKEN_REFRESH_FAILED,
-        message: 'the session has no sessionId to refresh',
-      } as VerificationSourceError;
+      throw new SourceError(
+        ClientErrorCodes.TOKEN_REFRESH_FAILED,
+        'the session has no sessionId to refresh',
+      );
     }
 
     try {
@@ -107,16 +116,17 @@ export const createProxySource = (
 
       const token = data?.verificationSessionRefresh.accessToken;
       if (!token) {
-        throw {
-          code: ClientErrorCodes.TOKEN_REFRESH_FAILED,
-        } as VerificationSourceError;
+        throw new SourceError(ClientErrorCodes.TOKEN_REFRESH_FAILED);
       }
       return token;
     } catch (error) {
       if (isCoded(error)) {
         throw error;
       }
-      throw toSourceError(error, ClientErrorCodes.TOKEN_REFRESH_FAILED);
+      throw new SourceError(
+        getApolloErrorCode(error, ClientErrorCodes.TOKEN_REFRESH_FAILED),
+        error instanceof Error ? error.message : undefined,
+      );
     }
   },
 
