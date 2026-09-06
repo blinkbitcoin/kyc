@@ -23,7 +23,7 @@ lands phase by phase (see [the design](docs/superpowers/specs/2026-09-05-kyc-des
 ├── apps/api/                    # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres); verification session/token issuance, provider port (mock + Sumsub), signed webhooks and the hosted verification page
 │   └── src/
 │       ├── providers/           # VerificationProvider port + mock/sumsub adapters + factory
-│       ├── session.ts           # Session repository + the terminal-state machine (canTransition)
+│       ├── session.ts           # Session repository + the atomic terminal-status guard (applyStatusTransition)
 │       ├── webhook.ts           # Signed webhook handling
 │       └── verificationPages.ts # The hosted page (kyc-bridge protocol)
 ├── packages/

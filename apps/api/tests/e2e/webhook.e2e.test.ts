@@ -97,16 +97,58 @@ describe('webhook (E2E)', () => {
   // The guard lives in the UPDATE's WHERE clause, so two deliveries racing
   // each other cannot both pass a check and then both write: whichever order
   // the database serializes them in, the terminal status is what survives.
-  it('lets the terminal status win a concurrent pair of deliveries', async () => {
+  // `pending` -> `pending` (the old test) passes under the buggy
+  // check-then-act code too, since there is nothing terminal to race against
+  // until one delivery lands. Racing `approved` (terminal) against `declined`
+  // (not terminal) from `pending` is discriminating: without the atomic
+  // guard, a naive unconditional UPDATE can let whichever transaction
+  // commits last win outright, so `declined` can clobber `approved` when it
+  // lands second. With the guard, `declined` can only ever win the race, not
+  // the outcome - if it commits first it plants a non-terminal status that
+  // `approved` (not itself gated on a specific previous status) then
+  // overwrites; if it commits second the guard is already closed and it is
+  // rejected. Either way the session must end up `approved`, and `declined`
+  // must never be the last word.
+  it('lets approved win a concurrent race against declined and never lets declined overwrite it', async () => {
     const session = await createTestSession({ status: 'pending' });
 
     const outcomes = await Promise.all([
       post(payload(session.providerApplicantId!, 'approved')),
-      post(payload(session.providerApplicantId!, 'pending')),
+      post(payload(session.providerApplicantId!, 'declined')),
     ]);
 
     expect(outcomes.map((res) => res.status)).toEqual([200, 200]);
     expect(await statusOf(session.id)).toBe('approved');
+
+    const rows = await knex<{ action: string; metadata: Record<string, unknown> }>('AuditLog')
+      .where({ sessionId: session.id })
+      .orderBy('timestamp', 'asc');
+
+    const approvedUpdates = rows.filter(
+      (row) => row.action === 'status_updated' && row.metadata.status === 'approved'
+    );
+    expect(approvedUpdates).toHaveLength(1);
+
+    // Exactly one of two legal serializations happened:
+    //  - declined landed first (non-terminal, so it wrote), then approved
+    //    overwrote it: [status_updated:declined, status_updated:approved]
+    //  - approved landed first (terminal), then declined was refused by the
+    //    guard: [status_updated:approved, webhook_rejected:terminal_status]
+    const declinedFirst =
+      rows.length === 2 &&
+      rows[0].action === 'status_updated' &&
+      rows[0].metadata.status === 'declined' &&
+      rows[1].action === 'status_updated' &&
+      rows[1].metadata.status === 'approved';
+
+    const approvedFirst =
+      rows.length === 2 &&
+      rows[0].action === 'status_updated' &&
+      rows[0].metadata.status === 'approved' &&
+      rows[1].action === 'webhook_rejected' &&
+      rows[1].metadata.reason === 'terminal_status';
+
+    expect(declinedFirst || approvedFirst).toBe(true);
   });
 
   it('binds each applicant to its own unbound session instead of stealing one', async () => {

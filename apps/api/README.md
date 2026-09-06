@@ -54,3 +54,12 @@ Knex/Postgres).
 
 `make help` lists the local targets; the repo-wide flow is `make e2e-backend`
 at the root.
+
+## Development / migrations
+
+The initial migration was amended in place (before any release), so a dev
+database created before it gained the `locale` column will not pick up the
+change via `make migrate`. Reset it: `make db-down && docker volume rm
+api_postgres_data` (the volume name comes from `docker-compose.yml`; confirm
+it with `docker compose -f docker-compose.yml config --volumes`), then
+`make db-up && make migrate`.
