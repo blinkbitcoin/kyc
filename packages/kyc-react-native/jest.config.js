@@ -13,6 +13,7 @@ module.exports = {
   ],
   coveragePathIgnorePatterns: [
     '/node_modules/',
+    '/__mocks__/',
     'src/generated/',
     'src/types\\.ts$',
     'src/index\\.ts$',
