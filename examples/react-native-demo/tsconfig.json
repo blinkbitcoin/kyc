@@ -8,7 +8,16 @@
         "../../packages/kyc-react-native/src/hosted.ts"
       ],
       "@blinkbitcoin/kyc-core": ["../../packages/kyc-core/src/index.ts"],
-      "@blinkbitcoin/kyc-core/hosted": ["../../packages/kyc-core/src/hosted.ts"]
+      "@blinkbitcoin/kyc-core/hosted": [
+        "../../packages/kyc-core/src/hosted.ts"
+      ],
+      "@blinkbitcoin/kyc-core/testing": [
+        "../../packages/kyc-core/src/testing.ts"
+      ],
+      "@blinkbitcoin/kyc-sumsub": ["../../packages/kyc-sumsub/src/index.ts"],
+      "@blinkbitcoin/kyc-sumsub/react-native": [
+        "../../packages/kyc-sumsub/src/react-native.ts"
+      ]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],
