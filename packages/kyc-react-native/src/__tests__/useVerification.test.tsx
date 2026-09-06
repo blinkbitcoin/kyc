@@ -239,6 +239,54 @@ describe('useVerification - one run at a time', () => {
     expect(source.start).toHaveBeenCalledTimes(2);
   });
 
+  it('ignores a second retry() while the first is still in flight', async () => {
+    let resolveStart!: (value: VerificationSession) => void;
+    const source = hostedSource({
+      start: jest.fn(
+        () =>
+          new Promise<VerificationSession>(resolve => {
+            resolveStart = resolve;
+          }),
+      ),
+    });
+    await render(source, handlers());
+
+    await ReactTestRenderer.act(async () => {
+      latest.retry();
+      latest.retry();
+    });
+    expect(source.start).toHaveBeenCalledTimes(1);
+
+    await ReactTestRenderer.act(async () => {
+      resolveStart(session);
+    });
+    expect(latest.status).toBe('verifying');
+  });
+
+  it('ignores a second restart() while the first is still in flight', async () => {
+    let resolveStart!: (value: VerificationSession) => void;
+    const source = hostedSource({
+      start: jest.fn(
+        () =>
+          new Promise<VerificationSession>(resolve => {
+            resolveStart = resolve;
+          }),
+      ),
+    });
+    await render(source, handlers());
+
+    await ReactTestRenderer.act(async () => {
+      latest.restart();
+      latest.restart();
+    });
+    expect(source.start).toHaveBeenCalledTimes(1);
+
+    await ReactTestRenderer.act(async () => {
+      resolveStart(session);
+    });
+    expect(latest.status).toBe('verifying');
+  });
+
   it('retires the delayed onComplete of the run it replaces', async () => {
     jest.useFakeTimers();
     const source = createFakeLaunchableSource({ outcome: 'approved' });
@@ -323,6 +371,33 @@ describe('useVerification - a host callback that throws', () => {
 
     expect(latest.error?.code).toBe('UNKNOWN_ERROR');
     expect(latest.error?.message).toEqual(expect.any(String));
+  });
+
+  it('calls onError exactly once and does not reject begin() when onError itself throws', async () => {
+    const onError = jest.fn(() => {
+      throw new Error('host onError exploded');
+    });
+    const options = { ...handlers(), onError };
+    const source = hostedSource({
+      start: jest.fn(async () => {
+        throw { code: 'SESSION_CREATION_FAILED', message: 'nope' };
+      }),
+    });
+    await render(source, options);
+
+    const unhandled = jest.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      await ReactTestRenderer.act(async () => {
+        latest.start();
+      });
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+
+    expect(latest.status).toBe('error');
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(unhandled).not.toHaveBeenCalled();
   });
 
   it('drops a host-callback rejection that arrives after unmount', async () => {

@@ -124,7 +124,13 @@ export const useVerification = (
   const failWith = useCallback(
     (error: VerificationError, keepSession: boolean) => {
       applyAction({ type: 'failed', error, keepSession });
-      handlersRef.current.onError(error);
+      // A throwing host callback must not surface twice (once here, once as
+      // an unhandled rejection out of begin()) - it already got the error.
+      try {
+        handlersRef.current.onError(error);
+      } catch {
+        // Swallowed: the state already reflects the failure.
+      }
     },
     [applyAction],
   );
@@ -334,11 +340,17 @@ export const useVerification = (
   }, [begin]);
 
   const retry = useCallback(() => {
+    if (runningRef.current) {
+      return;
+    }
     // Safe to leave floating: begin() never rejects (see above).
     begin();
   }, [begin]);
 
   const restart = useCallback(() => {
+    if (runningRef.current) {
+      return;
+    }
     applyAction({ type: 'clearSession' });
     // Safe to leave floating: begin() never rejects (see above).
     begin();

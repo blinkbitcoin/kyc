@@ -198,6 +198,19 @@ export const Verification: React.FC<VerificationProps> = ({
                 <Text style={styles.secondaryButtonText}>Try again</Text>
               </TouchableOpacity>
             ) : null}
+            {permissionReason === 'blocked' && !onOpenSettings ? (
+              // No settings escape hatch and retrying in place cannot help -
+              // the only way out is to cancel.
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={cancel}
+                testID="verification-cancel-button"
+                accessibilityRole="button"
+                accessibilityLabel="Cancel verification"
+              >
+                <Text style={styles.secondaryButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         );
 

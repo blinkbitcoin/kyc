@@ -340,13 +340,19 @@ describe('Verification - recovery screens', () => {
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
-  it('hides the settings button when the host offers none', async () => {
+  it('hides the settings button when the host offers none, and offers a way out instead', async () => {
     const p = props({ checkPermissions: async () => 'blocked' });
     const renderer = await render(p);
 
     await press(renderer, 'verification-start-button');
     expect(has(renderer, 'permission-screen')).toBe(true);
     expect(has(renderer, 'open-settings-button')).toBe(false);
+    // Blocked with no settings escape hatch would otherwise strand the user
+    // on a screen with no affordance at all.
+    expect(has(renderer, 'verification-cancel-button')).toBe(true);
+
+    await press(renderer, 'verification-cancel-button');
+    expect(p.onCancel).toHaveBeenCalledTimes(1);
   });
 
   it('shows the offline screen and recovers on Check connection', async () => {
