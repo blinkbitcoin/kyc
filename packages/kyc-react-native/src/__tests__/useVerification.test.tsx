@@ -276,7 +276,10 @@ describe('useVerification - the launchable (native SDK) path', () => {
     expect(options.onComplete).toHaveBeenCalledWith({ status: 'declined' });
   });
 
-  it('maps a rejecting launch() to an error state', async () => {
+  it('maps a rejecting launch() to an error state, reporting onError exactly once', async () => {
+    // The fake source's 'error' outcome both emits an `error` event AND
+    // rejects launch() - the real contract for a launch failure. onError
+    // must fire once, not once per signal.
     const source = createFakeLaunchableSource({ outcome: 'error' });
     const options = handlers();
     await render(source, options);
@@ -287,10 +290,11 @@ describe('useVerification - the launchable (native SDK) path', () => {
 
     expect(latest.status).toBe('error');
     expect(latest.error?.code).toBe(ClientErrorCodes.SDK_UNAVAILABLE);
+    expect(options.onError).toHaveBeenCalledTimes(1);
     expect(options.onError).toHaveBeenCalledWith(latest.error);
   });
 
-  it('falls back to a generic message when a rejecting launch carries none', async () => {
+  it('falls back to a generic message when a rejecting launch carries none, reporting onError once', async () => {
     const source: VerificationSource = {
       start: async () => ({ provider: 'silent' }),
       interpret: () => null,
@@ -307,6 +311,31 @@ describe('useVerification - the launchable (native SDK) path', () => {
 
     expect(latest.status).toBe('error');
     expect(latest.error?.code).toBe('PROVIDER_UNAVAILABLE');
+    expect(options.onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats a cancel event followed by a launch rejection as an abort, not an error', async () => {
+    const source: VerificationSource = {
+      start: async () => ({ provider: 'silent' }),
+      interpret: () => null,
+      launch: async (
+        _s: VerificationSession,
+        onEvent: (event: VerificationEvent) => void,
+      ) => {
+        onEvent({ type: 'cancel' });
+        throw { code: 'SDK_UNAVAILABLE', message: 'torn down after cancel' };
+      },
+    } as VerificationSource;
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('idle');
+    expect(options.onCancel).toHaveBeenCalledTimes(1);
+    expect(options.onError).not.toHaveBeenCalled();
   });
 
   it('falls back to UNKNOWN_ERROR when a rejecting launch carries no code', async () => {

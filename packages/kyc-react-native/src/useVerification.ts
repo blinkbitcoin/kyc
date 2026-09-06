@@ -224,6 +224,19 @@ export const useVerification = (
         if (!mountedRef.current) {
           return;
         }
+        const current = stateRef.current;
+        // Mirrors the resolve path's guard: a cancel (idle), a failure
+        // (error) or a complete event already settled the flow via the
+        // emitted event before the promise rejected - the rejection is the
+        // same failure surfacing a second way, not a new one, and the
+        // event's error (fired first) wins over the rejection's.
+        if (
+          current.result !== null ||
+          current.status === 'idle' ||
+          current.status === 'error'
+        ) {
+          return;
+        }
         const sourceError = cause as VerificationSourceError | undefined;
         failWith(
           toVerificationError(
