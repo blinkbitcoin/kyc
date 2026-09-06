@@ -1,12 +1,11 @@
 /**
- * Demo host for @blinkbitcoin/kyc-react-native. Bootstrap: shows that the
- * package resolves through the workspace; the verification screen lands
- * with the React Native phase.
+ * Demo host for @blinkbitcoin/kyc-react-native. The verification screen and
+ * the three KYC_MODE flows land with the demo phase; today this only proves
+ * the app boots and the mode is inlined.
  *
  * @format
  */
 
-import { describePackage } from '@blinkbitcoin/kyc-react-native';
 import {
   StatusBar,
   StyleSheet,
@@ -40,7 +39,7 @@ function AppContent() {
         KYC demo
       </Text>
       <Text style={styles.body} testID="package-name">
-        {describePackage()}
+        @blinkbitcoin/kyc-react-native
       </Text>
       <Text style={styles.body} testID="kyc-mode">
         {`mode: ${KYC_MODE}`}

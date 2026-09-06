@@ -13,7 +13,7 @@ test('renders the ready marker and the package description', async () => {
   ).toBe('KYC demo');
   expect(
     renderer!.root.findByProps({ testID: 'package-name' }).props.children,
-  ).toBe('@blinkbitcoin/kyc-react-native (bootstrap)');
+  ).toBe('@blinkbitcoin/kyc-react-native');
 });
 
 test('uses a light-content status bar in dark mode', async () => {
