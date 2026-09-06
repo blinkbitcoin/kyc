@@ -69,6 +69,8 @@
     "url": "git+https://github.com/blinkbitcoin/kyc.git",
     "directory": "packages/kyc-sumsub"
   },
+  "homepage": "https://github.com/blinkbitcoin/kyc#readme",
+  "bugs": { "url": "https://github.com/blinkbitcoin/kyc/issues" },
   "type": "commonjs",
   "engines": { "node": ">= 18" }
 }

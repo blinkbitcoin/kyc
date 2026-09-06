@@ -114,6 +114,8 @@
     "url": "git+https://github.com/blinkbitcoin/kyc.git",
     "directory": "packages/kyc-react-native"
   },
+  "homepage": "https://github.com/blinkbitcoin/kyc#readme",
+  "bugs": { "url": "https://github.com/blinkbitcoin/kyc/issues" },
   "sideEffects": false,
   "type": "commonjs",
   "engines": {
