@@ -124,9 +124,14 @@ e2e-backend: test-db-up ## Backend E2E suite against real Postgres (then tears D
 	npm run test:e2e -w apps/api
 	$(MAKE) test-db-down
 
-e2e-web: test-db-up ## Playwright browser E2E for the web demo (proxy mode; then tears DB down)
+e2e-web: test-db-up ## Playwright browser E2E for the web demo (hosted mode; then tears DB down)
 	npm run migrate:test -w apps/api
 	npm run test:e2e -w examples/react-demo
+	$(MAKE) test-db-down
+
+e2e-web-proxy: test-db-up ## Playwright browser E2E for the web demo in proxy mode (then tears DB down)
+	npm run migrate:test -w apps/api
+	npm run test:e2e:proxy -w examples/react-demo
 	$(MAKE) test-db-down
 
 e2e-backend-up: ## Start the backend (mock provider) in the background for mobile E2E, wait for /health
@@ -144,6 +149,9 @@ e2e-ios: ## Maestro E2E, iOS (needs: booted simulator with the app installed, Me
 e2e-android: ## Maestro E2E, Android (needs: emulator, debug APK built, Metro + backend running)
 	bash scripts/e2e/android-maestro.sh
 
+e2e-fake-native: ## Maestro E2E, fake native SDK (MANUAL: needs a `KYC_MODE=fake-native npm start` Metro, an emulator and the debug APK; no backend needed)
+	npm run test:e2e:fake-native -w examples/react-native-demo
+
 # ---------- Housekeeping ----------
 
 clean: ## Remove build output and caches (library lib/, coverage)
@@ -160,5 +168,5 @@ help: ## List available targets
 
 .PHONY: install hooks pods release version registry-smoke unit coverage coverage-badge typecheck lint format format-check check-code \
 	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check start ios android backend web db-up db-down migrate \
-	diagrams test-db-up test-db-down e2e-backend e2e-web \
-	e2e-backend-up e2e-backend-down ios-build e2e-ios e2e-android clean reset help
+	diagrams test-db-up test-db-down e2e-backend e2e-web e2e-web-proxy \
+	e2e-backend-up e2e-backend-down ios-build e2e-ios e2e-android e2e-fake-native clean reset help
