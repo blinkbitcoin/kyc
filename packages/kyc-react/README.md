@@ -83,10 +83,12 @@ itself an iframe, so the hosted mode already covers the browser.
 
 ## What the host page must allow
 
-The iframe is rendered with `allow="camera; microphone"`,
+The iframe is rendered with `allow="camera; microphone; fullscreen"`,
 `sandbox="allow-scripts allow-same-origin allow-forms"` and
-`referrerPolicy="strict-origin-when-cross-origin"`. Three things have to line
-up or the provider's liveness step cannot open the camera:
+`referrerPolicy="strict-origin-when-cross-origin"`. `fullscreen` is delegated
+too, because a provider's document-capture step may ask for the whole
+viewport. Four things have to line up or the provider's liveness step cannot
+open the camera — or the frame does not load at all:
 
 1. **Your page must be permitted to use the camera itself.** If your app sends
    a `Permissions-Policy` header, it must not drop `camera` / `microphone`
@@ -99,6 +101,11 @@ up or the provider's liveness step cannot open the camera:
    with `Permissions-Policy: camera=(self "https://api.sumsub.com"),
    microphone=(self "https://api.sumsub.com")`. If your own page sets a CSP,
    add the verification origin to `frame-src`.
+4. **If your page sends `Cross-Origin-Embedder-Policy: require-corp`**, the
+   frame is blocked unless the verification page itself sends
+   `Cross-Origin-Resource-Policy: cross-origin` — use
+   `Cross-Origin-Embedder-Policy: credentialless` instead, or have the page
+   send CORP.
 
 `allow-same-origin` in the sandbox is required, not an oversight: the provider
 SDK the page loads uses its own storage, and a sandbox without it gives the
@@ -150,11 +157,21 @@ counterpart: the browser has no OS-settings intent to fire, so the permission
 screen's only action is **Try again**.
 
 The `<iframe>` (or the `MountPoint` container) is mounted **once** and stays
-mounted from `verifying` through `pending` — hidden (`hidden` + `inert` +
-`aria-hidden`, zero size, `visibility: hidden`) rather than unmounted, so the
-page's bridge survives the review wait and a late `complete`, token refresh
-or retry still arrives. While the page is showing, the component adds exactly
-one affordance of its own: the `verification-cancel-button` under it.
+mounted from `verifying` through `pending` — hidden (the `hidden` and
+`aria-hidden` attributes plus `inert`, zero size, `visibility: hidden`) rather
+than unmounted, so the page's bridge survives the review wait and a late
+`complete`, token refresh or retry still arrives. `inert` is written as the
+plain HTML attribute so it lands on React 18 as well as 19; on browsers
+without `inert` support the wrapper is still out of the accessibility tree and
+has no hit area. While the page is showing, the component adds exactly one
+affordance of its own: the `verification-cancel-button` under it.
+
+A hosted page that answers with HTTP 4xx or 5xx renders as an **empty frame**,
+not an error state: browsers fire `load` (not `error`) for a framed error
+response, so only a network-level failure — DNS, TLS, a connection that never
+completes — surfaces as `NETWORK_ERROR`. Serve the bridge's `sessionExpired` /
+`error` envelope from a 200 page (as `apps/api` does) if you need the flow to
+react.
 
 ## `useVerification(source, options)`
 
@@ -187,7 +204,8 @@ const {
   `permissionReason === 'denied'` (the `'blocked'` arm of the shared type is
   React Native's, where an app can open the OS settings).
 - Connectivity is `navigator.onLine` plus the `online` / `offline` window
-  events: going offline while the page is up parks on the offline screen;
+  events: going offline while the page is up — including while the outcome is
+  `pending`, where the page is still mounted — parks on the offline screen;
   coming back online never resumes by itself, the user presses **Check
   connection**.
 - `start()` is ignored while a run is already in flight, so a double click
