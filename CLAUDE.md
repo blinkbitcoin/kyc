@@ -10,8 +10,8 @@ React Native and React web libraries**; the demo apps exist for manual and
 E2E testing. **Status:** v1 complete - core, the backend, the Sumsub adapters,
 both platform packages, both demos, the full E2E suite (backend, Playwright,
 Maestro) and the documentation set are in place. The repo is ready for its
-first stable release (`make release V=X.Y.Z`, see
-[CONTRIBUTING.md](CONTRIBUTING.md#releases)).
+first stable release (merge the release PR release-please opens, `make
+release`, see [docs/releasing.md](docs/releasing.md)).
 
 | Workspace | Path | Role |
 |-----------|------|------|
@@ -51,7 +51,7 @@ The ones that matter most: `make test` (unit + check-code), `make coverage`,
 `make e2e-backend-up && make e2e-android` (Maestro, Android; iOS via `make
 e2e-ios` or the `e2e:ios` label), `make e2e-fake-native` (native-launch
 branch, needs a `KYC_MODE=fake-native` Metro), `make db-up/migrate/backend`, `make ios/android/start/web`,
-`make pods`, `make build`, `make release V=X.Y.Z`, `make clean/reset`. The
+`make pods`, `make build`, `make release`, `make clean/reset`. The
 underlying npm scripts:
 
 ```bash
@@ -194,10 +194,14 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   sees plus `android/**` / `ios/**`; bump the cache key's `v` suffix when an
   input the script cannot see changes.
 - Releases: prerelease (`next`) on every green push to `main`; stable is
-  `make release V=X.Y.Z` - the tag is the version, CI stamps it before
-  building the packages, `package.json` stays at `0.0.0-development`. Release notes come from
-  PR titles (`.github/release.yml`). A release ships only once the commit's
-  main run is green (`release-retry.yml` re-runs a blocked Publish).
+  merging the `chore(release): X.Y.Z` PR that release-please opens once a
+  feat/fix lands (`make release`). That tags `vX.Y.Z`, writes the GitHub
+  Release from `CHANGELOG.md`, and dispatches `ci.yml` at the tag - the tag
+  is the version, CI stamps it before building the packages, the four
+  publishable `package.json` files stay at `0.0.0-development`. Never
+  hand-edit `CHANGELOG.md` or the root `package.json` version. A release
+  ships only once the commit's main run is green (`release-retry.yml`
+  re-runs a blocked Publish). `docs/releasing.md`.
 
 ## Architecture Patterns
 

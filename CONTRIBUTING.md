@@ -75,7 +75,7 @@ area names (`commitlint.config.mjs` is the source of truth):
 | `ci` | `.github/` |
 | `deps`, `deps-dev` | Dependency bumps (Dependabot uses these) |
 | `docs` | `docs/` when the type is not already `docs` |
-| `release` | Release tooling (workflow, notes config) |
+| `release` | Release tooling (release-please config and workflow); release-please's own PRs are `chore(release): X.Y.Z` |
 
 Examples:
 
@@ -126,28 +126,36 @@ Escape hatches, for the rare cases where they are warranted:
    for consumers, and [docs/index.md](docs/index.md) maps both - update the
    relevant page in the same change.
 3. Open a PR with a Conventional Commits title — every workflow must be
-   green. The title is also the line the release notes will show.
+   green. The title is the line `CHANGELOG.md` will show, and its type
+   decides the version bump (`feat` → minor, `fix` → patch, `ci` / `docs` /
+   `chore` → none), so a fix that only touches CI or the demos is `ci:` or
+   `chore(demo):`, not `fix(ci):`.
 
 ## Releases
+
+Full walkthrough: [docs/releasing.md](docs/releasing.md).
 
 - **Prerelease** (`next` tag): automatic on every green push to `main`,
   versioned `<next patch after the latest tag>-pre.<run>.<sha>`. Install with
   `npm i @blinkbitcoin/kyc-react-native@next`.
-- **Stable**: one step - `make release V=X.Y.Z` (which wraps
-  `gh release create vX.Y.Z --target main --title vX.Y.Z --generate-notes`).
-  **The tag is the version**: CI stamps it into all four packages before
-  building them and pins each one's `@blinkbitcoin/kyc-core` dependency to
-  exactly that version, so nothing is committed and `package.json` stays at
-  `0.0.0-development`. The release notes, generated from PR titles
-  (`.github/release.yml`), are the changelog - there is no `CHANGELOG.md`. A
-  tag with a prerelease part (`v1.0.0-rc.1`) ships under `next`. GitHub
-  Packages never accepts the same version twice, so a failed release means
-  fixing forward and cutting a new tag.
+- **Stable**: merge the `chore(release): X.Y.Z` pull request. release-please
+  opens it once a `feat` / `fix` / `perf` / `revert` commit reaches `main`
+  and keeps it current: the inferred version, the `CHANGELOG.md` entry
+  grouped by type (CI, docs and chores are left out), the root
+  `package.json` version. Approve it and `make release` (or the Merge
+  button). Merging tags `vX.Y.Z`, publishes the GitHub Release with that
+  entry as its body, and starts the release run. **The tag is the version**:
+  CI stamps it into all four packages before building them and pins each
+  one's `@blinkbitcoin/kyc-core` dependency to exactly that version, so their
+  `package.json` stays at `0.0.0-development`. GitHub Packages never accepts
+  the same version twice, so a failed release means fixing forward.
   A release ships only once the commit's push-to-`main` run is green: the
   release run waits for an in-flight main run and refuses a red one, and
   `release-retry.yml` re-runs the blocked Publish automatically when main
   turns green (re-run a flaky job with `gh run rerun <id> --failed`).
-  So `make release` is fire-and-forget.
+  So merging the release PR is fire-and-forget.
+- **Release candidate**: `make release-rc V=X.Y.Z-rc.1` hand-cuts a
+  prerelease-suffixed tag that ships under `next`.
 - **Check first, cost nothing:** `make version` prints the prerelease HEAD
   would publish, `make version TAG=vX.Y.Z` prints what the tag would publish,
   and neither writes to any `package.json`. After a release,

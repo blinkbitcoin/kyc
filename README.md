@@ -207,7 +207,7 @@ in [docs/integration/sumsub.md](docs/integration/sumsub.md).
 | `make e2e-backend` | Backend E2E with a dockerized Postgres |
 | `make e2e-web`<br>`make e2e-web-proxy` | Playwright, hosted (`:5173`) and proxy (`:5174`) - both build the libraries first and bundle the demo against their dist |
 | `make e2e-android`<br>`make e2e-ios`<br>`make e2e-fake-native` | Maestro suites (see `make help` for the prerequisites) |
-| `make version`<br>`make release V=X.Y.Z` | What CI would publish / cut the stable release |
+| `make version`<br>`make release` | What CI would publish / merge the release PR release-please maintains ([docs/releasing.md](docs/releasing.md)) |
 
 Coverage is enforced at 100% on all four packages and `apps/api`, with an 80%
 floor on the demos. See [docs/development-guide.md](docs/development-guide.md)

@@ -82,6 +82,7 @@ Organized by namespace - pick by what you are doing:
 | Doc | Covers |
 |-----|--------|
 | [development-guide.md](./development-guide.md) | Working on this repo: setup, commands, quality gates, CI, and the first release |
+| [releasing.md](./releasing.md) | How a merged PR becomes a version: release-please, the release PR, the changelog, what merging it does |
 | [diagrams/](./diagrams/README.md) | All eight diagrams, pre-rendered (sources in `diagrams/src/`) |
 | [superpowers/specs/2026-09-05-kyc-design.md](./superpowers/specs/2026-09-05-kyc-design.md) | The approved design this repo implements |
 

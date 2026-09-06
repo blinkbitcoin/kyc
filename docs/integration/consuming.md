@@ -13,7 +13,7 @@ The four packages publish to **GitHub Packages** under the `blinkbitcoin` org:
 
 Publishing has two channels, both gated on the full fleet (unit coverage thresholds plus the backend, web, Android and iOS E2E suites):
 
-- **Stable** (`latest`): publish a **GitHub Release** with tag `vX.Y.Z` (`make release V=X.Y.Z`). The tag *is* the version - CI stamps it into the packages before building them and nothing is committed. It ships once the commit's push-to-`main` run is green; a red one blocks it and the publish is retried automatically when main turns green. GitHub Packages rejects re-publishing an existing version, so a failed release needs a new tag.
+- **Stable** (`latest`): merge the open `chore(release): X.Y.Z` pull request that release-please keeps up to date (`make release`). That tags `vX.Y.Z`, publishes the GitHub Release with that version's `CHANGELOG.md` entry, and starts the release run. The tag *is* the version - CI stamps it into the packages before building them. It ships once the commit's push-to-`main` run is green; a red one blocks it and the publish is retried automatically when main turns green. GitHub Packages rejects re-publishing an existing version, so a failed release is fixed forward. Details: [docs/releasing.md](../releasing.md).
 - **Prerelease** (`next`): every push to `main` (or a manual `ci.yml` dispatch) ships `<next patch after the latest tag>-pre.<run>.<sha>`. Install with `npm i @blinkbitcoin/kyc-react-native@next`.
 
 In both channels the three dependent packages pin `@blinkbitcoin/kyc-core` to exactly their own version.

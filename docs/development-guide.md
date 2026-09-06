@@ -422,10 +422,11 @@ mermaid-cli rejects it even where GitHub's renderer is lenient.
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `ci.yml` | Push to main, PRs, GitHub Release, manual | The one pipeline every branch runs, staged so a failure never spends the next stage's minutes: `Checks` (calls `checks.yml`) → `Unit` (calls `test.yml`) → `E2E` (calls `e2e.yml`; its `Build Packages` job is the one build of the packages), then `Badges` (coverage + Unit / E2E pass-fail badges for the branch to `gh-pages/badges/<branch>/`, after E2E so it never delays it), and on main pushes / releases / dispatch `Publish` (ships the tarballs `Build Packages` made and `Web` tested to GitHub Packages, nothing is rebuilt: release → stable `latest`, version = the tag; main → prerelease `next`) + `Verify` (installs the published packages from GitHub Packages into a clean project and asserts the consumer contract). Workflow badge, if needed: `ci.yml/badge.svg?branch=<branch>` |
+| `ci.yml` | Push to main, PRs, release tag (dispatched by `release-please.yml`, or a hand-cut GitHub Release), manual | The one pipeline every branch runs, staged so a failure never spends the next stage's minutes: `Checks` (calls `checks.yml`) → `Unit` (calls `test.yml`) → `E2E` (calls `e2e.yml`; its `Build Packages` job is the one build of the packages), then `Badges` (coverage + Unit / E2E pass-fail badges for the branch to `gh-pages/badges/<branch>/`, after E2E so it never delays it), and on main pushes / releases / dispatch `Publish` (ships the tarballs `Build Packages` made and `Web` tested to GitHub Packages, nothing is rebuilt: release → stable `latest`, version = the tag; main → prerelease `next`) + `Verify` (installs the published packages from GitHub Packages into a clean project and asserts the consumer contract). Workflow badge, if needed: `ci.yml/badge.svg?branch=<branch>` |
 | `checks.yml` | `workflow_call` only | First stage, all static: `Changes` (classifies the PR: when every changed file is docs/, `*.md`, `LICENSE` or a template, Unit and E2E are skipped; main pushes get the same via `paths-ignore`), `Code` (audit-ci, actionlint, diagram freshness, `make check-code` = lint + typecheck + format), `Commits` (Conventional Commits on the PR's commits and title; PRs only), `Docs` (warns when architecture-relevant files change without a docs/ update; fails for a diagram source without its SVG) |
 | `test.yml` | `workflow_call` only | Unit tests + coverage thresholds; uploads the coverage badge (1 day, consumed by `Badges`) and the combined HTML coverage report (`coverage-report` artifact, 30 days) |
 | `e2e.yml` | `workflow_call` only | `build-packages` (version stamp, build, publint + arethetypeswrong, pack smoke; uploads the dist for `web` and the tarballs for `Publish`) plus the E2E suites as jobs: `backend`, `web` (Playwright, bundles the demo against that dist - what a web consumer installs), `build-android` → `android` (emulator), and `build-ios` → `ios` (simulator) **on by default** (see below). Outputs the stamped `version` / `disttag` for `Publish` |
+| `release-please.yml` | Push to main | Keeps the `chore(release): X.Y.Z` PR current (version from the Conventional Commits since the last tag, `CHANGELOG.md` entry); when that PR merges, tags `vX.Y.Z`, creates the GitHub Release and dispatches `ci.yml` at the tag with `release_tag` (a release the workflow token creates never fires the `release:` trigger). See [releasing.md](releasing.md) |
 | `release-retry.yml` | CI completed on main | When the main run is green, re-runs the failed Publish of any release tagged on that commit (releases wait for / refuse a red main run) |
 | `cancel-closed.yml` | PR closed/merged | Cancels the PR's still-running runs (the push-to-main run is unaffected) and removes its `gh-pages` badge directory |
 | `codeql.yml` | Push to main, PRs (both ignore docs-only changes), weekly schedule | CodeQL static analysis (JavaScript/TypeScript); alerts land under Security → Code scanning |
@@ -480,21 +481,31 @@ make e2e-ios            # iOS: simulator booted with the app installed, Metro + 
 
 # Release plumbing
 make version            # what a push to main would publish; make version TAG=vX.Y.Z for a release
+make release            # merge the open release PR (release-please) - the whole stable release step
+make release-rc V=X.Y.Z-rc.1   # hand-cut a prerelease-suffixed tag (ships under next)
 ```
 
 ### First release
 
 The repo publishes a `next` prerelease from every green push to `main`
-automatically. Cutting the first **stable** version is a deliberate, human
-step - nothing in this repository does it for you.
+automatically. The first **stable** version still needs a human, but only for
+one click: release-please proposes the version and the notes, and merging its
+pull request is the release. Full walkthrough: [releasing.md](releasing.md).
 
 1. **Land the work.** Either merge the phase branches in order (bootstrap →
    core → api → sumsub → rn → react → demos/E2E → docs), or open one PR for
    the whole v1 - the pipeline is identical either way. Every PR needs an
    approving review under the org ruleset; `main` is never pushed to directly.
 2. **Wait for `main` to be green.** The Publish job refuses to ship from a red
-   main run, and a release cut against one is blocked until it turns green.
-3. **Check what a release would produce**, without touching anything:
+   main run, and a release run against one is blocked until it turns green.
+3. **Let release-please open the release PR.** The first `feat:` (or `fix:`)
+   commit on `main` makes the `Release Please` workflow open
+   `chore(release): 0.1.0` - `0.1.0` because `bump-minor-pre-major` turns a
+   `feat` into a minor bump from the manifest's `0.0.1`. The PR carries the
+   new `CHANGELOG.md`, the root `package.json` / `package-lock.json` version
+   and `.release-please-manifest.json`; its body is the release notes. Nothing
+   ships until it is merged.
+4. **Check what the release would produce**, without touching anything:
 
 ```bash
 DRY_RUN=1 bash scripts/release/resolve-version.sh          # the prerelease CI publishes today
@@ -507,19 +518,21 @@ make version TAG=v0.1.0                                     # what the tag would
    `DRY_RUN=1` prints the decision and skips both `npm pkg set` loops, so
    `package.json` stays at `0.0.0-development`.
 
-4. **Cut it:**
+5. **Approve the release PR and merge it:**
 
 ```bash
-make release V=0.1.0
+make release
 ```
 
-   which is `gh release create v0.1.0 --target main --title v0.1.0
-   --generate-notes`. The tag *is* the version: CI stamps `0.1.0` into all
-   four packages before building them and pins each one's
-   `@blinkbitcoin/kyc-core` dependency to exactly `0.1.0`. Nothing is
-   committed.
+   which merges the open `chore(release): 0.1.0` PR (the Merge button does the
+   same). `release-please.yml` then tags `v0.1.0`, creates the GitHub Release
+   from the changelog entry, and dispatches `ci.yml` at the tag with
+   `release_tag=v0.1.0`. The tag *is* the version: that run stamps `0.1.0`
+   into all four packages before building them and pins each one's
+   `@blinkbitcoin/kyc-core` dependency to exactly `0.1.0`, so the packages'
+   own `package.json` files stay at `0.0.0-development`.
 
-5. **Watch Publish and Verify.** `Verify` (`scripts/release/registry-smoke.sh`)
+6. **Watch Publish and Verify.** `Verify` (`scripts/release/registry-smoke.sh`)
    installs the published packages from GitHub Packages into a clean project
    and asserts the consumer contract - including that `/hosted` and `/testing`
    load without Apollo. You can re-run it later by hand:
@@ -528,10 +541,13 @@ make release V=0.1.0
 make registry-smoke V=0.1.0
 ```
 
-6. **If it fails**, fix forward and cut a **new tag**. GitHub Packages never
-   accepts the same version twice, so `v0.1.0` cannot be re-published.
+7. **If it fails**, fix forward and merge; the next release PR bumps again.
+   GitHub Packages never accepts the same version twice, so `0.1.0` cannot be
+   re-published. A run that failed *before* Publish can simply be re-run, and
+   `release-retry.yml` re-runs a Publish that was blocked by a red main run.
 
-**There is no `CHANGELOG.md`, deliberately.** The release notes generated from
-PR titles (`.github/release.yml`) are the changelog, which is why the PR title
-is linted by commitlint and is the line reviewers see. A hand-maintained
-changelog would be a second source of truth that drifts.
+**`CHANGELOG.md` is generated, never hand-edited on `main`.** release-please
+writes it from the Conventional Commit PR titles, which is why the title is
+linted by commitlint and is the line reviewers see; only `feat` / `fix` /
+`perf` / `revert` appear there, so a CI-only fix is `ci:`, not `fix(ci):`.
+Context can be added to the entry on the release PR's branch before merging.
