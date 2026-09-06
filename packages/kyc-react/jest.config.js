@@ -4,6 +4,7 @@ module.exports = {
     '^@blinkbitcoin/kyc-core$': '<rootDir>/../kyc-core/src/index.ts',
   },
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  collectCoverageFrom: ['src/**/*.{ts,tsx}'],
   coveragePathIgnorePatterns: [
     '/node_modules/',
     'src/generated/',
