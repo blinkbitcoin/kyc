@@ -1,5 +1,11 @@
 import { Platform } from 'react-native';
-import { getDevBackendHost, GRAPHQL_URL, KYC_MODE } from '../config';
+
+import {
+  API_ORIGIN,
+  getDevBackendHost,
+  GRAPHQL_URL,
+  KYC_MODE,
+} from '../config';
 
 describe('getDevBackendHost', () => {
   it('uses the emulator host alias on Android', () => {
@@ -11,14 +17,18 @@ describe('getDevBackendHost', () => {
   });
 });
 
-describe('GRAPHQL_URL / KYC_MODE', () => {
-  it('points at the backend GraphQL endpoint for the current platform', () => {
-    expect(GRAPHQL_URL).toBe(
-      `http://${getDevBackendHost(Platform.OS)}:4000/graphql`,
-    );
+describe('API_ORIGIN / GRAPHQL_URL', () => {
+  it('points at the backend for the current platform', () => {
+    expect(API_ORIGIN).toBe(`http://${getDevBackendHost(Platform.OS)}:4000`);
   });
 
-  it('defaults the mode to native', () => {
+  it('derives the GraphQL endpoint from the origin', () => {
+    expect(GRAPHQL_URL).toBe(`${API_ORIGIN}/graphql`);
+  });
+});
+
+describe('KYC_MODE', () => {
+  it('defaults to native', () => {
     expect(KYC_MODE).toBe('native');
   });
 });
