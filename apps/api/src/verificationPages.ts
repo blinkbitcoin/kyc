@@ -5,10 +5,22 @@
 //
 // apps/api does not depend on kyc-core, so BRIDGE_SOURCE and
 // BRIDGE_PROTOCOL_VERSION are duplicated here and pinned by
-// tests/verificationPages.test.ts. Likewise SUMSUB_STATUS_FN is the browser
-// twin of providers/sumsub/mapping.ts's mapSumsubStatus, and a test runs
-// both over the same table. PHASE 4 replaces both duplicates with imports
-// from @blinkbitcoin/kyc-sumsub / @blinkbitcoin/kyc-core.
+// tests/verificationPages.test.ts.
+//
+// The Sumsub status rules are NOT duplicated: mapSumsubStatus comes from
+// @blinkbitcoin/kyc-sumsub, and the page gets a JSON table generated from it
+// over the finite reviewStatus x reviewAnswer x rejectType vocabulary. The
+// browser only does a lookup with a fallback chain (drop the reject type,
+// then the answer, then default) - the fallbacks mirror the shape of
+// mapSumsubStatus's switch, never its verdicts.
+
+import type { SumsubReviewResult } from '@blinkbitcoin/kyc-sumsub';
+import {
+  mapSumsubStatus,
+  SUMSUB_REJECT_TYPES,
+  SUMSUB_REVIEW_ANSWERS,
+  SUMSUB_REVIEW_STATUSES,
+} from '@blinkbitcoin/kyc-sumsub';
 
 export const BRIDGE_SOURCE = 'kyc-bridge';
 export const BRIDGE_PROTOCOL_VERSION = 1;
@@ -114,25 +126,65 @@ const BRIDGE_SCRIPT = `
       }
     });`;
 
-/** Browser twin of mapSumsubStatus - see the module header. */
-export const SUMSUB_STATUS_FN = `function (reviewStatus, reviewResult) {
-      if (reviewStatus === 'completed') {
-        var answer = reviewResult && reviewResult.reviewAnswer;
-        if (answer === 'GREEN') { return 'approved'; }
-        if (answer === 'RED') {
-          return reviewResult.reviewRejectType === 'FINAL' ? 'finallyRejected' : 'declined';
-        }
-        return 'pending';
+/** What mapSumsubStatus returns for a review status it does not know. */
+export const SUMSUB_STATUS_FALLBACK = 'initial';
+
+/** `<reviewStatus>|<reviewAnswer>|<reviewRejectType>`, '' for an absent field. */
+export const sumsubStatusKey = (
+  reviewStatus: string,
+  reviewAnswer: string,
+  reviewRejectType: string
+): string => `${reviewStatus}|${reviewAnswer}|${reviewRejectType}`;
+
+/**
+ * Every documented combination, resolved once through the shared mapping so
+ * the page ships data instead of logic.
+ */
+export const buildSumsubStatusTable = (): Record<string, string> => {
+  const table: Record<string, string> = {};
+
+  for (const reviewStatus of SUMSUB_REVIEW_STATUSES) {
+    for (const reviewAnswer of ['', ...SUMSUB_REVIEW_ANSWERS]) {
+      for (const reviewRejectType of ['', ...SUMSUB_REJECT_TYPES]) {
+        table[sumsubStatusKey(reviewStatus, reviewAnswer, reviewRejectType)] = mapSumsubStatus(
+          reviewStatus,
+          reviewAnswer
+            ? ({
+                reviewAnswer,
+                ...(reviewRejectType ? { reviewRejectType } : {}),
+              } as SumsubReviewResult)
+            : undefined
+        );
       }
-      if (
-        reviewStatus === 'pending' ||
-        reviewStatus === 'queued' ||
-        reviewStatus === 'prechecked' ||
-        reviewStatus === 'onHold'
-      ) { return 'pending'; }
-      if (reviewStatus === 'init') { return 'incomplete'; }
-      return 'initial';
-    }`;
+    }
+  }
+
+  return table;
+};
+
+export const SUMSUB_STATUS_TABLE = buildSumsubStatusTable();
+
+/**
+ * The TypeScript twin of the page's four-line lookup (below). It carries no
+ * Sumsub rule of its own - only the fallback order - and the test drives it
+ * against mapSumsubStatus over the whole vocabulary.
+ */
+export const lookupSumsubStatus = (
+  table: Record<string, string>,
+  reviewStatus?: string,
+  reviewResult?: SumsubReviewResult
+): string => {
+  const status = reviewStatus ?? '';
+  const answer = reviewResult?.reviewAnswer ?? '';
+  const rejectType = reviewResult?.reviewRejectType ?? '';
+
+  return (
+    table[sumsubStatusKey(status, answer, rejectType)] ??
+    table[sumsubStatusKey(status, answer, '')] ??
+    table[sumsubStatusKey(status, '', '')] ??
+    SUMSUB_STATUS_FALLBACK
+  );
+};
 
 export interface MockWebhookPost {
   url: string;
@@ -176,7 +228,17 @@ export const renderSumsubPage = ({
 <body>
   <div id="sumsub-websdk-container"></div>
   <script nonce="${nonce}">${BRIDGE_SCRIPT}
-    var mapStatus = ${SUMSUB_STATUS_FN};
+    var STATUS_TABLE = ${jsonForScript(SUMSUB_STATUS_TABLE)};
+    function mapStatus(reviewStatus, reviewResult) {
+      var r = reviewResult || {};
+      var s = reviewStatus || '';
+      var a = r.reviewAnswer || '';
+      var t = r.reviewRejectType || '';
+      return STATUS_TABLE[s + '|' + a + '|' + t] ||
+        STATUS_TABLE[s + '|' + a + '|'] ||
+        STATUS_TABLE[s + '||'] ||
+        '${SUMSUB_STATUS_FALLBACK}';
+    }
     var TERMINAL = { approved: true, finallyRejected: true };
     var applicantId = null;
     var awaitingToken = null;

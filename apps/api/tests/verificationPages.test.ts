@@ -1,7 +1,15 @@
-import { mapSumsubStatus } from '@blinkbitcoin/kyc-sumsub';
+import {
+  mapSumsubStatus,
+  SUMSUB_REJECT_TYPES,
+  SUMSUB_REVIEW_ANSWERS,
+  SUMSUB_REVIEW_STATUSES,
+} from '@blinkbitcoin/kyc-sumsub';
+
 import {
   BRIDGE_PROTOCOL_VERSION,
   BRIDGE_SOURCE,
+  buildSumsubStatusTable,
+  lookupSumsubStatus,
   MOCK_BUTTON_IDS,
   PERMISSIONS_POLICY,
   renderMockPage,
@@ -9,7 +17,7 @@ import {
   renderSumsubPage,
   renderVerificationPage,
   SUMSUB_SDK_URL,
-  SUMSUB_STATUS_FN,
+  SUMSUB_STATUS_TABLE,
   verificationPageCsp,
 } from '../src/verificationPages';
 
@@ -158,30 +166,51 @@ describe('renderSumsubPage', () => {
   });
 });
 
-describe('the page status mapping mirrors the server mapping', () => {
-  // eslint-disable-next-line no-new-func
-  const pageMap = new Function(`return (${SUMSUB_STATUS_FN});`)() as (
-    reviewStatus?: string,
-    reviewResult?: Record<string, unknown>
-  ) => string;
-
-  it.each([
-    ['completed', { reviewAnswer: 'GREEN' }],
-    ['completed', { reviewAnswer: 'RED', reviewRejectType: 'FINAL' }],
-    ['completed', { reviewAnswer: 'RED', reviewRejectType: 'RETRY' }],
-    ['completed', { reviewAnswer: 'RED' }],
-    ['completed', undefined],
-    ['pending', undefined],
-    ['queued', undefined],
-    ['prechecked', undefined],
-    ['onHold', undefined],
-    ['init', undefined],
-    ['somethingNew', undefined],
-    [undefined, undefined],
-  ])('agrees for %s / %j', (reviewStatus, reviewResult) => {
-    expect(pageMap(reviewStatus, reviewResult)).toBe(
-      mapSumsubStatus(reviewStatus, reviewResult as never)
+describe('the page status table is generated from the shared mapping', () => {
+  it('covers every documented reviewStatus x answer x rejectType combination', () => {
+    const table = buildSumsubStatusTable();
+    expect(table).toEqual(SUMSUB_STATUS_TABLE);
+    expect(Object.keys(table)).toHaveLength(
+      SUMSUB_REVIEW_STATUSES.length *
+        (SUMSUB_REVIEW_ANSWERS.length + 1) *
+        (SUMSUB_REJECT_TYPES.length + 1)
     );
+
+    for (const reviewStatus of SUMSUB_REVIEW_STATUSES) {
+      for (const reviewAnswer of [undefined, ...SUMSUB_REVIEW_ANSWERS]) {
+        for (const reviewRejectType of [undefined, ...SUMSUB_REJECT_TYPES]) {
+          const reviewResult = reviewAnswer ? { reviewAnswer, reviewRejectType } : undefined;
+          expect(lookupSumsubStatus(table, reviewStatus, reviewResult)).toBe(
+            mapSumsubStatus(reviewStatus, reviewResult)
+          );
+        }
+      }
+    }
+  });
+
+  it('falls back exactly like mapSumsubStatus for input outside the vocabulary', () => {
+    const table = SUMSUB_STATUS_TABLE;
+    // Unknown review status -> initial; unknown verdict fields degrade to the
+    // less specific row instead of guessing.
+    expect(lookupSumsubStatus(table, 'somethingNew')).toBe('initial');
+    expect(lookupSumsubStatus(table, undefined)).toBe('initial');
+    expect(lookupSumsubStatus(table, 'completed', { reviewAnswer: 'BLUE' } as never)).toBe(
+      'pending'
+    );
+    expect(
+      lookupSumsubStatus(table, 'completed', {
+        reviewAnswer: 'RED',
+        reviewRejectType: 'SOMETHING' as never,
+      })
+    ).toBe('declined');
+  });
+
+  it('is embedded in the page as JSON, with no second implementation of the rules', () => {
+    const html = renderSumsubPage(sumsubParams);
+    expect(html).toContain(JSON.stringify(SUMSUB_STATUS_TABLE).replace(/</g, '\\u003c'));
+    expect(html).toContain('function mapStatus(');
+    expect(html).not.toContain("=== 'GREEN'");
+    expect(html).not.toContain('reviewRejectType ===');
   });
 });
 
