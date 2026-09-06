@@ -15,7 +15,7 @@ pipeline is green; the verification flow lands phase by phase (see
 |-----------|------|------|
 | `backend` | `apps/api/` | Express 5 + Apollo Server 5 GraphQL API, Knex/PostgreSQL; verification session/token issuance, provider port (mock + Sumsub), signed webhooks and the hosted verification page |
 | `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: `VerificationSource` + capability guards, `kyc-bridge` protocol, hosted + proxy sources, Apollo client factory, GraphQL operations, `ErrorCode` contract (no React/DOM). Entries: `.`, `/hosted` (Apollo-free), `/testing` (fake source) |
-| `@blinkbitcoin/kyc-sumsub` | `packages/kyc-sumsub/` | Sumsub adapters: shared mapping + `/react-native` + `/web` entries |
+| `@blinkbitcoin/kyc-sumsub` | `packages/kyc-sumsub/` | Sumsub adapters. Root entry = the only Sumsub↔normalized mapping (used by `apps/api` too); `/react-native` = `createSumsubNativeSource` over the Mobile SDK; `/web` = reserved placeholder (no web-SDK adapter in v1) |
 | `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `Verification` component + `useVerification` (hardened WebView for hosted mode) over core |
 | `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Publishable React **web** library: `Verification` component + `useVerification` (iframe for hosted mode) over core |
 | `kyc-react-native-example` | `examples/react-native-demo/` | RN demo app hosting the RN library (Maestro E2E target) |
@@ -163,6 +163,8 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   never inline in a workflow; `make check-ci` runs actionlint + shellcheck
 - `graphql` is pinned to 16.x repo-wide (Apollo Server 5's peer range) - do
   not bump it to 17 until Apollo Server supports it
+- **Sumsub semantics live in one place.** `packages/kyc-sumsub/src/mapping.ts` is the only implementation of the Sumsub status/webhook/event tables. `apps/api` imports it (`@blinkbitcoin/kyc-sumsub`) and the hosted page embeds a JSON table *generated* from `mapSumsubStatus` at render time — never a second hand-written copy.
+- **`apps/api` consumes the package as a consumer does**, through `dist/`. Its `dev`, `build`, `typecheck` and `test:e2e` scripts each have an npm `pre*` hook that runs `npm run build -w packages/kyc-core -w packages/kyc-sumsub` first, so `npm run backend`, `scripts/e2e/backend-up.sh` and Playwright's `webServer` all work from a clean checkout. Unit tests skip the build: `apps/api/vitest.config.ts` aliases the two packages to their sources.
 
 ## CI and releases
 

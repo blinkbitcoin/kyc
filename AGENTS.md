@@ -28,7 +28,7 @@ lands phase by phase (see [the design](docs/superpowers/specs/2026-09-05-kyc-des
 │       └── verificationPages.ts # The hosted page (kyc-bridge protocol)
 ├── packages/
 │   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode
-│   ├── kyc-sumsub/               # 📦 Sumsub adapters: shared mapping, /react-native (native SDK), /web (web SDK)
+│   ├── kyc-sumsub/          # Sumsub adapters: the shared mapping (root), /react-native (Mobile SDK), /web (reserved)
 │   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (`Verification` component + `useVerification`, hardened WebView for hosted mode)
 │   └── kyc-react/               # 📦 THE PRODUCT - web (`Verification` component + `useVerification`, iframe for hosted mode)
 ├── examples/
