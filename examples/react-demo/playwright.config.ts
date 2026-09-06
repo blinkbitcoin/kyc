@@ -1,7 +1,15 @@
 import { defineConfig } from '@playwright/test';
 
+// Browser E2E for the web demo, hosted mode (the default). Drives the real
+// Vite app (:5173) embedding the backend's real mock verification page
+// (:4000) in a genuinely cross-origin iframe - the postMessage path jsdom
+// can only fake.
+//
+// Prerequisite (handled by `make e2e-web` at the repo root): the dockerized
+// test database is up and migrated; both servers below are started here.
 export default defineConfig({
   testDir: 'e2e',
+  testIgnore: ['**/proxy.spec.ts'],
   timeout: 30_000,
   retries: 0,
   use: { baseURL: 'http://localhost:5173' },

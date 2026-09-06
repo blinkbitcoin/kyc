@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:proxy": "playwright test --config playwright.proxy.config.ts"
   },
   "dependencies": {
     "@apollo/client": "^4.2.12",
