@@ -334,11 +334,17 @@ export const useVerification = (
   }, [begin]);
 
   const retry = useCallback(() => {
+    if (runningRef.current) {
+      return;
+    }
     // Safe to leave floating: begin() never rejects (see above).
     begin();
   }, [begin]);
 
   const restart = useCallback(() => {
+    if (runningRef.current) {
+      return;
+    }
     applyAction({ type: 'clearSession' });
     // Safe to leave floating: begin() never rejects (see above).
     begin();

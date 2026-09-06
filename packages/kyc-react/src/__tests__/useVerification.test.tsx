@@ -139,6 +139,54 @@ describe('useVerification - acquiring a session', () => {
     });
     expect(source.start).toHaveBeenCalledTimes(2);
   });
+
+  it('ignores a second retry() while the first is still in flight', async () => {
+    let resolveStart!: (value: VerificationSession) => void;
+    const source = hostedSource({
+      start: jest.fn(
+        () =>
+          new Promise<VerificationSession>(resolve => {
+            resolveStart = resolve;
+          }),
+      ),
+    });
+    const view = mount(source, handlers());
+
+    await act(async () => {
+      view.result.current.retry();
+      view.result.current.retry();
+    });
+    expect(source.start).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveStart(session);
+    });
+    expect(view.result.current.status).toBe('verifying');
+  });
+
+  it('ignores a second restart() while the first is still in flight', async () => {
+    let resolveStart!: (value: VerificationSession) => void;
+    const source = hostedSource({
+      start: jest.fn(
+        () =>
+          new Promise<VerificationSession>(resolve => {
+            resolveStart = resolve;
+          }),
+      ),
+    });
+    const view = mount(source, handlers());
+
+    await act(async () => {
+      view.result.current.restart();
+      view.result.current.restart();
+    });
+    expect(source.start).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveStart(session);
+    });
+    expect(view.result.current.status).toBe('verifying');
+  });
 });
 
 describe('useVerification - connectivity', () => {
