@@ -12,6 +12,7 @@ import {
 } from '../../__mocks__/@react-native-community/netinfo';
 import {
   getInjectedScripts,
+  getWebViewMountCount,
   resetWebViewMock,
   simulateRawWebViewMessage,
   simulateWebViewError,
@@ -254,6 +255,39 @@ describe('Verification - the hosted page', () => {
     expect(hiddenWrapper.props.importantForAccessibility).toBe(
       'no-hide-descendants',
     );
+  });
+
+  it('keeps the one WebView mounted across verifying and pending', async () => {
+    // A remount would reload the hosted page (and lose the provider's in-page
+    // state) exactly while the review is running.
+    const p = props({ successDelayMs: 0 });
+    const renderer = await start(p);
+    expect(getWebViewMountCount()).toBe(1);
+
+    await ReactTestRenderer.act(async () => {
+      simulateRawWebViewMessage(bridge({ type: 'submitted' }));
+    });
+
+    expect(has(renderer, 'pending-screen')).toBe(true);
+    expect(has(renderer, 'verification-webview')).toBe(true);
+    expect(getWebViewMountCount()).toBe(1);
+
+    // Still the same live page: its ref keeps taking token injections.
+    await ReactTestRenderer.act(async () => {
+      simulateRawWebViewMessage(bridge({ type: 'tokenExpired' }));
+    });
+    expect(getWebViewMountCount()).toBe(1);
+  });
+
+  it('offers a way out while the page is showing', async () => {
+    const p = props();
+    const renderer = await start(p);
+
+    expect(has(renderer, 'verification-cancel-button')).toBe(true);
+    await press(renderer, 'verification-cancel-button');
+
+    expect(p.onCancel).toHaveBeenCalledTimes(1);
+    expect(has(renderer, 'verification-start-button')).toBe(true);
   });
 
   it('returns to idle when the page reports a cancel', async () => {

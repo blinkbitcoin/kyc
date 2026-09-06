@@ -40,11 +40,16 @@ declare global {
   var __webViewMockHandler: ((event: WebViewMessageEvent) => void) | undefined;
   var __webViewMockProps: WebViewMockProps | undefined;
   var __webViewMockInjected: string[] | undefined;
+  var __webViewMockMounts: number | undefined;
 }
 
 /** Every prop the component under test passed to the WebView. */
 export const getWebViewProps = (): WebViewMockProps =>
   globalThis.__webViewMockProps ?? {};
+
+/** How many times a WebView was mounted since the last reset. */
+export const getWebViewMountCount = (): number =>
+  globalThis.__webViewMockMounts ?? 0;
 
 /** Scripts pushed through the ref's injectJavaScript, in order. */
 export const getInjectedScripts = (): string[] =>
@@ -62,6 +67,13 @@ export const WebView = forwardRef<WebViewMockHandle, WebViewMockRenderProps>(
         ];
       },
     }));
+
+    // Mount-only: a re-render must not bump it, so a test can prove the page
+    // survived a state change instead of being torn down and reloaded.
+    useEffect(() => {
+      globalThis.__webViewMockMounts =
+        (globalThis.__webViewMockMounts ?? 0) + 1;
+    }, []);
 
     useEffect(() => {
       globalThis.__webViewMockHandler = onMessage;
@@ -104,6 +116,7 @@ export const resetWebViewMock = () => {
   globalThis.__webViewMockHandler = undefined;
   globalThis.__webViewMockProps = undefined;
   globalThis.__webViewMockInjected = undefined;
+  globalThis.__webViewMockMounts = undefined;
 };
 
 export default WebView;

@@ -57,225 +57,231 @@ export const Verification: React.FC<VerificationProps> = ({
     successDelayMs,
   });
 
-  switch (status) {
-    case 'idle':
-      return (
-        <View style={[styles.container, style]}>
-          <Text style={styles.title}>{label}</Text>
-          <Text style={styles.subtitle}>
-            Have your ID document ready and allow camera access.
-          </Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={start}
-            testID="verification-start-button"
-            accessibilityRole="button"
-            accessibilityLabel={label}
-          >
-            <Text style={styles.buttonText}>{label}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={cancel}
-            testID="verification-cancel-button"
-            accessibilityRole="button"
-            accessibilityLabel="Cancel verification"
-          >
-            <Text style={styles.secondaryButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      );
+  // The hosted page is mounted ONCE and kept mounted across
+  // 'verifying' -> 'pending': it is the same element in the same position of
+  // the same parent, so React never unmounts it. A remount would reload the
+  // page and drop the provider's in-page state exactly while the user waits
+  // for the review ('submitted' and a non-approved 'complete' can still be
+  // followed by more messages: a retry, a token refresh, a final decision).
+  // 'pending' only shrinks the page to nothing and mutes it.
+  //
+  // A launchable source runs the provider SDK in-process: no page, no
+  // WebView, just a placeholder behind the native screen.
+  const pageUrl = isLaunchable(source) ? undefined : session?.url;
+  const showsPage =
+    pageUrl !== undefined && (status === 'verifying' || status === 'pending');
+  const hidden = status === 'pending';
 
-    case 'loading':
-      return (
-        <View style={[styles.container, style]}>
-          <ActivityIndicator
-            size="large"
-            testID="loading-indicator"
-            accessibilityLabel="Loading, please wait"
-          />
-          <Text style={styles.subtitle}>Preparing verification...</Text>
-        </View>
-      );
-
-    case 'verifying':
-      // A launchable source runs the provider SDK in-process: no page, no
-      // WebView, just a placeholder behind the native screen.
-      if (session?.url && !isLaunchable(source)) {
+  const overlay = ((): React.ReactElement | null => {
+    switch (status) {
+      case 'idle':
         return (
-          <HostedWebView
-            url={session.url}
-            allowedOrigin={session.allowedOrigin}
-            allowedNavigationOrigins={allowedNavigationOrigins}
-            onMessage={handleMessage}
-            onEvent={handleEvent}
-            webViewRef={webViewRef}
-            renderLoading={renderLoading}
-            style={style}
-          />
-        );
-      }
-      return (
-        <View style={[styles.container, style]} testID="launch-screen">
-          <Text style={styles.title}>Verification in progress</Text>
-          <Text style={styles.subtitle}>
-            Follow the steps in the verification screen.
-          </Text>
-        </View>
-      );
-
-    case 'pending':
-      // 'submitted' (and a non-approved 'complete') land here while the
-      // hosted page may still be posting messages (a decline can still be
-      // followed by a retry, a token refresh, etc.) - so the page stays
-      // mounted, invisibly, instead of being torn down under the overlay.
-      // A launchable source has no page to keep alive: the native SDK's own
-      // screen is still the one showing, so this is the same placeholder as
-      // 'verifying'.
-      if (session?.url && !isLaunchable(source)) {
-        return (
-          <View style={[styles.container, style]} testID="pending-screen">
-            <View
-              style={styles.hiddenWebView}
-              pointerEvents="none"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
+          <View style={styles.screen}>
+            <Text style={styles.title}>{label}</Text>
+            <Text style={styles.subtitle}>
+              Have your ID document ready and allow camera access.
+            </Text>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={start}
+              testID="verification-start-button"
+              accessibilityRole="button"
+              accessibilityLabel={label}
             >
-              <HostedWebView
-                url={session.url}
-                allowedOrigin={session.allowedOrigin}
-                allowedNavigationOrigins={allowedNavigationOrigins}
-                onMessage={handleMessage}
-                onEvent={handleEvent}
-                webViewRef={webViewRef}
-                renderLoading={renderLoading}
-              />
+              <Text style={styles.buttonText}>{label}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={cancel}
+              testID="verification-cancel-button"
+              accessibilityRole="button"
+              accessibilityLabel="Cancel verification"
+            >
+              <Text style={styles.secondaryButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      case 'loading':
+        return (
+          <View style={styles.screen}>
+            <ActivityIndicator
+              size="large"
+              testID="loading-indicator"
+              accessibilityLabel="Loading, please wait"
+            />
+            <Text style={styles.subtitle}>Preparing verification...</Text>
+          </View>
+        );
+
+      case 'verifying':
+      case 'pending':
+        if (!showsPage) {
+          return (
+            <View style={styles.screen} testID="launch-screen">
+              <Text style={styles.title}>Verification in progress</Text>
+              <Text style={styles.subtitle}>
+                Follow the steps in the verification screen.
+              </Text>
             </View>
+          );
+        }
+        return hidden ? (
+          <View style={styles.screen} testID="pending-screen">
             <Text style={styles.title}>Thanks</Text>
             <Text style={styles.subtitle} testID="pending-message">
               {describeOutcome(result?.status)}
             </Text>
           </View>
+        ) : (
+          // The page owns the screen while it runs, so the only affordance
+          // the component adds is a way out of it.
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={cancel}
+              testID="verification-cancel-button"
+              accessibilityRole="button"
+              accessibilityLabel="Cancel verification"
+            >
+              <Text style={styles.secondaryButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
         );
-      }
-      return (
-        <View style={[styles.container, style]} testID="launch-screen">
-          <Text style={styles.title}>Verification in progress</Text>
-          <Text style={styles.subtitle}>
-            Follow the steps in the verification screen.
-          </Text>
-        </View>
-      );
 
-    case 'success':
-      return (
-        <View style={[styles.container, style]} testID="success-screen">
-          <Text
-            style={styles.successText}
-            accessibilityLabel="Verification complete"
-          >
-            {describeOutcome('approved')}
-          </Text>
-        </View>
-      );
+      case 'success':
+        return (
+          <View style={styles.screen} testID="success-screen">
+            <Text
+              style={styles.successText}
+              accessibilityLabel="Verification complete"
+            >
+              {describeOutcome('approved')}
+            </Text>
+          </View>
+        );
 
-    case 'permissionDenied':
-      return (
-        <View style={[styles.container, style]} testID="permission-screen">
-          <Text style={styles.title}>Camera access needed</Text>
-          <Text style={styles.subtitle}>
-            {getErrorMessage('PERMISSION_DENIED')}
-          </Text>
-          {onOpenSettings ? (
+      case 'permissionDenied':
+        return (
+          <View style={styles.screen} testID="permission-screen">
+            <Text style={styles.title}>Camera access needed</Text>
+            <Text style={styles.subtitle}>
+              {getErrorMessage('PERMISSION_DENIED')}
+            </Text>
+            {onOpenSettings ? (
+              <TouchableOpacity
+                style={styles.button}
+                onPress={onOpenSettings}
+                testID="open-settings-button"
+                accessibilityRole="button"
+                accessibilityLabel="Open settings"
+              >
+                <Text style={styles.buttonText}>Open settings</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={retry}
+              testID="retry-button"
+              accessibilityRole="button"
+              accessibilityLabel="Try again"
+            >
+              <Text style={styles.secondaryButtonText}>Try again</Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      case 'offline':
+        return (
+          <View style={styles.screen} testID="offline-screen">
+            <Text style={styles.title}>No connection</Text>
+            <Text style={styles.subtitle}>
+              A connection is required to verify your identity.
+            </Text>
             <TouchableOpacity
               style={styles.button}
-              onPress={onOpenSettings}
-              testID="open-settings-button"
+              onPress={retry}
+              testID="check-connection-button"
               accessibilityRole="button"
-              accessibilityLabel="Open settings"
+              accessibilityLabel="Check connection"
             >
-              <Text style={styles.buttonText}>Open settings</Text>
+              <Text style={styles.buttonText}>Check connection</Text>
             </TouchableOpacity>
-          ) : null}
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={retry}
-            testID="retry-button"
-            accessibilityRole="button"
-            accessibilityLabel="Try again"
-          >
-            <Text style={styles.secondaryButtonText}>Try again</Text>
-          </TouchableOpacity>
-        </View>
-      );
+          </View>
+        );
 
-    case 'offline':
-      // retry() flips the machine to 'loading' the instant it is called
-      // (useVerification's begin() dispatches 'begin' before it ever checks
-      // connectivity), so this screen is always gone again before
-      // isCheckingConnection could render here - it is not read.
-      return (
-        <View style={[styles.container, style]} testID="offline-screen">
-          <Text style={styles.title}>No connection</Text>
-          <Text style={styles.subtitle}>
-            A connection is required to verify your identity.
-          </Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={retry}
-            testID="check-connection-button"
-            accessibilityRole="button"
-            accessibilityLabel="Check connection"
-          >
-            <Text style={styles.buttonText}>Check connection</Text>
-          </TouchableOpacity>
-        </View>
-      );
-
-    case 'error': {
-      const failure = error as VerificationError;
-      const restartable = isRestartableError(failure.code);
-      return (
-        <View style={[styles.container, style]} testID="error-screen">
-          <Text style={styles.errorTitle}>Verification failed</Text>
-          <Text style={styles.subtitle} testID="error-message">
-            {failure.message}
-          </Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={restartable ? restart : retry}
-            testID={restartable ? 'restart-button' : 'retry-button'}
-            accessibilityRole="button"
-            accessibilityLabel={
-              restartable ? 'Restart verification' : 'Try again'
-            }
-          >
-            <Text style={styles.buttonText}>
-              {restartable ? 'Restart' : 'Try again'}
+      case 'error': {
+        const failure = error as VerificationError;
+        const restartable = isRestartableError(failure.code);
+        return (
+          <View style={styles.screen} testID="error-screen">
+            <Text style={styles.errorTitle}>Verification failed</Text>
+            <Text style={styles.subtitle} testID="error-message">
+              {failure.message}
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={cancel}
-            testID="verification-cancel-button"
-            accessibilityRole="button"
-            accessibilityLabel="Cancel verification"
-          >
-            <Text style={styles.secondaryButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      );
+            <TouchableOpacity
+              style={styles.button}
+              onPress={restartable ? restart : retry}
+              testID={restartable ? 'restart-button' : 'retry-button'}
+              accessibilityRole="button"
+              accessibilityLabel={
+                restartable ? 'Restart verification' : 'Try again'
+              }
+            >
+              <Text style={styles.buttonText}>
+                {restartable ? 'Restart' : 'Try again'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={cancel}
+              testID="verification-cancel-button"
+              accessibilityRole="button"
+              accessibilityLabel="Cancel verification"
+            >
+              <Text style={styles.secondaryButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      }
     }
-  }
+  })();
+
+  return (
+    <View style={[styles.root, style]}>
+      {showsPage ? (
+        <View
+          style={hidden ? styles.hiddenWebView : styles.page}
+          pointerEvents={hidden ? 'none' : 'auto'}
+          accessibilityElementsHidden={hidden}
+          importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
+        >
+          <HostedWebView
+            url={pageUrl}
+            allowedOrigin={session?.allowedOrigin}
+            allowedNavigationOrigins={allowedNavigationOrigins}
+            onMessage={handleMessage}
+            onEvent={handleEvent}
+            webViewRef={webViewRef}
+            renderLoading={renderLoading}
+          />
+        </View>
+      ) : null}
+      {overlay}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: { flex: 1 },
+  screen: {
     flex: 1,
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  page: { flex: 1, width: '100%' },
+  actions: { alignItems: 'center', paddingVertical: 12 },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
