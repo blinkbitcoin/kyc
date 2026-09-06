@@ -7,9 +7,11 @@ Instructions for AI agents working with this codebase.
 Identity verification (KYC) integration monorepo (npm workspaces): a backend
 GraphQL service, a platform-agnostic core package, a Sumsub adapter package,
 publishable React Native and React web libraries, and one demo app per
-platform for manual and E2E testing. **Status: bootstrap** — the packages
-build and publish and the pipeline is green; the verification flow itself
-lands phase by phase (see [the design](docs/superpowers/specs/2026-09-05-kyc-design.md)).
+platform for manual and E2E testing. **Status: v1 complete** - all four
+packages, the reference backend, both demos, the full E2E suite and the
+documentation set are implemented. The design this repo followed is
+[docs/superpowers/specs/2026-09-05-kyc-design.md](docs/superpowers/specs/2026-09-05-kyc-design.md);
+the current state is [docs/index.md](docs/index.md).
 
 - **Language**: TypeScript 6.0 everywhere
 - **Node**: `^22.22.2 || >= 24.15.0`; toolchain pinned by `flake.nix`, entered
@@ -34,7 +36,7 @@ lands phase by phase (see [the design](docs/superpowers/specs/2026-09-05-kyc-des
 ├── examples/
 │   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native; Maestro suite (.maestro/)
 │   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy; Playwright suites (e2e/)
-├── docs/                        # Current-state documentation (hand-maintained)
+├── docs/                        # Current-state documentation (hand-maintained): architecture/, integration/, diagrams/ (sources in src/*.mmd), index.md is the map
 ├── scripts/                     # ci/, e2e/, release/ shell + node used by the Makefile and CI
 ├── Makefile                     # Root flows; apps/, packages/, examples/ and each workspace have their own
 └── package.json                 # Workspace root (orchestration scripts, single lockfile)
@@ -78,8 +80,9 @@ Underlying npm scripts (`npm test`, `npm run typecheck`, `npm run lint`,
   not inline in workflows; it is shellcheck'd by `make check-ci`
 - The provider boundary is `VerificationSource` (`packages/kyc-core/src/verification/types.ts`)
   on the client side and `VerificationProvider` (`apps/api/src/providers/port.ts`) on the
-  backend - nothing Sumsub-specific outside `packages/kyc-sumsub/` and
-  `apps/api/src/providers/sumsub/`
+  backend - nothing Sumsub-specific outside `packages/kyc-sumsub/` and, on the
+  server, outside `apps/api/src/providers/sumsub/`, which itself imports the
+  shared mapping from `@blinkbitcoin/kyc-sumsub` rather than restating it
 - GraphQL error codes are a wire contract: the `ErrorCode` enum in
   `apps/api/schema.graphql` (emitted from `src/typeDefs.ts`) and the generated
   client types in `packages/kyc-core/src/generated/` - run `make codegen`

@@ -439,7 +439,7 @@ describe('Verification - pass-through props', () => {
     const view = render(<Verification {...p} />);
 
     // `style` lands once, on the component's single root - the same place
-    // Phase 5's RN component applies it.
+    // the RN component applies it.
     expect((view.container.firstChild as HTMLElement).style.minHeight).toBe(
       '200px',
     );

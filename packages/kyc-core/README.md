@@ -56,6 +56,9 @@ the error screen offers Restart or Try again. The `permission` action carries
 OS settings (React Native) and one that cannot (the browser) still share one
 reducer. Nothing here touches React, the DOM, native modules or Apollo.
 
-Status: the `Verification` component and `useVerification` hook live in the
-platform packages and land with their phases — see
-`docs/superpowers/specs/2026-09-05-kyc-design.md`.
+The `Verification` component and the `useVerification` hook live in the
+platform packages (`@blinkbitcoin/kyc-react-native`,
+`@blinkbitcoin/kyc-react`), which both run **this** package's state machine so
+they cannot drift. Consumer guides:
+[`docs/integration/`](../../docs/integration/consuming.md). Internals:
+[`docs/architecture/integration.md`](../../docs/architecture/integration.md).

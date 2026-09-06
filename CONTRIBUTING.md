@@ -118,25 +118,38 @@ Escape hatches, for the rare cases where they are warranted:
 1. Branch from `main`; keep the PR focused on one change. Change code **and
    the relevant doc in the same change** (docs are hand-maintained;
    `docs/index.md` maps them).
-2. Diagrams: edit `docs/diagrams/src/*.mmd`, then `make diagrams` (CI fails
-   on drift). Schema: edit `apps/api/src/typeDefs.ts`, then `make codegen`.
+2. Diagrams: edit `docs/diagrams/src/*.mmd`, then `make diagrams` and commit
+   the regenerated SVG in the same commit (CI fails on a source without its
+   SVG). Schema: edit `apps/api/src/typeDefs.ts`, then `make codegen`.
+   Documentation: `docs/architecture/` is internals, `docs/integration/` is
+   for consumers, and [docs/index.md](docs/index.md) maps both - update the
+   relevant page in the same change.
 3. Open a PR with a Conventional Commits title — every workflow must be
    green. The title is also the line the release notes will show.
 
 ## Releases
 
 - **Prerelease** (`next` tag): automatic on every green push to `main`,
-  versioned `<next patch after the latest tag>-pre.<run>.<sha>`.
-- **Stable**: one step — `make release V=X.Y.Z` (wraps
-  `gh release create vX.Y.Z --target main --generate-notes`). **The tag is
-  the version**: CI stamps it into the four packages at publish time, so
-  nothing is committed and `package.json` stays at `0.0.0-development`.
-  The release notes, generated from PR titles (`.github/release.yml`), are
-  the changelog. A tag with a prerelease part (`v1.0.0-rc.1`) ships under
-  `next`. GitHub Packages never accepts the same version twice, so a failed
-  release means fixing forward and cutting a new tag.
+  versioned `<next patch after the latest tag>-pre.<run>.<sha>`. Install with
+  `npm i @blinkbitcoin/kyc-react-native@next`.
+- **Stable**: one step - `make release V=X.Y.Z` (which wraps
+  `gh release create vX.Y.Z --target main --title vX.Y.Z --generate-notes`).
+  **The tag is the version**: CI stamps it into all four packages at publish
+  time and pins each one's `@blinkbitcoin/kyc-core` dependency to exactly that
+  version, so nothing is committed and `package.json` stays at
+  `0.0.0-development`. The release notes, generated from PR titles
+  (`.github/release.yml`), are the changelog - there is no `CHANGELOG.md`. A
+  tag with a prerelease part (`v1.0.0-rc.1`) ships under `next`. GitHub
+  Packages never accepts the same version twice, so a failed release means
+  fixing forward and cutting a new tag.
   A release ships only once the commit's push-to-`main` run is green: the
   release run waits for an in-flight main run and refuses a red one, and
   `release-retry.yml` re-runs the blocked Publish automatically when main
-  turns green (re-run the flaky job with `gh run rerun <id> --failed`).
+  turns green (re-run a flaky job with `gh run rerun <id> --failed`).
   So `make release` is fire-and-forget.
+- **Check first, cost nothing:** `make version` prints the prerelease HEAD
+  would publish, `make version TAG=vX.Y.Z` prints what the tag would publish,
+  and neither writes to any `package.json`. After a release,
+  `make registry-smoke V=X.Y.Z` re-runs the consumer contract check against
+  GitHub Packages. Step-by-step:
+  [docs/development-guide.md](docs/development-guide.md#first-release).

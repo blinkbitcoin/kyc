@@ -56,7 +56,7 @@ const mockParams = {
 describe('bridge protocol constants', () => {
   it('match the published @blinkbitcoin/kyc-core protocol', () => {
     // The backend has no dependency on kyc-core, so the values are pinned
-    // here instead. If Phase 2's BRIDGE_PROTOCOL_VERSION ever changes, this
+    // here instead. If kyc-core's BRIDGE_PROTOCOL_VERSION ever changes, this
     // test is the thing that must be updated together with the page.
     expect(BRIDGE_SOURCE).toBe('kyc-bridge');
     expect(BRIDGE_PROTOCOL_VERSION).toBe(1);

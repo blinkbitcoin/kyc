@@ -7,11 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Identity verification (KYC) integration monorepo (npm workspaces). The
 **backend service** is the main deliverable together with the **publishable
 React Native and React web libraries**; the demo apps exist for manual and
-E2E testing. **Status:** feature-complete for v1 — core, the backend, the
-Sumsub adapters, both platform packages, both demos and the full E2E suite
-(backend, Playwright, Maestro) are implemented; docs and the first release
-are the remaining phase (see
-[the design](docs/superpowers/specs/2026-09-05-kyc-design.md)).
+E2E testing. **Status:** v1 complete - core, the backend, the Sumsub adapters,
+both platform packages, both demos, the full E2E suite (backend, Playwright,
+Maestro) and the documentation set are in place. The repo is ready for its
+first stable release (`make release V=X.Y.Z`, see
+[CONTRIBUTING.md](CONTRIBUTING.md#releases)).
 
 | Workspace | Path | Role |
 |-----------|------|------|
@@ -110,7 +110,10 @@ npm run migrate:test         # Same against the .env.test database
   origin-pinned iframe on the web) and re-exports `@blinkbitcoin/kyc-core`.
   The state machine those hooks run is in core (`src/verification/machine.ts`)
   so the two platforms cannot drift; `HTMLElement` stays out of core, which
-  is why `MountableSource` lives in `packages/kyc-react`.
+  is why `MountableSource` lives in `packages/kyc-react`. The consumer-facing
+  documentation for all three modes is `docs/integration/` and the internals
+  are `docs/architecture/` - change code and the matching doc in the same
+  commit.
 - No URLs, tokens, or platform detection in the library - that's host-app
   (demo) wiring.
 - **Provider-agnostic**: `Verification` takes a `VerificationSource` (not

@@ -1,8 +1,8 @@
 // GraphQL SDL - kept free of runtime imports so tooling (schema emission,
 // drift tests, client codegen) can load it without a database connection.
-// Phase 2 adds the verification-session contract the client packages
-// generate against; the resolvers, providers and webhook land with the
-// backend phase.
+// Carries the verification-session contract the client packages generate
+// against, plus the ErrorCode wire contract; every operation below has a
+// resolver in schema.ts.
 
 export const typeDefs = `#graphql
   type Query {

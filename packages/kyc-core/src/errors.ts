@@ -20,8 +20,8 @@ export type ErrorCodeValue = (typeof ErrorCodes)[keyof typeof ErrorCodes];
 export const ClientErrorCodes = {
   /**
    * Request never reached the backend (or the device is offline). Intended
-   * producer: the platform packages' own connectivity check / offline state
-   * (Phase 5-6), not this package - `createProxySource` deliberately maps
+   * producer: the platform packages' own connectivity check / offline state,
+   * not this package - `createProxySource` deliberately maps
    * transport failures it sees itself to `SESSION_CREATION_FAILED` /
    * `TOKEN_REFRESH_FAILED` instead, since at that point a request was
    * already attempted.
