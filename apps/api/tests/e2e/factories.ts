@@ -12,6 +12,7 @@ export const createTestSession = async (
     levelName: string | null;
     platform: string;
     status: string;
+    createdAt: Date;
   }> = {}
 ): Promise<VerificationSessionRow> => {
   const [session] = await knex<VerificationSessionRow>('VerificationSession')
@@ -26,6 +27,7 @@ export const createTestSession = async (
       levelName: overrides.levelName ?? null,
       platform: overrides.platform ?? 'WEB',
       status: overrides.status ?? 'initial',
+      ...(overrides.createdAt && { createdAt: overrides.createdAt }),
     })
     .returning('*');
 

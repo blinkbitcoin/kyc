@@ -18,12 +18,12 @@ vi.mock('../src/session', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/session')>();
   return {
     ...actual,
-    // canTransition is the real terminal-state machine (also exercised
-    // directly by tests/session.test.ts) - the resolver reconciliation path
-    // relies on its actual behavior, not a mock stub.
+    // applyStatusTransition is the shared conditional write (exercised
+    // against the query builder in tests/session.test.ts); here it is a
+    // seam, so these tests assert the resolver hands the event to it.
     createSession: vi.fn(),
     getSessionByIdForUser: vi.fn(),
-    updateSessionStatus: vi.fn(),
+    applyStatusTransition: vi.fn(),
     bindApplicantId: vi.fn(),
   };
 });
@@ -254,6 +254,9 @@ describe('Query.verificationSession', () => {
   const query = (id: string, ctx = context) =>
     resolvers.Query.verificationSession(null, { id }, ctx as never);
 
+  const transition = (status: string, outcome = 'updated') =>
+    ({ outcome, previousStatus: 'initial', session: row({ status }) }) as never;
+
   it('requires authentication and a non-empty id', async () => {
     await expect(query('session-1', anonymous)).rejects.toMatchObject({
       extensions: { code: 'UNAUTHORIZED' },
@@ -268,114 +271,61 @@ describe('Query.verificationSession', () => {
     });
   });
 
-  it('returns the stored status (webhooks are the source of truth)', async () => {
+  it('returns the stored status for a terminal session without asking the provider', async () => {
     vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
       row({ status: 'approved' }) as never
     );
+    const lookup = vi.fn();
+    (provider as { getStatusByUserId?: unknown }).getStatusByUserId = lookup;
+
     await expect(query('session-1')).resolves.toEqual({
       sessionId: 'session-1',
       provider: 'mock',
       status: 'approved',
       applicantId: 'mock-applicant-1',
     });
+    expect(lookup).not.toHaveBeenCalled();
+    expect(session.applyStatusTransition).not.toHaveBeenCalled();
+
+    delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
   });
 
-  it('reconciles with the provider while no applicant is bound and the provider can look up by user', async () => {
+  it('reconciles by user id while no applicant is bound and the provider can look up by user', async () => {
     vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
       row({ providerApplicantId: null, status: 'initial' }) as never
     );
-    vi.mocked(session.updateSessionStatus).mockResolvedValue(
-      row({ providerApplicantId: null, status: 'pending' }) as never
-    );
+    vi.mocked(session.applyStatusTransition).mockResolvedValue(transition('pending'));
     // The mocked provider gains the optional capability for this test only.
     (provider as { getStatusByUserId?: unknown }).getStatusByUserId = vi.fn(async () => 'pending');
 
     await expect(query('session-1')).resolves.toMatchObject({ status: 'pending' });
-    expect(session.updateSessionStatus).toHaveBeenCalledWith('session-1', 'pending');
-    expect(audit.logAuditEvent).toHaveBeenCalledWith('session-1', 'status_updated', {
-      status: 'pending',
-      previousStatus: 'initial',
-      source: 'api',
-    });
+    // The terminal guard and the audit row live inside this one call - the
+    // resolver never decides the transition for itself.
+    expect(session.applyStatusTransition).toHaveBeenCalledWith('session-1', 'pending', 'api');
 
     delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
   });
 
-  // NOTE: this scenario previously asserted the opposite (stored status kept)
-  // under an ad hoc "forward progress" ordering guard. That guard compared
-  // VERIFICATION_STATUSES declaration order, which is not a temporal
-  // progression - it would have permanently blocked the legitimate
-  // declined -> pending (Sumsub RETRY) transition. The resolver now reuses
-  // session.ts's canTransition, the same terminal-state machine the webhook
-  // path enforces: any non-terminal status may change, so a lookup racing an
-  // in-flight webhook can genuinely move backward here. This is a deliberate
-  // behavior correction, not new coverage.
-  it('reconciles even backward while the session is non-terminal (mirrors the webhook state machine)', async () => {
+  it('reports whatever the conditional write left in the row when it refuses', async () => {
     vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
       row({ providerApplicantId: null, status: 'pending' }) as never
     );
-    vi.mocked(session.updateSessionStatus).mockResolvedValue(
-      row({ providerApplicantId: null, status: 'initial' }) as never
+    vi.mocked(session.applyStatusTransition).mockResolvedValue(
+      transition('approved', 'rejected_terminal')
     );
     (provider as { getStatusByUserId?: unknown }).getStatusByUserId = vi.fn(async () => 'initial');
 
-    await expect(query('session-1')).resolves.toMatchObject({ status: 'initial' });
-    expect(session.updateSessionStatus).toHaveBeenCalledWith('session-1', 'initial');
-    expect(audit.logAuditEvent).toHaveBeenCalledWith('session-1', 'status_updated', {
-      status: 'initial',
-      previousStatus: 'pending',
-      source: 'api',
-    });
-
-    delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
-  });
-
-  it('never reconciles a terminal session', async () => {
-    vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
-      row({ providerApplicantId: null, status: 'approved' }) as never
-    );
-    const lookup = vi.fn();
-    (provider as { getStatusByUserId?: unknown }).getStatusByUserId = lookup;
-
     await expect(query('session-1')).resolves.toMatchObject({ status: 'approved' });
-    expect(lookup).not.toHaveBeenCalled();
-    expect(session.updateSessionStatus).not.toHaveBeenCalled();
-    expect(audit.logAuditEvent).not.toHaveBeenCalled();
 
     delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
   });
 
-  it('allows a declined session to move back to pending (Sumsub RETRY)', async () => {
+  it('does nothing when the provider cannot look a status up by user id', async () => {
     vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
-      row({ providerApplicantId: null, status: 'declined' }) as never
+      row({ providerApplicantId: null, status: 'initial' }) as never
     );
-    vi.mocked(session.updateSessionStatus).mockResolvedValue(
-      row({ providerApplicantId: null, status: 'pending' }) as never
-    );
-    (provider as { getStatusByUserId?: unknown }).getStatusByUserId = vi.fn(async () => 'pending');
-
-    await expect(query('session-1')).resolves.toMatchObject({ status: 'pending' });
-    expect(session.updateSessionStatus).toHaveBeenCalledWith('session-1', 'pending');
-    expect(audit.logAuditEvent).toHaveBeenCalledWith('session-1', 'status_updated', {
-      status: 'pending',
-      previousStatus: 'declined',
-      source: 'api',
-    });
-
-    delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
-  });
-
-  it('is a no-op when the provider reports the identical status', async () => {
-    vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
-      row({ providerApplicantId: null, status: 'pending' }) as never
-    );
-    (provider as { getStatusByUserId?: unknown }).getStatusByUserId = vi.fn(async () => 'pending');
-
-    await expect(query('session-1')).resolves.toMatchObject({ status: 'pending' });
-    expect(session.updateSessionStatus).not.toHaveBeenCalled();
-    expect(audit.logAuditEvent).not.toHaveBeenCalled();
-
-    delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
+    await expect(query('session-1')).resolves.toMatchObject({ status: 'initial' });
+    expect(session.applyStatusTransition).not.toHaveBeenCalled();
   });
 
   it('falls back to the stored status when the lookup fails', async () => {

@@ -10,11 +10,10 @@ import { knex } from './db';
 import { Errors } from './errors';
 import { getProviderName, provider, supportsUserStatusLookup } from './providers';
 import {
+  applyStatusTransition,
   bindApplicantId,
-  canTransition,
   createSession,
   getSessionByIdForUser,
-  updateSessionStatus,
 } from './session';
 import { setActiveSpanAttributes } from './tracing';
 import type { GraphQLContext, VerificationSessionStartInput, VerificationStatus } from './types';
@@ -99,19 +98,12 @@ export const resolvers = {
       ) {
         try {
           const providerStatus = await provider.getStatusByUserId(session.userId);
-          // Reuse the same terminal-state machine the webhook path enforces:
-          // a lookup racing an in-flight webhook must never downgrade a
-          // terminal status, but declined -> pending (Sumsub RETRY) is a
-          // legitimate transition, not a "downgrade".
-          if (canTransition(status, providerStatus)) {
-            await updateSessionStatus(session.id, providerStatus);
-            await logAuditEvent(session.id, 'status_updated', {
-              status: providerStatus,
-              previousStatus: status,
-              source: 'api',
-            });
-            status = providerStatus;
-          }
+          // Applied through the SAME conditional write the webhook path uses:
+          // the terminal guard is part of the UPDATE and the audit row shares
+          // its transaction, so a lookup racing an in-flight webhook can
+          // never bypass the state machine.
+          const transition = await applyStatusTransition(session.id, providerStatus, 'api');
+          status = transition.session.status;
         } catch (error) {
           // Reconciliation is best effort: report what we have.
           console.error(

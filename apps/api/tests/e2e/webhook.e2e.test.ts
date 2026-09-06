@@ -84,6 +84,60 @@ describe('webhook (E2E)', () => {
     expect(row.status).toBe('pending');
   });
 
+  it('keeps the terminal status when a late event follows the final one', async () => {
+    const session = await createTestSession({ status: 'pending' });
+    await post(payload(session.providerApplicantId!, 'approved'));
+    const late = await post(payload(session.providerApplicantId!, 'pending'));
+
+    expect(late.body.outcome).toBe('rejected_terminal');
+    expect(await statusOf(session.id)).toBe('approved');
+    expect(await auditActions(session.id)).toEqual(['status_updated', 'webhook_rejected']);
+  });
+
+  // The guard lives in the UPDATE's WHERE clause, so two deliveries racing
+  // each other cannot both pass a check and then both write: whichever order
+  // the database serializes them in, the terminal status is what survives.
+  it('lets the terminal status win a concurrent pair of deliveries', async () => {
+    const session = await createTestSession({ status: 'pending' });
+
+    const outcomes = await Promise.all([
+      post(payload(session.providerApplicantId!, 'approved')),
+      post(payload(session.providerApplicantId!, 'pending')),
+    ]);
+
+    expect(outcomes.map((res) => res.status)).toEqual([200, 200]);
+    expect(await statusOf(session.id)).toBe('approved');
+  });
+
+  it('binds each applicant to its own unbound session instead of stealing one', async () => {
+    const older = await createTestSession({
+      providerApplicantId: null,
+      createdAt: new Date('2026-09-05T00:00:00.000Z'),
+    });
+    const newer = await createTestSession({
+      providerApplicantId: null,
+      createdAt: new Date('2026-09-06T00:00:00.000Z'),
+    });
+
+    await post(payload('mock-applicant-first', 'pending', 'e2e-user'));
+    await post(payload('mock-applicant-second', 'pending', 'e2e-user'));
+
+    const rows = await knex('VerificationSession').whereIn('id', [older.id, newer.id]);
+    const boundIds = rows.map((row) => row.providerApplicantId).sort();
+    expect(boundIds).toEqual(['mock-applicant-first', 'mock-applicant-second']);
+  });
+
+  it('refuses a webhook whose user has no unbound session left', async () => {
+    const session = await createTestSession({ status: 'pending' });
+    const res = await post(payload('mock-applicant-other', 'approved', session.userId));
+
+    expect(res.body.outcome).toBe('unknown_session');
+    expect(await statusOf(session.id)).toBe('pending');
+    expect(
+      (await knex('VerificationSession').where({ id: session.id }).first()).providerApplicantId
+    ).toBe(session.providerApplicantId);
+  });
+
   it('acknowledges a webhook for a session it does not know', async () => {
     const res = await post(payload('mock-applicant-orphan', 'approved'));
     expect(res.status).toBe(200);

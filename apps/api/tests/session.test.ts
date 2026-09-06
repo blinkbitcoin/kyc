@@ -1,9 +1,10 @@
 import type { Tracker } from 'knex-mock-client';
 import { createTracker } from 'knex-mock-client';
+import { vi } from 'vitest';
 import { knex } from '../src/db';
 import {
+  applyStatusTransition,
   bindApplicantId,
-  canTransition,
   createSession,
   getLatestSessionForUser,
   getSessionById,
@@ -11,6 +12,10 @@ import {
   getSessionByProviderApplicantId,
   updateSessionStatus,
 } from '../src/session';
+
+vi.mock('../src/audit');
+
+const audit = await import('../src/audit');
 
 const row = {
   id: 'session-1',
@@ -87,74 +92,197 @@ describe('VerificationSession repository', () => {
       await expect(getSessionByProviderApplicantId('nope')).resolves.toBeNull();
     });
 
-    it('getLatestSessionForUser orders by createdAt desc and filters by provider', async () => {
+    it('getLatestSessionForUser orders by createdAt desc, filters by provider and skips bound sessions', async () => {
       tracker.on.select('VerificationSession').responseOnce([row]);
       await expect(getLatestSessionForUser('user-1', 'mock')).resolves.toEqual(row);
       expect(tracker.history.select[0].sql).toMatch(/order by "createdAt" desc/i);
+      expect(tracker.history.select[0].sql).toMatch(/"providerApplicantId" is null/i);
       tracker.on.select('VerificationSession').responseOnce([]);
       await expect(getLatestSessionForUser('user-1', 'mock')).resolves.toBeNull();
     });
   });
 
-  describe('writes', () => {
-    it('updateSessionStatus returns the updated row', async () => {
+  describe('updateSessionStatus (conditional write)', () => {
+    it('carries the terminal guard in the UPDATE itself, not in a prior check', async () => {
+      tracker.on.select('VerificationSession').response([row]);
       tracker.on.update('VerificationSession').response([{ ...row, status: 'approved' }]);
+
       await expect(updateSessionStatus('session-1', 'approved')).resolves.toMatchObject({
-        status: 'approved',
+        outcome: 'updated',
+        previousStatus: 'initial',
+        session: { status: 'approved' },
+      });
+
+      const [read] = tracker.history.select;
+      expect(read.sql).toMatch(/for update/i);
+      const [update] = tracker.history.update;
+      expect(update.sql).toMatch(/"status" not in \(\$\d+, \$\d+\)/i);
+      expect(update.sql).toMatch(/"status" <> \$\d+/i);
+      expect(update.bindings).toEqual(
+        expect.arrayContaining(['approved', 'finallyRejected', 'session-1'])
+      );
+    });
+
+    it('reports rejected_terminal when the guard matched no row', async () => {
+      tracker.on.select('VerificationSession').response([{ ...row, status: 'approved' }]);
+      tracker.on.update('VerificationSession').response([]);
+
+      await expect(updateSessionStatus('session-1', 'declined')).resolves.toMatchObject({
+        outcome: 'rejected_terminal',
+        previousStatus: 'approved',
+        session: { status: 'approved' },
       });
     });
 
-    it('updateSessionStatus throws when nothing was updated', async () => {
+    it('reports unchanged when the stored status already equals the target', async () => {
+      tracker.on.select('VerificationSession').response([{ ...row, status: 'pending' }]);
       tracker.on.update('VerificationSession').response([]);
+
+      await expect(updateSessionStatus('session-1', 'pending')).resolves.toMatchObject({
+        outcome: 'unchanged',
+        previousStatus: 'pending',
+      });
+    });
+
+    it('throws when the session does not exist', async () => {
+      tracker.on.select('VerificationSession').response([]);
       await expect(updateSessionStatus('missing', 'approved')).rejects.toThrow(
         /Verification session not found: missing/
       );
     });
+  });
 
-    it('bindApplicantId stores the provider applicant id', async () => {
+  describe('bindApplicantId', () => {
+    it('binds only while the session is unbound or already this applicant', async () => {
       tracker.on.update('VerificationSession').response([{ ...row, providerApplicantId: 'a1' }]);
       await expect(bindApplicantId('session-1', 'a1')).resolves.toMatchObject({
         providerApplicantId: 'a1',
       });
-      expect(tracker.history.update[0].bindings).toEqual(expect.arrayContaining(['a1']));
+      const [update] = tracker.history.update;
+      expect(update.sql).toMatch(
+        /"providerApplicantId" is null or \("providerApplicantId" = \$\d+\)/i
+      );
+      expect(update.bindings).toEqual(expect.arrayContaining(['a1']));
     });
 
-    it('bindApplicantId throws when the session vanished', async () => {
+    it('reports the other applicant rather than stealing a session bound to it', async () => {
       tracker.on.update('VerificationSession').response([]);
+      tracker.on.select('VerificationSession').response([{ ...row, providerApplicantId: 'other' }]);
+      await expect(bindApplicantId('session-1', 'a1')).resolves.toMatchObject({
+        providerApplicantId: 'other',
+      });
+    });
+
+    it('throws when the session vanished', async () => {
+      tracker.on.update('VerificationSession').response([]);
+      tracker.on.select('VerificationSession').response([]);
       await expect(bindApplicantId('missing', 'a1')).rejects.toThrow(
         /Verification session not found: missing/
       );
     });
   });
-});
 
-describe('canTransition', () => {
-  it('rejects a no-op transition', () => {
-    expect(canTransition('pending', 'pending')).toBe(false);
-  });
+  describe('applyStatusTransition', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.spyOn(knex, 'transaction').mockImplementation(
+        // biome-ignore lint/suspicious/noExplicitAny: knex's transaction overloads
+        (async (fn: any) => fn(knex)) as any
+      );
+    });
 
-  it('never leaves a terminal status', () => {
-    for (const next of [
-      'initial',
-      'incomplete',
-      'pending',
-      'declined',
-      'finallyRejected',
-    ] as const) {
-      expect(canTransition('approved', next)).toBe(false);
-    }
-    expect(canTransition('finallyRejected', 'approved')).toBe(false);
-  });
+    afterEach(() => vi.restoreAllMocks());
 
-  it('allows a declined applicant to resubmit and be approved', () => {
-    expect(canTransition('declined', 'pending')).toBe(true);
-    expect(canTransition('declined', 'approved')).toBe(true);
-    expect(canTransition('declined', 'finallyRejected')).toBe(true);
-  });
+    it('writes the status and its audit row in one transaction', async () => {
+      tracker.on.select('VerificationSession').response([row]);
+      tracker.on.update('VerificationSession').response([{ ...row, status: 'pending' }]);
 
-  it('allows the ordinary forward moves', () => {
-    expect(canTransition('initial', 'incomplete')).toBe(true);
-    expect(canTransition('incomplete', 'pending')).toBe(true);
-    expect(canTransition('pending', 'approved')).toBe(true);
+      await expect(applyStatusTransition('session-1', 'pending', 'webhook')).resolves.toMatchObject(
+        { outcome: 'updated' }
+      );
+      expect(knex.transaction).toHaveBeenCalled();
+      expect(audit.logAuditEvent).toHaveBeenCalledWith(
+        'session-1',
+        'status_updated',
+        { status: 'pending', previousStatus: 'initial', source: 'webhook' },
+        knex
+      );
+    });
+
+    it('audits a refused downgrade from a webhook', async () => {
+      tracker.on.select('VerificationSession').response([{ ...row, status: 'approved' }]);
+      tracker.on.update('VerificationSession').response([]);
+
+      await expect(
+        applyStatusTransition('session-1', 'declined', 'webhook')
+      ).resolves.toMatchObject({ outcome: 'rejected_terminal' });
+      expect(audit.logAuditEvent).toHaveBeenCalledWith(
+        'session-1',
+        'webhook_rejected',
+        {
+          status: 'declined',
+          previousStatus: 'approved',
+          source: 'webhook',
+          reason: 'terminal_status',
+        },
+        knex
+      );
+    });
+
+    it('does not audit a refused reconciliation from the API', async () => {
+      tracker.on.select('VerificationSession').response([{ ...row, status: 'approved' }]);
+      tracker.on.update('VerificationSession').response([]);
+
+      await expect(applyStatusTransition('session-1', 'declined', 'api')).resolves.toMatchObject({
+        outcome: 'rejected_terminal',
+      });
+      expect(audit.logAuditEvent).not.toHaveBeenCalled();
+    });
+
+    it('does not audit an unchanged write', async () => {
+      tracker.on.select('VerificationSession').response([{ ...row, status: 'pending' }]);
+      tracker.on.update('VerificationSession').response([]);
+
+      await expect(applyStatusTransition('session-1', 'pending', 'webhook')).resolves.toMatchObject(
+        { outcome: 'unchanged' }
+      );
+      expect(audit.logAuditEvent).not.toHaveBeenCalled();
+    });
+
+    it('binds the applicant id in the same transaction', async () => {
+      tracker.on
+        .update('VerificationSession')
+        .responseOnce([{ ...row, providerApplicantId: 'a1' }]);
+      tracker.on.select('VerificationSession').response([row]);
+      tracker.on.update('VerificationSession').response([{ ...row, status: 'pending' }]);
+
+      await expect(
+        applyStatusTransition('session-1', 'pending', 'webhook', { bindApplicantId: 'a1' })
+      ).resolves.toMatchObject({ outcome: 'updated' });
+    });
+
+    it('refuses and audits an event for a session bound to another applicant', async () => {
+      tracker.on.update('VerificationSession').response([]);
+      tracker.on.select('VerificationSession').response([{ ...row, providerApplicantId: 'other' }]);
+
+      await expect(
+        applyStatusTransition('session-1', 'pending', 'webhook', { bindApplicantId: 'a1' })
+      ).resolves.toMatchObject({
+        outcome: 'rejected_unbound',
+        session: { providerApplicantId: 'other' },
+      });
+
+      expect(audit.logAuditEvent).toHaveBeenCalledWith(
+        'session-1',
+        'webhook_rejected',
+        {
+          status: 'pending',
+          previousStatus: 'initial',
+          source: 'webhook',
+          reason: 'applicant_mismatch',
+        },
+        knex
+      );
+    });
   });
 });

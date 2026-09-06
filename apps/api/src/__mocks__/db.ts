@@ -6,4 +6,6 @@
 import createKnex from 'knex';
 import { MockClient } from 'knex-mock-client';
 
-export const knex = createKnex({ client: MockClient });
+// `dialect: 'pg'` makes the mock compile the same SQL the real client does -
+// including `FOR UPDATE`, which the dialect-less base compiler cannot emit.
+export const knex = createKnex({ client: MockClient, dialect: 'pg' });

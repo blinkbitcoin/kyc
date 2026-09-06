@@ -2,11 +2,8 @@ import { vi } from 'vitest';
 import { handleWebhookEvent } from '../src/webhook';
 
 vi.mock('../src/session');
-vi.mock('../src/audit');
 
 const session = await import('../src/session');
-const audit = await import('../src/audit');
-const { knex } = await import('../src/db');
 
 const row = (over: Partial<Record<string, unknown>> = {}) => ({
   id: 'session-1',
@@ -29,17 +26,16 @@ const event = (over: Partial<Record<string, unknown>> = {}) => ({
   ...over,
 });
 
+const transition = (outcome: string, over: Record<string, unknown> = {}) =>
+  ({
+    outcome,
+    previousStatus: 'pending',
+    session: row(over),
+  }) as never;
+
 beforeEach(() => {
   vi.clearAllMocks();
-  // The real canTransition is the rule under test; only I/O is mocked.
-  (session.canTransition as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-    (current: string, next: string) =>
-      current !== next && current !== 'approved' && current !== 'finallyRejected'
-  );
-  vi.spyOn(knex, 'transaction').mockImplementation(
-    // biome-ignore lint/suspicious/noExplicitAny: knex's transaction overloads
-    (async (fn: any) => fn(knex)) as any
-  );
+  vi.mocked(session.applyStatusTransition).mockResolvedValue(transition('updated'));
   vi.spyOn(console, 'log').mockImplementation(() => {});
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
@@ -54,21 +50,20 @@ describe('handleWebhookEvent', () => {
     expect(session.getSessionByProviderApplicantId).not.toHaveBeenCalled();
   });
 
-  it('updates the session and audits the change', async () => {
+  it('applies the event through the shared conditional write', async () => {
     vi.mocked(session.getSessionByProviderApplicantId).mockResolvedValue(row() as never);
 
     await expect(handleWebhookEvent(event(), 'mock')).resolves.toBe('updated');
 
-    expect(session.updateSessionStatus).toHaveBeenCalledWith('session-1', 'approved', knex);
-    expect(audit.logAuditEvent).toHaveBeenCalledWith(
+    expect(session.applyStatusTransition).toHaveBeenCalledWith(
       'session-1',
-      'status_updated',
-      { status: 'approved', previousStatus: 'pending', source: 'webhook' },
-      knex
+      'approved',
+      'webhook',
+      {}
     );
   });
 
-  it('binds the applicant id on the first webhook of a session that had none', async () => {
+  it('binds the applicant id in the same write on the first webhook of a session', async () => {
     vi.mocked(session.getSessionByProviderApplicantId).mockResolvedValue(null);
     vi.mocked(session.getLatestSessionForUser).mockResolvedValue(
       row({ providerApplicantId: null, status: 'initial' }) as never
@@ -79,8 +74,9 @@ describe('handleWebhookEvent', () => {
     );
 
     expect(session.getLatestSessionForUser).toHaveBeenCalledWith('user-1', 'sumsub');
-    expect(session.bindApplicantId).toHaveBeenCalledWith('session-1', 'a1', knex);
-    expect(session.updateSessionStatus).toHaveBeenCalledWith('session-1', 'pending', knex);
+    expect(session.applyStatusTransition).toHaveBeenCalledWith('session-1', 'pending', 'webhook', {
+      bindApplicantId: 'a1',
+    });
   });
 
   it('ignores a webhook for an unknown applicant with no external user id', async () => {
@@ -91,65 +87,46 @@ describe('handleWebhookEvent', () => {
     expect(session.getLatestSessionForUser).not.toHaveBeenCalled();
   });
 
-  it('ignores a webhook whose external user id has no session', async () => {
+  it('ignores a webhook whose external user id has no unbound session', async () => {
     vi.mocked(session.getSessionByProviderApplicantId).mockResolvedValue(null);
     vi.mocked(session.getLatestSessionForUser).mockResolvedValue(null);
     await expect(handleWebhookEvent(event(), 'sumsub')).resolves.toBe('unknown_session');
-    expect(session.bindApplicantId).not.toHaveBeenCalled();
+    expect(session.applyStatusTransition).not.toHaveBeenCalled();
   });
 
-  it('is idempotent when the status has not changed', async () => {
+  it('reports an idempotent redelivery as unchanged', async () => {
     vi.mocked(session.getSessionByProviderApplicantId).mockResolvedValue(
       row({ status: 'approved' }) as never
     );
+    vi.mocked(session.applyStatusTransition).mockResolvedValue(transition('unchanged'));
     await expect(handleWebhookEvent(event(), 'mock')).resolves.toBe('unchanged');
-    expect(session.updateSessionStatus).not.toHaveBeenCalled();
-    expect(audit.logAuditEvent).not.toHaveBeenCalled();
   });
 
-  it('refuses to downgrade a terminal session and audits the rejection', async () => {
+  it('reports and logs a refused downgrade of a terminal session', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.mocked(session.getSessionByProviderApplicantId).mockResolvedValue(
       row({ status: 'approved' }) as never
     );
+    vi.mocked(session.applyStatusTransition).mockResolvedValue(transition('rejected_terminal'));
 
     await expect(handleWebhookEvent(event({ status: 'declined' }), 'mock')).resolves.toBe(
       'rejected_terminal'
     );
-
-    expect(session.updateSessionStatus).not.toHaveBeenCalled();
-    expect(audit.logAuditEvent).toHaveBeenCalledWith('session-1', 'webhook_rejected', {
-      status: 'declined',
-      previousStatus: 'approved',
-      source: 'webhook',
-      reason: 'terminal_status',
-    });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('is terminal'));
   });
 
-  it('lets a declined applicant resubmit', async () => {
-    vi.mocked(session.getSessionByProviderApplicantId).mockResolvedValue(
-      row({ status: 'declined' }) as never
-    );
-    await expect(handleWebhookEvent(event({ status: 'pending' }), 'sumsub')).resolves.toBe(
-      'updated'
-    );
-  });
-
-  it('does not re-bind an applicant id the session already has', async () => {
-    vi.mocked(session.getSessionByProviderApplicantId).mockResolvedValue(row() as never);
-    await handleWebhookEvent(event(), 'mock');
-    expect(session.bindApplicantId).not.toHaveBeenCalled();
-  });
-
-  it('binds the applicant id even when the resolved session already matches the status', async () => {
+  it('reports and logs an event whose session was bound to another applicant meanwhile', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.mocked(session.getSessionByProviderApplicantId).mockResolvedValue(null);
     vi.mocked(session.getLatestSessionForUser).mockResolvedValue(
-      row({ providerApplicantId: null, status: 'approved' }) as never
+      row({ providerApplicantId: null, status: 'initial' }) as never
     );
+    vi.mocked(session.applyStatusTransition).mockResolvedValue(transition('rejected_unbound'));
 
-    await expect(handleWebhookEvent(event(), 'sumsub')).resolves.toBe('unchanged');
-
-    expect(session.bindApplicantId).toHaveBeenCalledWith('session-1', 'a1');
-    expect(session.updateSessionStatus).not.toHaveBeenCalled();
+    await expect(handleWebhookEvent(event({ status: 'pending' }), 'sumsub')).resolves.toBe(
+      'rejected_unbound'
+    );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('different provider applicant'));
   });
 
   it('sanitizes the raw status it logs', async () => {

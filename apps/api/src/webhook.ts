@@ -1,33 +1,30 @@
 // Webhook application: the ONE place a provider event changes a session's
 // status. Structure follows esign's apps/api/src/webhook.ts (span with an
-// outcome attribute, idempotency check, terminal guard, one transaction for
-// the status update plus its audit row), with two KYC-specific additions:
+// outcome attribute, resolve the session, apply the event), with two
+// KYC-specific additions:
 //
 //  * binding - a Sumsub session is created before an applicant exists, so
 //    the first webhook is matched on externalUserId and binds the applicant
-//    id to the user's newest session with that provider;
-//  * a rejected downgrade is audited (webhook_rejected) rather than only
+//    id to the user's newest UNBOUND session with that provider;
+//  * a rejected event is audited (webhook_rejected) rather than only
 //    logged, because refusing to un-approve someone is a compliance event.
+//
+// This handler never decides whether a transition is allowed: it hands the
+// event to session.ts's applyStatusTransition, where the terminal guard is
+// part of the UPDATE and the audit row shares the transaction. A concurrent
+// delivery therefore cannot race past the guard.
 
-import { logAuditEvent } from './audit';
-import { knex } from './db';
 import { sanitizeForLog } from './log';
+import type { StatusTransitionOutcome } from './session';
 import {
-  bindApplicantId,
-  canTransition,
+  applyStatusTransition,
   getLatestSessionForUser,
   getSessionByProviderApplicantId,
-  updateSessionStatus,
 } from './session';
 import { withSpan } from './tracing';
 import type { WebhookEvent } from './types';
 
-export type WebhookOutcome =
-  | 'ignored_unknown_status'
-  | 'unknown_session'
-  | 'unchanged'
-  | 'rejected_terminal'
-  | 'updated';
+export type WebhookOutcome = 'ignored_unknown_status' | 'unknown_session' | StatusTransitionOutcome;
 
 export const handleWebhookEvent = async (
   event: WebhookEvent,
@@ -65,41 +62,20 @@ export const handleWebhookEvent = async (
       }
       span.setAttribute('kyc.session_id', session.id);
 
-      if (session.status === newStatus) {
-        if (needsBinding) {
-          await bindApplicantId(session.id, event.providerApplicantId);
-        }
-        return finish('unchanged');
-      }
-
-      if (!canTransition(session.status, newStatus)) {
-        console.warn(
-          `Webhook ignored: session ${session.id} is terminal (${session.status}), refusing ${newStatus}`
-        );
-        await logAuditEvent(session.id, 'webhook_rejected', {
-          status: newStatus,
-          previousStatus: session.status,
-          source: 'webhook',
-          reason: 'terminal_status',
-        });
-        return finish('rejected_terminal');
-      }
-
-      const current = session;
-      await knex.transaction(async (trx) => {
-        if (needsBinding) {
-          await bindApplicantId(current.id, event.providerApplicantId, trx);
-        }
-        await updateSessionStatus(current.id, newStatus, trx);
-        await logAuditEvent(
-          current.id,
-          'status_updated',
-          { status: newStatus, previousStatus: current.status, source: 'webhook' },
-          trx
-        );
+      const { outcome } = await applyStatusTransition(session.id, newStatus, 'webhook', {
+        ...(needsBinding && { bindApplicantId: event.providerApplicantId }),
       });
 
-      console.log(`Webhook processed: session ${current.id} status updated to ${newStatus}`);
-      return finish('updated');
+      if (outcome === 'updated') {
+        console.log(`Webhook processed: session ${session.id} status updated to ${newStatus}`);
+      } else if (outcome === 'rejected_terminal') {
+        console.warn(`Webhook ignored: session ${session.id} is terminal, refusing ${newStatus}`);
+      } else if (outcome === 'rejected_unbound') {
+        console.warn(
+          `Webhook ignored: session ${session.id} belongs to a different provider applicant`
+        );
+      }
+
+      return finish(outcome);
     }
   );
