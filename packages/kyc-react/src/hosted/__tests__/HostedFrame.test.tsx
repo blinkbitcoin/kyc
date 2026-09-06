@@ -102,6 +102,26 @@ describe('HostedFrame', () => {
     expect(onMessage).not.toHaveBeenCalled();
   });
 
+  it('ignores a message when the frame has no content window', () => {
+    const onMessage = jest.fn();
+    render(
+      <HostedFrame
+        url={URL}
+        allowedOrigin={ORIGIN}
+        onMessage={onMessage}
+        onEvent={jest.fn()}
+      />,
+    );
+    Object.defineProperty(frameOf(), 'contentWindow', {
+      configurable: true,
+      value: null,
+    });
+
+    post(createBridgeMessage('submitted'), ORIGIN, null);
+
+    expect(onMessage).not.toHaveBeenCalled();
+  });
+
   it('ignores everything and warns once when the session carries no origin pin', () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const onMessage = jest.fn();

@@ -51,10 +51,6 @@ export const HostedFrame: FC<HostedFrameProps> = ({
   testId = HOSTED_FRAME_TEST_ID,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  // Mirrors iframeRef, set at the same time in setFrame below, so the
-  // message guard reads a plain property instead of re-deriving
-  // contentWindow (and its own null-handling) on every message.
-  const frameWindowRef = useRef<Window | null>(null);
   const onMessageRef = useRef(onMessage);
   useEffect(() => {
     onMessageRef.current = onMessage;
@@ -79,7 +75,6 @@ export const HostedFrame: FC<HostedFrameProps> = ({
     (node: HTMLIFrameElement | null) => {
       iframeRef.current?.removeEventListener('error', handleLoadError);
       iframeRef.current = node;
-      frameWindowRef.current = node ? node.contentWindow : null;
       if (frameRef) {
         frameRef.current = node;
       }
@@ -100,7 +95,10 @@ export const HostedFrame: FC<HostedFrameProps> = ({
     }
     const accepts = createMessageGuard({
       allowedOrigin,
-      getFrameWindow: () => frameWindowRef.current,
+      // Read live rather than cached: a frame's contentWindow identity is
+      // stable across a real navigation, but reading it fresh needs no
+      // extra bookkeeping and stays correct if that identity ever changes.
+      getFrameWindow: () => iframeRef.current?.contentWindow ?? null,
     });
     const listener = (event: MessageEvent): void => {
       if (!accepts(event)) {
