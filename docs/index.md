@@ -8,7 +8,7 @@
 | **Type** | Monorepo (npm workspaces): packages + service + demo apps |
 | **Domain** | Fintech / identity verification (KYC) |
 | **Primary Language** | TypeScript |
-| **Architecture** | React / React Native packages + Express/Apollo reference backend |
+| **Architecture** | React / React Native packages + an Express/Apollo backend serving `/health`, `/graphql` (`verificationSessionStart`, `verificationSessionRefresh`, `verificationSession`), `GET /hosted/:sessionId` and `POST /webhook/kyc/:provider` against a mock or Sumsub adapter |
 
 ## Documentation
 

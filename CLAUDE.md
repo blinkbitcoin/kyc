@@ -13,7 +13,7 @@ pipeline is green; the verification flow lands phase by phase (see
 
 | Workspace | Path | Role |
 |-----------|------|------|
-| `backend` | `apps/api/` | Express 5 + Apollo Server 5 GraphQL API, Knex/PostgreSQL; `health` query + the `ErrorCode` wire contract today, provider adapters (Sumsub/mock) + webhooks + hosted page land in later phases |
+| `backend` | `apps/api/` | Express 5 + Apollo Server 5 GraphQL API, Knex/PostgreSQL; verification session/token issuance, provider port (mock + Sumsub), signed webhooks and the hosted verification page |
 | `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: `VerificationSource` + capability guards, `kyc-bridge` protocol, hosted + proxy sources, Apollo client factory, GraphQL operations, `ErrorCode` contract (no React/DOM). Entries: `.`, `/hosted` (Apollo-free), `/testing` (fake source) |
 | `@blinkbitcoin/kyc-sumsub` | `packages/kyc-sumsub/` | Sumsub adapters: shared mapping + `/react-native` + `/web` entries |
 | `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `Verification` component + `useVerification` (hardened WebView for hosted mode) over core |
@@ -80,19 +80,21 @@ npm run migrate              # Knex migrations (TS, run via tsx)
 npm run migrate:test         # Same against the .env.test database
 ```
 
-- The API's SDL carries the verification-session contract
-  (`verificationSessionStart`, `verificationSessionRefresh`,
-  `verificationSession`) plus the `ErrorCode` wire contract; only `health` has
-  a resolver today - session creation, the Sumsub adapter, the webhook and the
-  hosted page land phase by phase (see
-  [the design](docs/superpowers/specs/2026-09-05-kyc-design.md)).
+- The API exposes `/health`, `/graphql` (`verificationSessionStart`,
+  `verificationSessionRefresh`, `verificationSession`), `GET
+  /hosted/:sessionId` (the provider page speaking the `kyc-bridge`
+  protocol) and `POST /webhook/kyc/:provider` (signature-verified).
+  `KYC_PROVIDER` picks the adapter behind `src/providers/port.ts`.
+- `approved` and `finallyRejected` are terminal: no webhook, replayed or
+  late, may downgrade them (`canTransition` in `src/session.ts`).
 - The wire contract is the `ErrorCode` enum in `apps/api/schema.graphql`
   (emitted from `src/typeDefs.ts`). After schema changes run `make codegen`;
   drift fails backend tests, client parity tests, and a CI step.
 - Security is fail-closed by default: `validateSecurityConfig` (`src/config.ts`)
-  refuses to boot without `JWT_SECRET` (and `SUMSUB_WEBHOOK_SECRET` when
-  `KYC_PROVIDER=sumsub`) unless `ALLOW_INSECURE_DEV=true` is explicitly set.
-  This is NOT gated on `NODE_ENV`.
+  refuses to boot without `JWT_SECRET` (and `SUMSUB_APP_TOKEN`,
+  `SUMSUB_SECRET_KEY`, `SUMSUB_WEBHOOK_SECRET` when `KYC_PROVIDER=sumsub`, and
+  an absolute `PUBLIC_BASE_URL`) unless `ALLOW_INSECURE_DEV=true` is
+  explicitly set. This is NOT gated on `NODE_ENV`.
 
 ## Library specifics
 
@@ -179,8 +181,10 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
 
 - **Provider pattern**: the verification-mode boundary is
   `VerificationSource` (`packages/kyc-core/src/verification/types.ts`);
-  Sumsub's sources live in `packages/kyc-sumsub/`. The equivalent backend
-  provider port (`apps/api/src/providers/`) lands with the backend phase.
+  Sumsub's sources live in `packages/kyc-sumsub/`. The backend's equivalent
+  is `VerificationProvider` (`apps/api/src/providers/port.ts`) with mock and
+  sumsub adapters; the optional `getStatusByUserId` capability is detected
+  with `supportsUserStatusLookup`.
 - **Safe Area**: `react-native-safe-area-context` (demo app concern)
 - **Entry points**: `examples/react-native-demo/index.js` (RN app),
   `examples/react-demo/src/main.tsx` (web app), `apps/api/src/index.ts`

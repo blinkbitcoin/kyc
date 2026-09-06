@@ -20,7 +20,12 @@ lands phase by phase (see [the design](docs/superpowers/specs/2026-09-05-kyc-des
 ## Project Structure
 
 ```
-├── apps/api/                    # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres)
+├── apps/api/                    # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres); verification session/token issuance, provider port (mock + Sumsub), signed webhooks and the hosted verification page
+│   └── src/
+│       ├── providers/           # VerificationProvider port + mock/sumsub adapters + factory
+│       ├── session.ts           # Session repository + the terminal-state machine (canTransition)
+│       ├── webhook.ts           # Signed webhook handling
+│       └── verificationPages.ts # The hosted page (kyc-bridge protocol)
 ├── packages/
 │   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode
 │   ├── kyc-sumsub/               # 📦 Sumsub adapters: shared mapping, /react-native (native SDK), /web (web SDK)
@@ -72,8 +77,9 @@ Underlying npm scripts (`npm test`, `npm run typecheck`, `npm run lint`,
 - Shell that CI or the Makefile runs lives in `scripts/{ci,e2e,release}/`,
   not inline in workflows; it is shellcheck'd by `make check-ci`
 - The provider boundary is `VerificationSource` (`packages/kyc-core/src/verification/types.ts`)
-  - nothing Sumsub-specific outside `packages/kyc-sumsub/` (and, once the
-  backend adapter lands, outside `apps/api/src/providers/sumsub/`)
+  on the client side and `VerificationProvider` (`apps/api/src/providers/port.ts`) on the
+  backend - nothing Sumsub-specific outside `packages/kyc-sumsub/` and
+  `apps/api/src/providers/sumsub/`
 - GraphQL error codes are a wire contract: the `ErrorCode` enum in
   `apps/api/schema.graphql` (emitted from `src/typeDefs.ts`) and the generated
   client types in `packages/kyc-core/src/generated/` - run `make codegen`
