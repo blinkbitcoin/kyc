@@ -97,7 +97,7 @@ export const createApp = async (): Promise<express.Express> => {
       const session = await getSessionById(req.params.sessionId as string);
 
       if (!session || session.provider !== getProviderName()) {
-        sendVerificationPage(res, renderNotFoundPage(nonce), nonce, 'mock', 404);
+        sendVerificationPage(res, renderNotFoundPage(nonce), nonce, getProviderName(), 404);
         return;
       }
 

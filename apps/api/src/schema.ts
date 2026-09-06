@@ -11,13 +11,14 @@ import { Errors } from './errors';
 import { getProviderName, provider, supportsUserStatusLookup } from './providers';
 import {
   bindApplicantId,
+  canTransition,
   createSession,
   getSessionByIdForUser,
   updateSessionStatus,
 } from './session';
 import { setActiveSpanAttributes } from './tracing';
 import type { GraphQLContext, VerificationSessionStartInput, VerificationStatus } from './types';
-import { isVerificationPlatform, TERMINAL_STATUSES, VERIFICATION_STATUSES } from './types';
+import { isVerificationPlatform, TERMINAL_STATUSES } from './types';
 
 export { typeDefs } from './typeDefs';
 
@@ -98,12 +99,11 @@ export const resolvers = {
       ) {
         try {
           const providerStatus = await provider.getStatusByUserId(session.userId);
-          // Only move forward: a lookup racing an in-flight webhook must never
-          // downgrade a status the webhook already advanced.
-          if (
-            providerStatus !== status &&
-            VERIFICATION_STATUSES.indexOf(providerStatus) > VERIFICATION_STATUSES.indexOf(status)
-          ) {
+          // Reuse the same terminal-state machine the webhook path enforces:
+          // a lookup racing an in-flight webhook must never downgrade a
+          // terminal status, but declined -> pending (Sumsub RETRY) is a
+          // legitimate transition, not a "downgrade".
+          if (canTransition(status, providerStatus)) {
             await updateSessionStatus(session.id, providerStatus);
             await logAuditEvent(session.id, 'status_updated', {
               status: providerStatus,

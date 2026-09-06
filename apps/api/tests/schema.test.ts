@@ -14,7 +14,19 @@ vi.mock('../src/providers', async (importOriginal) => {
     getProviderName: vi.fn(() => 'mock'),
   };
 });
-vi.mock('../src/session');
+vi.mock('../src/session', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/session')>();
+  return {
+    ...actual,
+    // canTransition is the real terminal-state machine (also exercised
+    // directly by tests/session.test.ts) - the resolver reconciliation path
+    // relies on its actual behavior, not a mock stub.
+    createSession: vi.fn(),
+    getSessionByIdForUser: vi.fn(),
+    updateSessionStatus: vi.fn(),
+    bindApplicantId: vi.fn(),
+  };
+});
 vi.mock('../src/audit');
 
 const { provider } = await import('../src/providers');
@@ -289,14 +301,31 @@ describe('Query.verificationSession', () => {
     delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
   });
 
-  it('keeps the stored status when the reconciliation would not advance it', async () => {
+  // NOTE: this scenario previously asserted the opposite (stored status kept)
+  // under an ad hoc "forward progress" ordering guard. That guard compared
+  // VERIFICATION_STATUSES declaration order, which is not a temporal
+  // progression - it would have permanently blocked the legitimate
+  // declined -> pending (Sumsub RETRY) transition. The resolver now reuses
+  // session.ts's canTransition, the same terminal-state machine the webhook
+  // path enforces: any non-terminal status may change, so a lookup racing an
+  // in-flight webhook can genuinely move backward here. This is a deliberate
+  // behavior correction, not new coverage.
+  it('reconciles even backward while the session is non-terminal (mirrors the webhook state machine)', async () => {
     vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
       row({ providerApplicantId: null, status: 'pending' }) as never
     );
+    vi.mocked(session.updateSessionStatus).mockResolvedValue(
+      row({ providerApplicantId: null, status: 'initial' }) as never
+    );
     (provider as { getStatusByUserId?: unknown }).getStatusByUserId = vi.fn(async () => 'initial');
 
-    await expect(query('session-1')).resolves.toMatchObject({ status: 'pending' });
-    expect(session.updateSessionStatus).not.toHaveBeenCalled();
+    await expect(query('session-1')).resolves.toMatchObject({ status: 'initial' });
+    expect(session.updateSessionStatus).toHaveBeenCalledWith('session-1', 'initial');
+    expect(audit.logAuditEvent).toHaveBeenCalledWith('session-1', 'status_updated', {
+      status: 'initial',
+      previousStatus: 'pending',
+      source: 'api',
+    });
 
     delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
   });
@@ -310,6 +339,41 @@ describe('Query.verificationSession', () => {
 
     await expect(query('session-1')).resolves.toMatchObject({ status: 'approved' });
     expect(lookup).not.toHaveBeenCalled();
+    expect(session.updateSessionStatus).not.toHaveBeenCalled();
+    expect(audit.logAuditEvent).not.toHaveBeenCalled();
+
+    delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
+  });
+
+  it('allows a declined session to move back to pending (Sumsub RETRY)', async () => {
+    vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
+      row({ providerApplicantId: null, status: 'declined' }) as never
+    );
+    vi.mocked(session.updateSessionStatus).mockResolvedValue(
+      row({ providerApplicantId: null, status: 'pending' }) as never
+    );
+    (provider as { getStatusByUserId?: unknown }).getStatusByUserId = vi.fn(async () => 'pending');
+
+    await expect(query('session-1')).resolves.toMatchObject({ status: 'pending' });
+    expect(session.updateSessionStatus).toHaveBeenCalledWith('session-1', 'pending');
+    expect(audit.logAuditEvent).toHaveBeenCalledWith('session-1', 'status_updated', {
+      status: 'pending',
+      previousStatus: 'declined',
+      source: 'api',
+    });
+
+    delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
+  });
+
+  it('is a no-op when the provider reports the identical status', async () => {
+    vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
+      row({ providerApplicantId: null, status: 'pending' }) as never
+    );
+    (provider as { getStatusByUserId?: unknown }).getStatusByUserId = vi.fn(async () => 'pending');
+
+    await expect(query('session-1')).resolves.toMatchObject({ status: 'pending' });
+    expect(session.updateSessionStatus).not.toHaveBeenCalled();
+    expect(audit.logAuditEvent).not.toHaveBeenCalled();
 
     delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
   });
