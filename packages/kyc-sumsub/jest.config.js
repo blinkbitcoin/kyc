@@ -7,6 +7,8 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   coveragePathIgnorePatterns: [
     '/node_modules/',
+    // Test double shared with the RN demo, not shipped code.
+    '/__mocks__/',
     'src/index\\.ts$',
     'src/react-native\\.ts$',
     'src/web\\.ts$',
