@@ -84,3 +84,16 @@ Page -> app always carries the full `kyc-bridge` envelope. App -> page has
 two transports: `createSetTokenScript` (bare token, injected by
 react-native-webview) and `createSetTokenMessage` (full envelope, posted
 to the pinned origin by the web package).
+
+---
+
+## CI / Release Pipeline
+
+[![CI / Release Pipeline](dist/ci-pipeline.svg)](src/ci-pipeline.mmd)
+
+Every workflow file owns one event source. GitHub draws one graph per run,
+so this is the only place the cross-workflow edges (release-please
+dispatching `ci.yml` at the tag, the retry on a green main run, the
+gh-pages badge branch) are visible together. Details:
+[development-guide.md](../development-guide.md#cicd),
+[releasing.md](../releasing.md).

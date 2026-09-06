@@ -3,7 +3,7 @@
 # release run tagged on that commit (its Publish refused to ship over a red
 # main - see require-green-main.sh). Only Publish + Verify re-run; the gates
 # already passed inside that run. A release run is either a `release` event
-# (hand-cut rc tag) or the dispatch release-please.yml starts at the new tag,
+# (hand-cut rc tag) or the dispatch release.yml starts at the new tag,
 # which runs at a `v*` ref.
 # Env: GH_TOKEN, REPO (owner/name), SHA (the green main commit). CI only.
 set -euo pipefail

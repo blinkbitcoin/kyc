@@ -200,8 +200,8 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   is the version, CI stamps it before building the packages, the four
   publishable `package.json` files stay at `0.0.0-development`. Never
   hand-edit `CHANGELOG.md` or the root `package.json` version. A release
-  ships only once the commit's main run is green (`release-retry.yml`
-  re-runs a blocked Publish). `docs/releasing.md`.
+  ships only once the commit's main run is green (`release.yml`'s retry
+  job re-runs a blocked Publish). `docs/releasing.md`.
 
 ## Architecture Patterns
 

@@ -80,6 +80,17 @@ const SECTIONS = [
       'react-native-webview) and `createSetTokenMessage` (full envelope, posted\n' +
       'to the pinned origin by the web package).',
   },
+  {
+    file: 'ci-pipeline.mmd',
+    title: 'CI / Release Pipeline',
+    outro:
+      'Every workflow file owns one event source. GitHub draws one graph per run,\n' +
+      'so this is the only place the cross-workflow edges (release-please\n' +
+      'dispatching `ci.yml` at the tag, the retry on a green main run, the\n' +
+      'gh-pages badge branch) are visible together. Details:\n' +
+      '[development-guide.md](../development-guide.md#cicd),\n' +
+      '[releasing.md](../releasing.md).',
+  },
 ];
 
 const blocks = SECTIONS.map(({ file, title, outro }) => {

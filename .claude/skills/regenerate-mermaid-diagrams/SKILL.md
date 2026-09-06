@@ -33,7 +33,7 @@ separator - mermaid-cli rejects it even where GitHub's renderer is lenient).
   `@blinkbitcoin/kyc-react` under `packages/`; the backend is `apps/api`. If
   these have changed, trust `packages/*/package.json` over any doc.
 
-## The eight diagrams: provenance and embeds
+## The nine diagrams: provenance and embeds
 
 The SVG is also embeddable in the docs the diagram belongs to (same
 `[![...](.svg)](.mmd)` pattern as the combined page) - renaming or removing
@@ -49,6 +49,7 @@ a diagram must update its "Embedded in" doc too:
 | 6 | Webhook Flow | `sequenceDiagram` | `docs/architecture/backend.md` + `apps/api/src/webhook.ts` | `architecture/backend.md` (Webhook processing) |
 | 7 | GraphQL Request Flow | `sequenceDiagram` | `docs/architecture/backend.md` + `docs/architecture/api-contracts.md` + `apps/api/src/schema.ts` | `architecture/backend.md` (GraphQL API) |
 | 8 | Hosted Bridge Flow | `sequenceDiagram` | `docs/integration/hosted.md` + `packages/kyc-core/src/verification/bridge.ts` + `apps/api/src/verificationPages.ts` | `integration/hosted.md` (The bridge protocol) |
+| 9 | CI / Release Pipeline | `flowchart LR` | `docs/development-guide.md` (CI/CD) + `docs/releasing.md`; verify job names and triggers against `.github/workflows/*.yml` | `development-guide.md` (GitHub Actions Workflows) |
 
 ## Pedagogy and consistency rules
 
