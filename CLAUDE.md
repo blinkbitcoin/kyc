@@ -7,8 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Identity verification (KYC) integration monorepo (npm workspaces). The
 **backend service** is the main deliverable together with the **publishable
 React Native and React web libraries**; the demo apps exist for manual and
-E2E testing. **Status: bootstrap** — the packages build and publish and the
-pipeline is green; the verification flow lands phase by phase (see
+E2E testing. **Status:** core, backend, the Sumsub adapters and the React
+Native package are implemented; the React web package, the demos and the
+E2E flows land phase by phase (see
 [the design](docs/superpowers/specs/2026-09-05-kyc-design.md)).
 
 | Workspace | Path | Role |
@@ -16,7 +17,7 @@ pipeline is green; the verification flow lands phase by phase (see
 | `backend` | `apps/api/` | Express 5 + Apollo Server 5 GraphQL API, Knex/PostgreSQL; verification session/token issuance, provider port (mock + Sumsub), signed webhooks and the hosted verification page |
 | `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: `VerificationSource` + capability guards, `kyc-bridge` protocol, hosted + proxy sources, Apollo client factory, GraphQL operations, `ErrorCode` contract (no React/DOM). Entries: `.`, `/hosted` (Apollo-free), `/testing` (fake source) |
 | `@blinkbitcoin/kyc-sumsub` | `packages/kyc-sumsub/` | Sumsub adapters. Root entry = the only Sumsub↔normalized mapping (used by `apps/api` too); `/react-native` = `createSumsubNativeSource` over the Mobile SDK; `/web` = reserved placeholder (no web-SDK adapter in v1) |
-| `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `Verification` component + `useVerification` (hardened WebView for hosted mode) over core |
+| `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `Verification` component + `useVerification` hook + `HostedWebView` (hardened WebView, camera capture granted, origin-pinned). Entries: `.`, `/hosted` (Apollo-free) |
 | `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Publishable React **web** library: `Verification` component + `useVerification` (iframe for hosted mode) over core |
 | `kyc-react-native-example` | `examples/react-native-demo/` | RN demo app hosting the RN library (Maestro E2E target) |
 | `kyc-react-example` | `examples/react-demo/` | Vite web demo hosting the web library (`make web`) |
@@ -69,7 +70,7 @@ npm run test:e2e:backend     # Backend E2E (needs: docker compose -f docker-comp
 npm run test:e2e             # Maestro mobile E2E (needs backend + simulator/emulator)
 ```
 
-Single test file: `npm test -w @blinkbitcoin/kyc-react-native -- packageInfo` or
+Single test file: `npm test -w @blinkbitcoin/kyc-react-native -- useVerification` or
 `npm test -w apps/api -- tests/schema.test.ts`.
 
 ## Backend specifics
