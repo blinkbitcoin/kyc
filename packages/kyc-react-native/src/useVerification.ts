@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import NetInfo from '@react-native-community/netinfo';
-import { ClientErrorCodes, isLaunchable } from '@blinkbitcoin/kyc-core/hosted';
+import { isLaunchable } from '@blinkbitcoin/kyc-core/hosted';
 
 import {
   initialMachineState,
@@ -14,6 +14,7 @@ import {
   toVerificationError,
   UNKNOWN_ERROR_CODE,
 } from './verificationMachine';
+import { useTokenRefresh } from './useTokenRefresh';
 
 import type { MutableRefObject } from 'react';
 import type {
@@ -31,6 +32,7 @@ import type {
   VerificationEffect,
   VerificationError,
 } from './verificationMachine';
+import type { TokenInjectable } from './useTokenRefresh';
 
 /** What a host permission library reports back. */
 export type PermissionState = 'granted' | 'denied' | 'blocked';
@@ -38,10 +40,7 @@ export type PermissionState = 'granted' | 'denied' | 'blocked';
 /** Host seam: preflight the camera with whatever library the app already uses. */
 export type CheckPermissions = () => Promise<PermissionState>;
 
-/** The slice of react-native-webview's ref this package needs. */
-export interface TokenInjectable {
-  injectJavaScript(script: string): void;
-}
+export type { TokenInjectable } from './useTokenRefresh';
 
 export interface UseVerificationOptions {
   onComplete: (result: VerificationResult) => void;
@@ -124,6 +123,13 @@ export const useVerification = (
     [applyAction],
   );
 
+  const refreshToken = useTokenRefresh(source, {
+    getSession: () => stateRef.current.session,
+    target: webViewRef,
+    // A token failure keeps the session so the error screen can offer Restart.
+    onFailure: error => failWith(error, true),
+  });
+
   const runEffect = useCallback(
     (effect: VerificationEffect) => {
       switch (effect.type) {
@@ -153,12 +159,11 @@ export const useVerification = (
           handlersRef.current.onError(effect.error);
           break;
         case 'refreshToken':
-          // Task 3 replaces this with a real refresh through the WebView ref.
-          failWith(toVerificationError(ClientErrorCodes.TOKEN_EXPIRED), true);
+          refreshToken();
           break;
       }
     },
-    [failWith],
+    [refreshToken],
   );
 
   const handleEvent = useCallback(

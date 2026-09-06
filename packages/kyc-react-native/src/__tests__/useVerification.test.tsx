@@ -428,7 +428,28 @@ describe('useVerification - bridge messages', () => {
     expect(options.onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it('fails tokenExpired closed until Task 3 wires the refresh', async () => {
+  it('refreshes the token in place when the source can, and keeps verifying', async () => {
+    const refreshToken = jest.fn(async () => 'tok-2');
+    const source = { ...hostedSource(), refreshToken };
+    const options = handlers();
+    await render(source, options);
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    const injectJavaScript = jest.fn();
+    latest.webViewRef.current = { injectJavaScript };
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage({ event: { type: 'tokenExpired' } });
+    });
+
+    expect(refreshToken).toHaveBeenCalledWith(session);
+    expect(injectJavaScript).toHaveBeenCalledTimes(1);
+    expect(latest.status).toBe('verifying');
+    expect(options.onError).not.toHaveBeenCalled();
+  });
+
+  it('fails a non-refreshable source with TOKEN_EXPIRED and keeps the session', async () => {
     const options = handlers();
     await started(options);
 
@@ -439,6 +460,29 @@ describe('useVerification - bridge messages', () => {
     expect(latest.status).toBe('error');
     expect(latest.error?.code).toBe(ClientErrorCodes.TOKEN_EXPIRED);
     expect(latest.session).toEqual(session);
+  });
+
+  it('fails a rejected refresh with TOKEN_REFRESH_FAILED and keeps the session', async () => {
+    const source = {
+      ...hostedSource(),
+      refreshToken: jest.fn(async () => {
+        throw { code: 'PROVIDER_UNAVAILABLE' };
+      }),
+    };
+    const options = handlers();
+    await render(source, options);
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage({ event: { type: 'tokenExpired' } });
+    });
+
+    expect(latest.status).toBe('error');
+    expect(latest.error?.code).toBe(ClientErrorCodes.TOKEN_REFRESH_FAILED);
+    expect(latest.session).toEqual(session);
+    expect(options.onError).toHaveBeenCalledWith(latest.error);
   });
 
   it('keeps the session for restart on sessionExpired and mints a new one', async () => {
