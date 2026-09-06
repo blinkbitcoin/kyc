@@ -1,12 +1,108 @@
-// Demo host for the @blinkbitcoin/kyc-react web package. The verification
-// screen and the hosted/proxy mode switch land with the demo phase; today
-// this only proves the app boots and the mode is inlined.
-import { KYC_MODE } from './config';
+// Demo host for the @blinkbitcoin/kyc-react web package. Mirrors the React
+// Native demo: mode-driven source + result reporting around the library
+// component. The toolbar and the outcome line exist for the Playwright
+// suite - a product screen would not need them.
+import { ApolloProvider } from '@apollo/client/react';
+import { Verification } from '@blinkbitcoin/kyc-react';
+import { useState } from 'react';
+import { flushSync } from 'react-dom';
 
-export const App = () => (
-  <main style={{ fontFamily: 'system-ui, sans-serif', padding: 24 }}>
-    <h1 data-testid="app-ready">KYC demo</h1>
-    <p data-testid="package-name">@blinkbitcoin/kyc-react</p>
-    <p data-testid="kyc-mode">{`mode: ${KYC_MODE}`}</p>
-  </main>
-);
+import { apolloClient } from './apollo';
+import { KYC_MODE } from './config';
+import { buildSource } from './source';
+
+import type {
+  VerificationError,
+  VerificationResult,
+} from '@blinkbitcoin/kyc-react';
+
+export type Outcome =
+  | { kind: 'completed'; result: VerificationResult }
+  | { kind: 'error'; error: VerificationError }
+  | { kind: 'cancelled' }
+  | null;
+
+export const outcomeText = (outcome: Outcome): string => {
+  switch (outcome?.kind) {
+    case 'completed':
+      return `completed: ${outcome.result.status}`;
+    case 'error':
+      return `error: ${outcome.error.code}`;
+    case 'cancelled':
+      return 'cancelled';
+    default:
+      return 'no outcome yet';
+  }
+};
+
+// The flow itself. Remounted by "Start over" (key change), so the source is
+// built once per mount with a lazy useState initialiser - never per render.
+export const VerificationScreen = ({
+  onOutcome,
+}: {
+  onOutcome: (outcome: Outcome) => void;
+}) => {
+  const [source] = useState(() => buildSource(KYC_MODE));
+
+  return (
+    <Verification
+      source={source}
+      onComplete={result => onOutcome({ kind: 'completed', result })}
+      onError={error => onOutcome({ kind: 'error', error })}
+      onCancel={() => onOutcome({ kind: 'cancelled' })}
+      successDelayMs={4000}
+    />
+  );
+};
+
+export const App = () => {
+  const [sessionKey, setSessionKey] = useState(0);
+  const [outcome, setOutcome] = useState<Outcome>(null);
+
+  return (
+    <ApolloProvider client={apolloClient}>
+      <main
+        style={{
+          fontFamily: 'system-ui, sans-serif',
+          margin: '40px auto',
+          maxWidth: 640,
+        }}
+      >
+        <header
+          style={{
+            alignItems: 'center',
+            display: 'flex',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span
+            data-testid="mode-label"
+            style={{ color: '#666', fontSize: 13 }}
+          >
+            {`mode: ${KYC_MODE}`}
+          </span>
+          <button
+            data-testid="reset-button"
+            onClick={() => {
+              // flushSync: the "remounts" test asserts a fresh DOM node right
+              // after a raw .click() (no act/await), so this update must
+              // commit synchronously rather than on React's default
+              // microtask-scheduled flush.
+              flushSync(() => {
+                setOutcome(null);
+                setSessionKey(key => key + 1);
+              });
+            }}
+            type="button"
+          >
+            Start over
+          </button>
+        </header>
+        <VerificationScreen key={sessionKey} onOutcome={setOutcome} />
+        <p data-testid="outcome" role="status">
+          {outcomeText(outcome)}
+        </p>
+      </main>
+    </ApolloProvider>
+  );
+};
