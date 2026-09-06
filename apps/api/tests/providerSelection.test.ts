@@ -53,6 +53,13 @@ describe('getProvider', () => {
     expect(() => getProvider('sumsub')).toThrow(/Missing required environment variables/);
   });
 
+  it('refuses to hand out the forgeable mock provider outside insecure dev', () => {
+    delete process.env.ALLOW_INSECURE_DEV;
+    expect(() => getProvider('mock')).toThrow(/KYC_PROVIDER=mock/);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => getProvider('nope')).toThrow(/KYC_PROVIDER=mock/);
+  });
+
   it('warns and falls back to mock for an unknown provider name', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const provider = getProvider('nope');

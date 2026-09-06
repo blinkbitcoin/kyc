@@ -110,6 +110,31 @@ describe('GET /hosted/:sessionId', () => {
     expect(res.text).toContain("post('sessionExpired')");
   });
 
+  it.each(['approved', 'finallyRejected'])(
+    'refuses to render or mint a token for a %s session',
+    async (status) => {
+      const session = await import('../src/session');
+      const providers = await import('../src/providers');
+      const refresh = vi.spyOn(providers.provider, 'refreshToken');
+      vi.spyOn(session, 'getSessionById').mockResolvedValue({
+        id: 'session-1',
+        userId: 'user-1',
+        provider: 'mock',
+        providerApplicantId: 'mock-applicant-1',
+        levelName: null,
+        platform: 'WEB',
+        status,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as never);
+
+      const res = await request(await createApp()).get('/hosted/session-1');
+      expect(res.status).toBe(404);
+      expect(res.text).toContain("post('sessionExpired')");
+      expect(refresh).not.toHaveBeenCalled();
+    }
+  );
+
   it('502s when the provider cannot mint a token', async () => {
     const session = await import('../src/session');
     const providers = await import('../src/providers');
@@ -198,6 +223,46 @@ describe('POST /webhook/kyc/:provider', () => {
   it('401s without a valid signature', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect((await send('/webhook/kyc/mock', 'bad')).status).toBe(401);
+  });
+
+  it('401s when the digest algorithm header names an inherited property', async () => {
+    const providers = await import('../src/providers');
+    const { SumsubProvider } = await import('../src/providers/sumsub');
+    process.env.SUMSUB_WEBHOOK_SECRET = 'webhook-secret';
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(providers.provider, 'verifyWebhook').mockImplementation((headers, rawBody, ip) =>
+      SumsubProvider.verifyWebhook(headers, rawBody, ip)
+    );
+
+    const res = await request(await createApp())
+      .post('/webhook/kyc/mock')
+      .set('Content-Type', 'application/json')
+      .set('X-Payload-Digest', 'deadbeef')
+      .set('X-Payload-Digest-Alg', 'constructor')
+      .send(body);
+
+    expect(res.status).toBe(401);
+    delete process.env.SUMSUB_WEBHOOK_SECRET;
+  });
+
+  it('401s rather than 500s when the verifier itself throws', async () => {
+    const providers = await import('../src/providers');
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(providers.provider, 'verifyWebhook').mockImplementation(() => {
+      throw new Error('bad header');
+    });
+    const res = await send('/webhook/kyc/mock', 'whatever');
+    expect(res.status).toBe(401);
+  });
+
+  it('401s rather than 500s on a non-Error thrown by the verifier', async () => {
+    const providers = await import('../src/providers');
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(providers.provider, 'verifyWebhook').mockImplementation(() => {
+      throw 'bad header';
+    });
+    const res = await send('/webhook/kyc/mock', 'whatever');
+    expect(res.status).toBe(401);
   });
 
   it('400s on a payload the provider cannot parse', async () => {

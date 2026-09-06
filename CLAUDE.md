@@ -86,15 +86,19 @@ npm run migrate:test         # Same against the .env.test database
   protocol) and `POST /webhook/kyc/:provider` (signature-verified).
   `KYC_PROVIDER` picks the adapter behind `src/providers/port.ts`.
 - `approved` and `finallyRejected` are terminal: no webhook, replayed or
-  late, may downgrade them (`canTransition` in `src/session.ts`).
+  late, may downgrade them. The guard is part of the UPDATE statement
+  (`applyStatusTransition` in `src/session.ts`), which is the single write
+  path for a status change; a terminal session also stops minting tokens
+  (hosted page 404, `verificationSessionRefresh` -> `VALIDATION_ERROR`).
 - The wire contract is the `ErrorCode` enum in `apps/api/schema.graphql`
   (emitted from `src/typeDefs.ts`). After schema changes run `make codegen`;
   drift fails backend tests, client parity tests, and a CI step.
 - Security is fail-closed by default: `validateSecurityConfig` (`src/config.ts`)
-  refuses to boot without `JWT_SECRET` (and `SUMSUB_APP_TOKEN`,
-  `SUMSUB_SECRET_KEY`, `SUMSUB_WEBHOOK_SECRET` when `KYC_PROVIDER=sumsub`, and
-  an absolute `PUBLIC_BASE_URL`) unless `ALLOW_INSECURE_DEV=true` is
-  explicitly set. This is NOT gated on `NODE_ENV`.
+  refuses to boot without `JWT_SECRET` and an absolute `http(s)`
+  `PUBLIC_BASE_URL` (and `SUMSUB_APP_TOKEN`, `SUMSUB_SECRET_KEY`,
+  `SUMSUB_WEBHOOK_SECRET` when `KYC_PROVIDER=sumsub`) unless
+  `ALLOW_INSECURE_DEV=true` is explicitly set - which is also what the
+  forgeable `KYC_PROVIDER=mock` requires. This is NOT gated on `NODE_ENV`.
 
 ## Library specifics
 

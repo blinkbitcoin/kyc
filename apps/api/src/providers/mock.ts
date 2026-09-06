@@ -9,6 +9,7 @@
 
 import { randomUUID } from 'crypto';
 
+import { isInsecureDevAllowed } from '../config';
 import { Errors } from '../errors';
 import { hmacHex, timingSafeEqualString } from '../signature';
 import type {
@@ -34,6 +35,21 @@ interface MockApplicant {
 }
 
 const applicants = new Map<string, MockApplicant>();
+
+/**
+ * The mock provider signs its own webhooks with a key that defaults to
+ * "mock", so anyone who can reach the webhook route can forge an `approved`
+ * event. That is fine for dev and E2E and unacceptable anywhere else, so
+ * selecting it is an explicit insecure-dev opt-in, checked at boot.
+ */
+export const assertMockProviderAllowed = (env: NodeJS.ProcessEnv = process.env): void => {
+  if (!isInsecureDevAllowed(env)) {
+    throw new Error(
+      'Refusing to start: KYC_PROVIDER=mock signs its own webhooks and is forgeable. ' +
+        'Set ALLOW_INSECURE_DEV=true for local dev, or configure a real provider.'
+    );
+  }
+};
 
 export const getMockWebhookSecret = (env: NodeJS.ProcessEnv = process.env): string =>
   env.MOCK_WEBHOOK_SECRET || 'mock';

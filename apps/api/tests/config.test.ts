@@ -39,16 +39,18 @@ describe('validateSecurityConfig', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('ALLOW_INSECURE_DEV=true'));
   });
 
+  const SECURE = { JWT_SECRET: 's', PUBLIC_BASE_URL: 'https://kyc.example.com' };
+
   it('throws when JWT_SECRET is missing and insecure-dev is not allowed', () => {
     expect(() => validateSecurityConfig({})).toThrow(/JWT_SECRET/);
   });
 
-  it('passes with JWT_SECRET set and the default (mock) provider', () => {
-    expect(() => validateSecurityConfig({ JWT_SECRET: 's' })).not.toThrow();
+  it('passes with the required secrets set and the default (mock) provider', () => {
+    expect(() => validateSecurityConfig(SECURE)).not.toThrow();
   });
 
   it('requires all three Sumsub credentials when the provider is sumsub', () => {
-    expect(() => validateSecurityConfig({ JWT_SECRET: 's', KYC_PROVIDER: 'sumsub' })).toThrow(
+    expect(() => validateSecurityConfig({ ...SECURE, KYC_PROVIDER: 'sumsub' })).toThrow(
       /SUMSUB_APP_TOKEN.*SUMSUB_SECRET_KEY.*SUMSUB_WEBHOOK_SECRET/s
     );
   });
@@ -56,7 +58,7 @@ describe('validateSecurityConfig', () => {
   it('passes for sumsub when every credential is set', () => {
     expect(() =>
       validateSecurityConfig({
-        JWT_SECRET: 's',
+        ...SECURE,
         KYC_PROVIDER: 'sumsub',
         SUMSUB_APP_TOKEN: 'a',
         SUMSUB_SECRET_KEY: 'b',
@@ -66,24 +68,31 @@ describe('validateSecurityConfig', () => {
   });
 
   it('does not require the webhook secret for the mock provider', () => {
-    expect(() => validateSecurityConfig({ JWT_SECRET: 's', KYC_PROVIDER: 'mock' })).not.toThrow();
+    expect(() => validateSecurityConfig({ ...SECURE, KYC_PROVIDER: 'mock' })).not.toThrow();
   });
 
   it('lists every missing secret at once', () => {
     expect(() => validateSecurityConfig({ KYC_PROVIDER: 'sumsub' })).toThrow(
-      /JWT_SECRET.*SUMSUB_WEBHOOK_SECRET/s
+      /JWT_SECRET.*SUMSUB_WEBHOOK_SECRET.*PUBLIC_BASE_URL/s
     );
   });
 
-  it('rejects an unparseable PUBLIC_BASE_URL', () => {
-    expect(() => validateSecurityConfig({ JWT_SECRET: 's', PUBLIC_BASE_URL: 'not a url' })).toThrow(
-      /PUBLIC_BASE_URL must be an absolute URL/
-    );
+  it('refuses to boot with no PUBLIC_BASE_URL outside insecure dev', () => {
+    expect(() => validateSecurityConfig({ JWT_SECRET: 's' })).toThrow(/PUBLIC_BASE_URL/);
+  });
+
+  it('rejects a PUBLIC_BASE_URL that is not an http(s) URL', () => {
+    for (const value of ['not a url', 'mailto:x', 'javascript:alert(1)']) {
+      expect(() => validateSecurityConfig({ JWT_SECRET: 's', PUBLIC_BASE_URL: value })).toThrow(
+        /PUBLIC_BASE_URL must be an absolute http\(s\) URL/
+      );
+    }
   });
 
   it('accepts a well-formed PUBLIC_BASE_URL', () => {
+    expect(() => validateSecurityConfig(SECURE)).not.toThrow();
     expect(() =>
-      validateSecurityConfig({ JWT_SECRET: 's', PUBLIC_BASE_URL: 'https://kyc.example.com' })
+      validateSecurityConfig({ JWT_SECRET: 's', PUBLIC_BASE_URL: 'http://localhost:4000' })
     ).not.toThrow();
   });
 });
@@ -101,9 +110,14 @@ describe('getAllowedOrigins', () => {
 });
 
 describe('getPublicBaseUrl / getPublicOrigin', () => {
-  it('defaults to localhost:4000', () => {
-    expect(getPublicBaseUrl({})).toBe('http://localhost:4000');
-    expect(getPublicOrigin({})).toBe('http://localhost:4000');
+  it('defaults to localhost:4000 under insecure dev only', () => {
+    const dev = { ALLOW_INSECURE_DEV: 'true' };
+    expect(getPublicBaseUrl(dev)).toBe('http://localhost:4000');
+    expect(getPublicOrigin(dev)).toBe('http://localhost:4000');
+    // Outside insecure dev there is nothing to guess: validateSecurityConfig
+    // has already refused to boot without an explicit value.
+    expect(getPublicBaseUrl({})).toBe('');
+    expect(getPublicOrigin({})).toBe('');
   });
 
   it('strips trailing slashes and reduces to the origin', () => {

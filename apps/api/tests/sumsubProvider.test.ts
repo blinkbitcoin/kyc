@@ -156,6 +156,16 @@ describe('SumsubProvider.verifyWebhook', () => {
     ).toBe(true);
   });
 
+  it('rejects an inherited Object.prototype property as the digest algorithm', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(
+      SumsubProvider.verifyWebhook(
+        { 'x-payload-digest': digest('sha256'), 'x-payload-digest-alg': 'constructor' },
+        body
+      )
+    ).toBe(false);
+  });
+
   it('rejects a tampered body, an array-valued header and an unknown algorithm', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(SumsubProvider.verifyWebhook({ 'x-payload-digest': digest('sha256') }, `${body} `)).toBe(

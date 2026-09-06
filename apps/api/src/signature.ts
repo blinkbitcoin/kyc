@@ -74,12 +74,16 @@ export const verifyHexDigest = ({
     return true;
   }
 
-  const algorithmName = (algorithm ?? DEFAULT_DIGEST_ALGORITHM) as HexDigestAlgorithm;
-  const hash = DIGEST_ALGORITHMS[algorithmName];
-  if (!hash) {
+  // Object.hasOwn, not a truthiness check on the lookup: a plain object
+  // inherits `constructor`, `toString` and friends from Object.prototype, so
+  // `DIGEST_ALGORITHMS['constructor']` is a function and would have passed
+  // the allow-list.
+  const algorithmName = algorithm ?? DEFAULT_DIGEST_ALGORITHM;
+  if (!Object.hasOwn(DIGEST_ALGORITHMS, algorithmName)) {
     logSecurityEvent(`Webhook digest algorithm not allowed: ${algorithmName}`, ip);
     return false;
   }
+  const hash = DIGEST_ALGORITHMS[algorithmName as HexDigestAlgorithm];
 
   if (!signature || signature.trim() === '') {
     logSecurityEvent('Webhook received without a signature', ip);

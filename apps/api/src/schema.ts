@@ -211,6 +211,14 @@ export const resolvers = {
       }
       setActiveSpanAttributes({ 'kyc.session_id': session.id });
 
+      // A terminal session is finished: refreshing it would mint a live
+      // provider token for an outcome that can no longer change.
+      // NOTE: there is no max-age on a session yet - a non-terminal session
+      // stays refreshable indefinitely.
+      if (TERMINAL_STATUSES.has(session.status)) {
+        throw Errors.validationError('session is terminal');
+      }
+
       let token;
       try {
         token = await provider.refreshToken(

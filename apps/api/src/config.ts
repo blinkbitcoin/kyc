@@ -7,6 +7,15 @@ export const isJwtRequired = (env: NodeJS.ProcessEnv = process.env): boolean =>
 export const isWebhookSignatureRequired = (env: NodeJS.ProcessEnv = process.env): boolean =>
   !isInsecureDevAllowed(env);
 
+const isHttpUrl = (value: string): boolean => {
+  try {
+    const { protocol } = new URL(value);
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export const validateSecurityConfig = (env: NodeJS.ProcessEnv = process.env): void => {
   if (isInsecureDevAllowed(env)) {
     console.warn(
@@ -30,12 +39,13 @@ export const validateSecurityConfig = (env: NodeJS.ProcessEnv = process.env): vo
     }
   }
 
-  if (env.PUBLIC_BASE_URL) {
-    try {
-      new URL(env.PUBLIC_BASE_URL);
-    } catch {
-      missing.push(`PUBLIC_BASE_URL must be an absolute URL (got "${env.PUBLIC_BASE_URL}")`);
-    }
+  // Fail-closed: the hosted-page URL and the `allowedOrigin` clients pin
+  // postMessage to are both derived from this, so an unset value must not
+  // silently fall back to localhost outside insecure dev.
+  if (!env.PUBLIC_BASE_URL) {
+    missing.push('PUBLIC_BASE_URL (or set ALLOW_INSECURE_DEV=true for local dev)');
+  } else if (!isHttpUrl(env.PUBLIC_BASE_URL)) {
+    missing.push(`PUBLIC_BASE_URL must be an absolute http(s) URL (got "${env.PUBLIC_BASE_URL}")`);
   }
 
   if (missing.length > 0) {
@@ -53,9 +63,17 @@ export const getAllowedOrigins = (env: NodeJS.ProcessEnv = process.env): string[
 
 export const PUBLIC_BASE_URL_DEFAULT = 'http://localhost:4000';
 
-/** Base URL this backend is reachable at, without a trailing slash. */
+/**
+ * Base URL this backend is reachable at, without a trailing slash. The
+ * localhost default applies to insecure dev ONLY - anywhere else
+ * validateSecurityConfig has already refused to boot without an explicit
+ * value, so there is nothing to guess.
+ */
 export const getPublicBaseUrl = (env: NodeJS.ProcessEnv = process.env): string =>
-  (env.PUBLIC_BASE_URL || PUBLIC_BASE_URL_DEFAULT).replace(/\/+$/, '');
+  (env.PUBLIC_BASE_URL || (isInsecureDevAllowed(env) ? PUBLIC_BASE_URL_DEFAULT : '')).replace(
+    /\/+$/,
+    ''
+  );
 
 /**
  * Origin of the hosted page, handed to clients as `allowedOrigin` so they can

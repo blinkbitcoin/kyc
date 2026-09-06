@@ -1,5 +1,5 @@
 import { instrumentProvider } from '../tracing';
-import { MockProvider } from './mock';
+import { assertMockProviderAllowed, MockProvider } from './mock';
 import type { VerificationProvider } from './port';
 import { SumsubProvider, validateConfig as validateSumsubConfig } from './sumsub';
 
@@ -20,6 +20,8 @@ export const getProvider = (providerName?: string): VerificationProvider => {
 
   switch (name) {
     case 'mock':
+      // Fail fast at boot rather than on the first forged webhook.
+      assertMockProviderAllowed();
       return instrumentProvider(MockProvider, 'mock');
     case 'sumsub':
       // Fail fast at boot rather than on the first session.
@@ -27,6 +29,7 @@ export const getProvider = (providerName?: string): VerificationProvider => {
       return instrumentProvider(SumsubProvider, 'sumsub');
     default:
       console.warn(`Unknown KYC_PROVIDER: ${name}, falling back to mock`);
+      assertMockProviderAllowed();
       return instrumentProvider(MockProvider, 'mock');
   }
 };

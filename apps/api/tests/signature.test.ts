@@ -75,6 +75,18 @@ describe('verifyHexDigest', () => {
     ).toBe(false);
   });
 
+  // A plain object inherits these from Object.prototype, so a truthiness
+  // check on DIGEST_ALGORITHMS[name] would have let them through.
+  it.each(['constructor', 'toString', 'hasOwnProperty', '__proto__'])(
+    'rejects the inherited property %s as an algorithm name',
+    (name) => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      expect(
+        verifyHexDigest({ signature: valid(), algorithm: name, body: BODY, secret: SECRET })
+      ).toBe(false);
+    }
+  );
+
   it('rejects a wrong digest, an empty digest and a missing digest', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(verifyHexDigest({ signature: 'deadbeef', body: BODY, secret: SECRET })).toBe(false);

@@ -206,6 +206,17 @@ describe('Mutation.verificationSessionRefresh', () => {
     });
   });
 
+  it('refuses to refresh a terminal session', async () => {
+    vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
+      row({ status: 'approved' }) as never
+    );
+    await expect(refresh('session-1')).rejects.toMatchObject({
+      extensions: { code: 'VALIDATION_ERROR' },
+      message: expect.stringMatching(/terminal/),
+    });
+    expect(provider.refreshToken).not.toHaveBeenCalled();
+  });
+
   it('mints a replacement token for the session platform and level', async () => {
     vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
       row({ platform: 'ANDROID', levelName: 'basic' }) as never

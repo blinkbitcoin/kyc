@@ -13,6 +13,7 @@ import { resolvers, typeDefs } from './schema';
 import { getSessionById } from './session';
 import { setActiveSpanAttributes } from './tracing';
 import type { GraphQLContext } from './types';
+import { TERMINAL_STATUSES } from './types';
 import {
   PERMISSIONS_POLICY,
   renderNotFoundPage,
@@ -96,7 +97,16 @@ export const createApp = async (): Promise<express.Express> => {
       const nonce = crypto.randomBytes(16).toString('base64');
       const session = await getSessionById(req.params.sessionId as string);
 
-      if (!session || session.provider !== getProviderName()) {
+      // A finished verification has nothing left to render, and minting a
+      // provider token for it would hand out a live SDK session for an
+      // applicant whose outcome is already final.
+      // NOTE: there is no max-age on the URL yet - the session id stays
+      // usable for as long as the session is non-terminal.
+      if (
+        !session ||
+        session.provider !== getProviderName() ||
+        TERMINAL_STATUSES.has(session.status)
+      ) {
         sendVerificationPage(res, renderNotFoundPage(nonce), nonce, getProviderName(), 404);
         return;
       }
@@ -169,7 +179,19 @@ export const createApp = async (): Promise<express.Express> => {
 
       const rawBody = typeof req.body === 'string' ? req.body : '';
 
-      if (!provider.verifyWebhook(req.headers, rawBody, req.ip)) {
+      // A verifier that throws is a verifier that did not authenticate the
+      // request: that is a 401, never a 500 that tells the caller the
+      // backend choked on its headers.
+      let verified = false;
+      try {
+        verified = provider.verifyWebhook(req.headers, rawBody, req.ip);
+      } catch (error) {
+        console.error(
+          'Webhook signature verification error:',
+          error instanceof Error ? error.message : error
+        );
+      }
+      if (!verified) {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
