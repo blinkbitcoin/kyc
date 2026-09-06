@@ -106,10 +106,14 @@ describe('SumsubProvider.getStatus / getStatusByUserId', () => {
     await expect(SumsubProvider.getStatus('a1')).resolves.toBe('approved');
   });
 
-  it('maps a 404 to SESSION_NOT_FOUND and anything else to PROVIDER_UNAVAILABLE', async () => {
+  it('maps a 404 to SESSION_NOT_FOUND, another 4xx to VALIDATION_ERROR and 5xx to PROVIDER_UNAVAILABLE', async () => {
     fetchApplicantStatus.mockRejectedValue(new HttpError(404, ''));
     await expect(SumsubProvider.getStatus('a1')).rejects.toMatchObject({
       extensions: { code: 'SESSION_NOT_FOUND' },
+    });
+    fetchApplicantStatus.mockRejectedValue(new HttpError(400, 'bad applicant id'));
+    await expect(SumsubProvider.getStatus('a1')).rejects.toMatchObject({
+      extensions: { code: 'VALIDATION_ERROR' },
     });
     fetchApplicantStatus.mockRejectedValue(new HttpError(500, ''));
     await expect(SumsubProvider.getStatus('a1')).rejects.toMatchObject({

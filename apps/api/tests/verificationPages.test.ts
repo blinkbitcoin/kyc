@@ -115,10 +115,23 @@ describe('renderSumsubPage', () => {
   });
 
   it('emits versioned kyc-bridge envelopes over both transports', () => {
-    expect(html).toContain("source: 'kyc-bridge'");
-    expect(html).toContain('v: 1');
+    // The envelope is built from the declared constants, not from literals,
+    // so the pin test above is what keeps the page and kyc-core in step.
+    expect(html).toContain(`var BRIDGE_SOURCE = '${BRIDGE_SOURCE}';`);
+    expect(html).toContain(`var BRIDGE_VERSION = ${BRIDGE_PROTOCOL_VERSION};`);
+    expect(html).toContain('{ source: BRIDGE_SOURCE, v: BRIDGE_VERSION, type: type }');
     expect(html).toContain('window.ReactNativeWebView.postMessage');
     expect(html).toContain('window.parent.postMessage');
+  });
+
+  it('escapes the line terminators that are legal in JSON but not in a script', () => {
+    const hostile = renderSumsubPage({
+      ...sumsubParams,
+      accessToken: 'a\u2028b\u2029c',
+    });
+    expect(hostile).not.toMatch(/[\u2028\u2029]/);
+    expect(hostile).toContain('\\u2028');
+    expect(hostile).toContain('\\u2029');
   });
 
   it('installs window.__kycBridge.setToken and a setToken message listener', () => {
@@ -196,7 +209,7 @@ describe('renderMockPage', () => {
   });
 
   it('emits the same bridge envelopes as the Sumsub page', () => {
-    expect(html).toContain("source: 'kyc-bridge'");
+    expect(html).toContain('{ source: BRIDGE_SOURCE, v: BRIDGE_VERSION, type: type }');
     expect(html).toContain("post('cancel')");
     expect(html).toContain("post('tokenExpired')");
     expect(html).toContain("post('error'");
@@ -208,15 +221,26 @@ describe('renderMockPage', () => {
     expect(html).toContain('mock-applicant-1');
   });
 
-  it('sanitizes ids that are not opaque identifiers', () => {
-    const hostile = renderMockPage({
-      ...mockParams,
-      sessionId: '<img src=x onerror=1>',
-      applicantId: undefined,
-    });
+  it('sanitizes a session id that is not an opaque identifier', () => {
+    const hostile = renderMockPage({ ...mockParams, sessionId: '<img src=x onerror=1>' });
     expect(hostile).not.toContain('<img');
-    expect(hostile).toContain('unknown');
+    expect(hostile).toContain('Session unknown');
   });
+
+  // kyc-core's interpretBridgeMessage takes `complete` with or without an
+  // applicantId, and drops `applicantLoaded` without one - so an unbound
+  // session omits the field rather than claiming an applicant called
+  // "unknown".
+  it.each([undefined, '<img src=x onerror=1>'])(
+    'omits the applicant entirely when it is %s',
+    (applicantId) => {
+      const page = renderMockPage({ ...mockParams, applicantId });
+      expect(page).not.toContain('unknown');
+      expect(page).not.toContain('Applicant');
+      expect(page).toContain('var applicantId = null;');
+      expect(page).toContain("if (applicantId) { post('applicantLoaded'");
+    }
+  );
 
   it('defaults to empty pre-signed webhooks when none are given', () => {
     const { webhooks, ...withoutWebhooks } = mockParams;

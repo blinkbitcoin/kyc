@@ -13,6 +13,8 @@ describe('getConfig', () => {
     expect(config.baseUrl).toBe('https://api.sumsub.com');
     expect(config.levelName).toBe(SUMSUB_DEFAULTS.levelName);
     expect(config.tokenTtlSecs).toBe(600);
+    expect(config.requestTimeoutMs).toBe(SUMSUB_DEFAULTS.requestTimeoutMs);
+    expect(config.requestTimeoutMs).toBe(10000);
     expect(config.appToken).toBeUndefined();
   });
 
@@ -22,6 +24,7 @@ describe('getConfig', () => {
       SUMSUB_BASE_URL: 'https://api.sumsub.example/',
       SUMSUB_LEVEL_NAME: 'id-and-liveness',
       SUMSUB_TOKEN_TTL_SECS: '1200',
+      SUMSUB_REQUEST_TIMEOUT_MS: '2500',
     } as NodeJS.ProcessEnv);
     expect(config).toEqual({
       appToken: 'app-token',
@@ -30,12 +33,21 @@ describe('getConfig', () => {
       baseUrl: 'https://api.sumsub.example',
       levelName: 'id-and-liveness',
       tokenTtlSecs: 1200,
+      requestTimeoutMs: 2500,
     });
   });
 
-  it.each([['0'], ['-5'], ['abc'], ['']])('falls back to the default ttl for %s', (raw) => {
-    expect(getConfig({ SUMSUB_TOKEN_TTL_SECS: raw } as NodeJS.ProcessEnv).tokenTtlSecs).toBe(600);
-  });
+  it.each([['0'], ['-5'], ['abc'], ['']])(
+    'falls back to the default ttl and timeout for %s',
+    (raw) => {
+      const config = getConfig({
+        SUMSUB_TOKEN_TTL_SECS: raw,
+        SUMSUB_REQUEST_TIMEOUT_MS: raw,
+      } as NodeJS.ProcessEnv);
+      expect(config.tokenTtlSecs).toBe(600);
+      expect(config.requestTimeoutMs).toBe(10000);
+    }
+  );
 });
 
 describe('validateConfig', () => {

@@ -197,7 +197,8 @@ describe('GET /hosted/:sessionId', () => {
 
     const res = await request(await createApp()).get('/hosted/session-1');
     expect(res.status).toBe(200);
-    expect(res.text).toContain('unknown');
+    expect(res.text).toContain('var applicantId = null;');
+    expect(res.text).not.toContain('Applicant');
   });
 });
 

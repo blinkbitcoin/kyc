@@ -70,7 +70,15 @@ export const SumsubProvider: VerificationProvider = {
       const review = await withRetry(() => fetchApplicantStatus(providerApplicantId));
       return mapSumsubStatus(review.reviewStatus, review.reviewResult);
     } catch (error) {
-      throw isNotFoundError(error) ? Errors.sessionNotFound() : Errors.providerUnavailable();
+      if (isNotFoundError(error)) {
+        throw Errors.sessionNotFound();
+      }
+      // Any other 4xx is Sumsub telling us the request was wrong (a
+      // malformed applicant id, a rejected app token) - reporting that as
+      // PROVIDER_UNAVAILABLE would invite a pointless client retry.
+      throw isClientError(error)
+        ? Errors.validationError('Provider rejected the applicant lookup')
+        : Errors.providerUnavailable();
     }
   },
 

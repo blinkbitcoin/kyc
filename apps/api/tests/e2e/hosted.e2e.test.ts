@@ -25,7 +25,7 @@ describe('hosted page (E2E)', () => {
     expect(res.status).toBe(200);
     expect(res.text).toContain('id="mock-approve"');
     expect(res.text).toContain(session.providerApplicantId);
-    expect(res.text).toContain("source: 'kyc-bridge'");
+    expect(res.text).toContain("var BRIDGE_SOURCE = 'kyc-bridge';");
     expect(res.headers['x-frame-options']).toBeUndefined();
     expect(res.headers['content-security-policy']).toContain('frame-ancestors *');
     expect(res.headers['permissions-policy']).toContain('camera=');

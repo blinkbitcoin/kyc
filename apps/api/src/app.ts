@@ -165,6 +165,9 @@ export const createApp = async (): Promise<express.Express> => {
     }
   );
 
+  // The webhook limit is deliberately looser than the GraphQL one: a
+  // provider that could not reach us retries its backlog in a burst, and
+  // dropping those deliveries costs us status updates we cannot re-request.
   app.post(
     '/webhook/kyc/:provider',
     makeRateLimiter(60_000, 120),

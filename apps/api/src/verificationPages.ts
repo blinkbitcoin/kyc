@@ -60,15 +60,21 @@ export const verificationPageCsp = (provider: string, nonce: string): string => 
   ].join('; ');
 };
 
-const sanitizeId = (value: string | undefined): string =>
-  value && /^[a-zA-Z0-9_-]{1,64}$/.test(value) ? value : 'unknown';
+/** An opaque identifier, or null when the value is missing or not one. */
+const sanitizeId = (value: string | undefined): string | null =>
+  value && /^[a-zA-Z0-9_-]{1,64}$/.test(value) ? value : null;
 
 /**
- * JSON safe to inline in a <script> block. Every call site here already
- * passes a defined value (fields are required, or defaulted before this is
- * called), so there is no null/undefined case to guard against.
+ * JSON safe to inline in a <script> block. Escapes the same three
+ * characters kyc-core's escapeForScript does: `<` (so a value can never
+ * close the script tag) and U+2028/U+2029, which are valid in JSON strings
+ * but are line terminators in a script body.
  */
-const jsonForScript = (value: unknown): string => JSON.stringify(value).replace(/</g, '\\u003c');
+const jsonForScript = (value: unknown): string =>
+  JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 
 /**
  * Shared bridge emitter. Outbound: React Native first, then the iframe
@@ -81,7 +87,7 @@ const BRIDGE_SCRIPT = `
     var BRIDGE_SOURCE = '${BRIDGE_SOURCE}';
     var BRIDGE_VERSION = ${BRIDGE_PROTOCOL_VERSION};
     function post(type, payload) {
-      var message = { source: 'kyc-bridge', v: 1, type: type };
+      var message = { source: BRIDGE_SOURCE, v: BRIDGE_VERSION, type: type };
       if (payload) { message.payload = payload; }
       if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
         window.ReactNativeWebView.postMessage(JSON.stringify(message));
@@ -155,7 +161,6 @@ const PAGE_STYLE = `
     #sumsub-websdk-container { min-height: 100vh; }`;
 
 export const renderSumsubPage = ({
-  sessionId,
   accessToken,
   locale,
   nonce,
@@ -228,7 +233,6 @@ export const renderSumsubPage = ({
       .launch('#sumsub-websdk-container');
 
     post('statusChanged', { status: 'incomplete' });
-    void ${jsonForScript(sessionId)};
   </script>
 </body>
 </html>
@@ -240,7 +244,9 @@ export const renderMockPage = ({
   nonce,
   webhooks,
 }: VerificationPageParams): string => {
-  const safeSessionId = sanitizeId(sessionId);
+  const safeSessionId = sanitizeId(sessionId) ?? 'unknown';
+  // Never a placeholder applicant id: an unbound session simply omits the
+  // field, which kyc-core's interpretBridgeMessage accepts.
   const safeApplicantId = sanitizeId(applicantId);
   const posts = webhooks ?? {
     approve: { url: '/webhook/kyc/mock', body: '{}', signature: '' },
@@ -258,7 +264,9 @@ export const renderMockPage = ({
 <body>
   <div class="wrap">
     <h1>Mock Identity Verification</h1>
-    <p class="meta">Session ${safeSessionId}<br />Applicant ${safeApplicantId}</p>
+    <p class="meta">Session ${safeSessionId}${
+      safeApplicantId ? `<br />Applicant ${safeApplicantId}` : ''
+    }</p>
     <button class="primary" id="mock-approve">Approve</button>
     <button class="plain" id="mock-decline">Decline</button>
     <button class="plain" id="mock-cancel">Cancel</button>
@@ -277,7 +285,7 @@ export const renderMockPage = ({
 
     // Drive the backend through the same signed webhook a real provider uses,
     // so the E2E flow exercises the real state machine.
-    function notify(which, status) {
+    function notify(which) {
       var hook = WEBHOOKS[which];
       return fetch(hook.url, {
         method: 'POST',
@@ -287,9 +295,9 @@ export const renderMockPage = ({
     }
 
     function finish(which, status) {
-      notify(which, status).then(function () {
+      notify(which).then(function () {
         post('statusChanged', { status: status });
-        post('complete', { status: status, applicantId: applicantId });
+        post('complete', applicantId ? { status: status, applicantId: applicantId } : { status: status });
       });
     }
 
@@ -309,7 +317,7 @@ export const renderMockPage = ({
       post('error', { code: 'MOCK_ERROR', message: 'Simulated provider error' });
     });
 
-    post('applicantLoaded', { applicantId: applicantId });
+    if (applicantId) { post('applicantLoaded', { applicantId: applicantId }); }
   </script>
 </body>
 </html>

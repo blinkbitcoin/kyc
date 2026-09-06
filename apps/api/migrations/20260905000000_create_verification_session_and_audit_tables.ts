@@ -1,8 +1,11 @@
 import type { Knex } from 'knex';
 
 // One row per verification attempt the backend brokered (mode 3), keyed by
-// our own id; the provider's applicant id is stored but never exposed over
-// GraphQL. Audit rows record lifecycle actions with PII-free metadata.
+// our own id. The provider's applicant id IS exposed over GraphQL (as
+// `applicantId` on the session payload - a client needs it to talk to the
+// provider SDK); what never leaves the backend is the provider's own
+// session/token material. Audit rows record lifecycle actions with PII-free
+// metadata.
 export async function up(knex: Knex): Promise<void> {
   if (!(await knex.schema.hasTable('VerificationSession'))) {
     await knex.schema.createTable('VerificationSession', (table) => {

@@ -9,6 +9,7 @@ export interface SumsubConfig {
   baseUrl: string;
   levelName: string;
   tokenTtlSecs: number;
+  requestTimeoutMs: number;
 }
 
 export const SUMSUB_DEFAULTS = {
@@ -16,6 +17,8 @@ export const SUMSUB_DEFAULTS = {
   /** Used whenever the GraphQL input omits levelName. */
   levelName: 'basic-kyc-level',
   tokenTtlSecs: 600,
+  /** Ceiling on a single Sumsub HTTP call, retries excluded. */
+  requestTimeoutMs: 10000,
 } as const;
 
 const positiveInt = (raw: string | undefined, fallback: number): number => {
@@ -30,6 +33,7 @@ export const getConfig = (env: NodeJS.ProcessEnv = process.env): SumsubConfig =>
   baseUrl: (env.SUMSUB_BASE_URL || SUMSUB_DEFAULTS.baseUrl).replace(/\/+$/, ''),
   levelName: env.SUMSUB_LEVEL_NAME || SUMSUB_DEFAULTS.levelName,
   tokenTtlSecs: positiveInt(env.SUMSUB_TOKEN_TTL_SECS, SUMSUB_DEFAULTS.tokenTtlSecs),
+  requestTimeoutMs: positiveInt(env.SUMSUB_REQUEST_TIMEOUT_MS, SUMSUB_DEFAULTS.requestTimeoutMs),
 });
 
 export const validateConfig = (env: NodeJS.ProcessEnv = process.env): void => {
