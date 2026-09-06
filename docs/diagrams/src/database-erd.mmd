@@ -1,0 +1,22 @@
+erDiagram
+    VerificationSession ||--o{ AuditLog : "has many"
+
+    VerificationSession {
+        text id PK
+        text userId "indexed"
+        text provider "mock|sumsub"
+        text providerApplicantId UK "nullable - never exposed over GraphQL"
+        text levelName "nullable"
+        text platform "WEB|IOS|ANDROID"
+        text status "initial|incomplete|pending|approved|declined|finallyRejected"
+        timestamp createdAt "precision 3, default now()"
+        timestamp updatedAt "precision 3, default now()"
+    }
+
+    AuditLog {
+        text id PK
+        text sessionId FK "ON DELETE CASCADE"
+        text action "session_created|token_refreshed|status_updated|webhook_rejected|creation_failed"
+        timestamp timestamp "precision 3, default now()"
+        jsonb metadata "nullable - nine-key allow-list, no PII"
+    }

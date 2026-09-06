@@ -21,9 +21,64 @@ const SECTIONS = [
     file: 'system-architecture.mmd',
     title: 'System Architecture',
     outro:
-      'Mode 1 runs the provider SDK in-process (host supplies the access token);\n' +
-      'mode 2 embeds a hosted page speaking the `kyc-bridge` protocol; mode 3 adds\n' +
-      'the proxy GraphQL session on `apps/api`. Only the proxy source loads Apollo.',
+      'Mode 1 runs the provider SDK in-process (the host supplies the access\n' +
+      'token); mode 2 embeds a page speaking the `kyc-bridge` protocol; mode 3\n' +
+      'adds the proxy GraphQL session on `apps/api`. Only `createProxySource`\n' +
+      'loads Apollo - the `/hosted` entries never reach it.',
+  },
+  {
+    file: 'data-flow-proxy.mmd',
+    title: 'Data Flow Diagram (proxy mode)',
+    outro:
+      'Modes 1 and 2 stop after the token: only the proxy mode persists a\n' +
+      '`VerificationSession` row and lets webhooks move its status.',
+  },
+  {
+    file: 'verification-flow.mmd',
+    title: 'Verification Flow Process',
+    outro:
+      'One machine, both platforms (`packages/kyc-core/src/verification/machine.ts`).\n' +
+      '`offline` and `permissionDenied` deliberately do not fire `onError` - they\n' +
+      'are recoverable states with their own screen.',
+  },
+  {
+    file: 'database-erd.mmd',
+    title: 'Database ERD',
+    outro:
+      '`approved` and `finallyRejected` are terminal and can never be downgraded\n' +
+      'by a late or replayed webhook. `declined` is not terminal - a RETRY\n' +
+      'rejection lets the applicant resubmit.',
+  },
+  {
+    file: 'component-hierarchy.mmd',
+    title: 'Component Hierarchy',
+    outro:
+      'The host app writes `config.ts` -> `apollo.ts` -> `source.ts` and renders\n' +
+      'one component. Which embedding primitive appears is decided by the source:\n' +
+      '`isLaunchable` wins over `isMountable`, which wins over embedding a url.',
+  },
+  {
+    file: 'webhook-flow.mmd',
+    title: 'Webhook Flow',
+    outro:
+      'The route 404s unless the path segment is both a known provider and the\n' +
+      'configured one, so a mock payload can never drive a Sumsub deployment.',
+  },
+  {
+    file: 'graphql-request-flow.mmd',
+    title: 'GraphQL Request Flow',
+    outro:
+      'The row is written before the provider is called, so a provider outage\n' +
+      'still leaves an auditable `creation_failed` trail.',
+  },
+  {
+    file: 'hosted-bridge-flow.mmd',
+    title: 'Hosted Bridge Flow',
+    outro:
+      'Page -> app always carries the full `kyc-bridge` envelope. App -> page has\n' +
+      'two transports: `createSetTokenScript` (bare token, injected by\n' +
+      'react-native-webview) and `createSetTokenMessage` (full envelope, posted\n' +
+      'to the pinned origin by the web package).',
   },
 ];
 

@@ -33,7 +33,7 @@ separator - mermaid-cli rejects it even where GitHub's renderer is lenient).
   `@blinkbitcoin/kyc-react` under `packages/`; the backend is `apps/api`. If
   these have changed, trust `packages/*/package.json` over any doc.
 
-## The diagram(s): provenance and embeds
+## The eight diagrams: provenance and embeds
 
 The SVG is also embeddable in the docs the diagram belongs to (same
 `[![...](.svg)](.mmd)` pattern as the combined page) - renaming or removing
@@ -41,7 +41,14 @@ a diagram must update its "Embedded in" doc too:
 
 | # | Diagram | Type | Source of truth | Embedded in |
 |---|---------|------|-----------------|-------------|
-| 1 | System Architecture | `flowchart TB` | `README.md` (modes) + the design spec | combined page only |
+| 1 | System Architecture | `flowchart TB` | `README.md` (modes) + `docs/architecture/integration.md`; routes from `apps/api/src/app.ts` | `architecture/integration.md` (Parts) |
+| 2 | Data Flow (proxy mode) | `flowchart LR` | `docs/architecture/integration.md` end-to-end flow | combined page only |
+| 3 | Verification Flow Process | `flowchart TD` | `docs/architecture/mobile.md`; state and event names from `packages/kyc-core/src/verification/{machine,types}.ts` | `architecture/mobile.md` (State machine) |
+| 4 | Database ERD | `erDiagram` | `docs/architecture/data-models.md`; verify against `apps/api/migrations/` | `architecture/data-models.md` (ERD section) |
+| 5 | Component Hierarchy | `flowchart TB` | `docs/architecture/mobile.md` + `docs/architecture/web.md` + the demos' `source.ts` | `architecture/mobile.md` (Component hierarchy) |
+| 6 | Webhook Flow | `sequenceDiagram` | `docs/architecture/backend.md` + `apps/api/src/webhook.ts` | `architecture/backend.md` (Webhook processing) |
+| 7 | GraphQL Request Flow | `sequenceDiagram` | `docs/architecture/api-contracts.md` + `apps/api/src/schema.ts` | `architecture/api-contracts.md` (verificationSessionStart) |
+| 8 | Hosted Bridge Flow | `sequenceDiagram` | `docs/integration/hosted.md` + `packages/kyc-core/src/verification/bridge.ts` + `apps/api/src/verificationPages.ts` | `integration/hosted.md` (The bridge protocol) |
 
 ## Pedagogy and consistency rules
 
@@ -59,17 +66,22 @@ These keep the set readable as a progression, not a pile of unrelated pictures:
   - `#b2f2bb` green - success / terminal-good states
   - `#ffc9c9` red - error / terminal-bad states
   - `#ffec99` yellow - recoverable states (offline, session expiry, cancel)
-- **Event vocabulary is real.** Use the real normalized names from
+- **Event vocabulary is real.** Use the normalized names from
   `packages/kyc-core/src/verification/types.ts` (`applicantLoaded`,
   `submitted`, `statusChanged`, `complete`, `cancel`, `tokenExpired`,
-  `sessionExpired`, `error`).
+  `sessionExpired`, `error`) and the eight machine states from
+  `machine.ts` (`idle`, `loading`, `verifying`, `pending`, `success`,
+  `permissionDenied`, `error`, `offline`). Provider-native names
+  (`idCheck.onApplicantLoaded`, `applicantReviewed`) appear only on the
+  provider side of a boundary - the diagrams double as protocol
+  documentation, and the normalization boundary is part of the protocol.
 - Separate diagrams with `---`; keep the one-line intro under each `##`
   heading if it adds a constraint the picture can't show.
 
 ## Verification before finishing
 
 1. Run `make diagrams`; it renders every SVG without a parse error, the
-   generated page's image count matches the table above (currently 1), and
+   generated page's image count matches the table above (currently 8), and
    `git status` shows regenerated SVGs only for diagrams you touched.
 2. `grep` the sources for stale identifiers: old package names, any route
    not present in `apps/api/src/app.ts`.

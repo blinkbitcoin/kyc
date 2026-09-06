@@ -1,0 +1,45 @@
+flowchart TB
+    subgraph Host["examples/* - the wiring a host app writes"]
+        CFG[config.ts<br/>KYC_MODE · VITE_KYC_MODE]
+        APOLLO[apollo.ts<br/>createKycApolloClient]
+        SRCF[source.ts<br/>buildSource per mode]
+    end
+
+    VER[Verification<br/>one screen per state]
+    HOOK[useVerification<br/>headless]
+    TOK[useTokenRefresh]
+    MACHINE[machineReducer · planEvent<br/>@blinkbitcoin/kyc-core]
+
+    subgraph Screens["Screens keyed by status"]
+        S1[idle - verification-start-button]
+        S2[loading - loading-indicator]
+        S3[verifying - embed or launch]
+        S4[pending - pending-screen]
+        S5[success - success-screen]
+        S6[permissionDenied - permission screen]
+        S7[offline - offline-screen]
+        S8[error - retry-button or restart-button]
+    end
+
+    subgraph Embed["Embedding primitive, one per platform"]
+        WV[HostedWebView<br/>verification-webview - RN]
+        IFR[HostedFrame<br/>verification-iframe - web]
+        MP[MountPoint<br/>verification-mount - web, seam only]
+        LNCH[LaunchableSource.launch<br/>launch-screen - no embed]
+    end
+
+    CFG --> SRCF
+    APOLLO --> SRCF
+    SRCF -- "source prop" --> VER
+    VER --> HOOK
+    HOOK --> MACHINE
+    HOOK --> TOK
+    VER --> Screens
+    S3 --> WV & IFR & MP & LNCH
+
+    style MACHINE fill:#e7f5ff
+    style S5 fill:#b2f2bb
+    style S8 fill:#ffc9c9
+    style S4 fill:#ffec99
+    style S6 fill:#ffec99
+    style S7 fill:#ffec99

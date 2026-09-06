@@ -1,22 +1,59 @@
 flowchart TB
-  subgraph host["Your app"]
-    RN["@blinkbitcoin/kyc-react-native<br/>Verification + useVerification"]
-    WEB["@blinkbitcoin/kyc-react<br/>Verification + useVerification"]
-  end
-  CORE["@blinkbitcoin/kyc-core<br/>VerificationSource + guards + bridge + ErrorCode"]
-  SUMSUB["@blinkbitcoin/kyc-sumsub<br/>mapping · /react-native · /web"]
-  API["apps/api<br/>VerificationProvider port · mock · sumsub<br/>/graphql · /webhook/kyc/:provider · /hosted/:sessionId"]
-  PROVIDER["Sumsub"]
-  RN --> CORE
-  WEB --> CORE
-  RN -- "mode 1: native SDK" --> SUMSUB
-  WEB -- "mode 1: web SDK (follow-up)" --> SUMSUB
-  RN -- "mode 2: hosted page (WebView)" --> API
-  WEB -- "mode 2: hosted page (iframe)" --> API
-  RN -- "mode 3: proxy (Apollo)" --> API
-  WEB -- "mode 3: proxy (Apollo)" --> API
-  SUMSUB --> PROVIDER
-  API --> SUMSUB
-  API --> PROVIDER
-  style CORE fill:#e7f5ff
-  style API fill:#fff3bf
+    subgraph Hosts["Host apps"]
+        RN[React Native app<br/>kyc-react-native · hardened WebView]
+        WEB[React web app<br/>kyc-react · origin-pinned iframe]
+    end
+
+    subgraph Core["@blinkbitcoin/kyc-core"]
+        SRC{VerificationSource}
+        MACHINE[machineReducer + planEvent<br/>shared state machine]
+        HOSTED[createHostedSource]
+        PROXY[createProxySource<br/>Apollo - proxy mode only]
+    end
+
+    subgraph Sumsub["@blinkbitcoin/kyc-sumsub"]
+        MAP[mapSumsubStatus<br/>mapSumsubWebhookStatus]
+        NATIVEMAP[mapSumsubMobileResult<br/>mapSumsubMobileStatus]
+        NATIVE[createSumsubNativeSource<br/>entry /react-native]
+    end
+
+    subgraph Backend["apps/api - hosted and proxy modes"]
+        GQL[/"POST /graphql"/]
+        PAGE[/"GET /hosted/:sessionId"/]
+        WH[/"POST /webhook/kyc/:provider"/]
+        PROV{VerificationProvider}
+        SUMP[SumsubProvider]
+        MOCK[MockProvider]
+        KNEX[Knex.js]
+    end
+
+    subgraph External["External"]
+        SDK[Sumsub<br/>Mobile SDK · Web SDK · REST]
+        DB[(PostgreSQL)]
+    end
+
+    RN --> SRC
+    WEB --> SRC
+    RN --> MACHINE
+    WEB --> MACHINE
+    SRC --> HOSTED & PROXY
+    RN -- "mode 1: native SDK" --> NATIVE
+    NATIVE --> NATIVEMAP
+    NATIVE -- "in-process" --> SDK
+    HOSTED -. "mode 2: kyc-bridge" .-> PAGE
+    PROXY -- "mode 3: GraphQL" --> GQL
+    GQL --> PROV
+    PAGE --> PROV
+    PROV --> SUMP & MOCK
+    SUMP --> MAP
+    SUMP -- "REST" --> SDK
+    SDK -- "webhooks" --> WH
+    GQL --> KNEX
+    WH --> KNEX
+    KNEX --> DB
+
+    style SRC fill:#e7f5ff
+    style MACHINE fill:#e7f5ff
+    style GQL fill:#fff3bf
+    style PAGE fill:#fff3bf
+    style WH fill:#fff3bf

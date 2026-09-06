@@ -1,0 +1,43 @@
+sequenceDiagram
+    participant HOOK as useVerification
+    participant EMB as HostedWebView or HostedFrame
+    participant PAGE as GET /hosted/:sessionId
+    participant SDK as Provider web SDK
+
+    HOOK->>EMB: render with session.url and session.allowedOrigin
+    EMB->>PAGE: load
+    PAGE->>PAGE: install window.__kycBridge
+    PAGE->>SDK: init with the session access token
+
+    SDK-->>PAGE: idCheck.onApplicantLoaded
+    PAGE-->>EMB: kyc-bridge envelope - type applicantLoaded
+    Note over PAGE,EMB: RN gets a JSON string via ReactNativeWebView.postMessage, web gets an object on window.parent with target origin star
+    EMB->>HOOK: interpretBridgeMessage drops any other source or protocol version
+    Note over EMB,HOOK: web additionally requires event.origin equals allowedOrigin and event.source equals the frame contentWindow
+
+    SDK-->>PAGE: idCheck.onApplicantSubmitted
+    PAGE-->>EMB: type submitted
+    EMB->>HOOK: pending
+
+    SDK-->>PAGE: access token expired
+    PAGE-->>EMB: type tokenExpired
+    HOOK->>HOOK: isTokenRefreshable(source)
+    alt Refreshable
+        HOOK->>HOOK: await source.refreshToken(session)
+        alt React Native
+            HOOK->>PAGE: injectJavaScript createSetTokenScript - bare token
+        else Web
+            HOOK->>PAGE: contentWindow.postMessage createSetTokenMessage - full envelope, targeted at allowedOrigin
+        end
+        alt Mock provider
+            Note over PAGE: renderMockPage's setToken only writes a DOM acknowledgement (data-token-refreshed, a Token refreshed note) - no bridge event goes back to EMB or HOOK
+        else Sumsub provider
+            PAGE->>SDK: resume with the new token
+        end
+    else Not refreshable · no allowedOrigin · refresh rejected
+        HOOK->>HOOK: error TOKEN_EXPIRED or TOKEN_REFRESH_FAILED - session kept, Restart offered
+    end
+
+    SDK-->>PAGE: idCheck.onApplicantStatusChanged
+    PAGE-->>EMB: type complete with the normalized status
+    EMB->>HOOK: onComplete

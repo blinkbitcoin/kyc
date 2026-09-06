@@ -1,0 +1,37 @@
+sequenceDiagram
+    participant App as Host app
+    participant SRC as createProxySource
+    participant AC as Apollo Client
+    participant GQL as apps/api POST /graphql
+    participant PV as VerificationProvider
+    participant SUM as Sumsub REST
+    participant DB as PostgreSQL
+
+    App->>SRC: start()
+    SRC->>AC: verificationSessionStart(input)
+    AC->>GQL: POST /graphql with Bearer token
+    GQL->>GQL: getUserIdFromAuthHeader, validate platform · levelName · locale
+    alt Unauthenticated
+        GQL-->>AC: UNAUTHORIZED
+    else Invalid input
+        GQL-->>AC: VALIDATION_ERROR
+    else Authenticated
+        Note over GQL,DB: createSession + session_created audit in one transaction
+        GQL->>DB: insert VerificationSession with status initial
+        alt Persistence failed
+            GQL-->>AC: PERSISTENCE_FAILED
+        else Row written
+            GQL->>PV: createSession(userId, platform, levelName, locale)
+            PV->>SUM: POST /resources/accessTokens
+            alt Provider failed
+                GQL->>DB: creation_failed audit
+                GQL-->>AC: PROVIDER_UNAVAILABLE or SESSION_CREATION_FAILED
+            else Token minted
+                SUM-->>PV: accessToken and applicantId
+                GQL->>DB: bindApplicantId
+                GQL-->>AC: sessionId · provider · status · accessToken · url · allowedOrigin · applicantId
+            end
+        end
+    end
+    AC-->>SRC: VerificationSession payload
+    SRC-->>App: VerificationSession
