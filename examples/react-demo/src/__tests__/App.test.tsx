@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { App, outcomeText } from '../App';
@@ -12,14 +12,19 @@ describe('demo App', () => {
     expect(screen.getByTestId('outcome').textContent).toBe('no outcome yet');
   });
 
-  it('"Start over" remounts the verification component', () => {
+  it('"Start over" remounts the verification component', async () => {
     render(<App />);
 
     const before = screen.getByTestId('verification-start-button');
-    screen.getByTestId('reset-button').click();
-    const after = screen.getByTestId('verification-start-button');
+    // fireEvent is act-wrapped, so the click's state updates are flushed
+    // before it returns - but React can still commit the remount on a
+    // microtask, so the element-identity assertion is awaited via waitFor
+    // rather than read back synchronously.
+    fireEvent.click(screen.getByTestId('reset-button'));
 
-    expect(after).not.toBe(before);
+    await waitFor(() => {
+      expect(screen.getByTestId('verification-start-button')).not.toBe(before);
+    });
     expect(screen.getByTestId('outcome').textContent).toBe('no outcome yet');
   });
 });

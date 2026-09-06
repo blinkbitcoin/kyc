@@ -5,7 +5,6 @@
 import { ApolloProvider } from '@apollo/client/react';
 import { Verification } from '@blinkbitcoin/kyc-react';
 import { useState } from 'react';
-import { flushSync } from 'react-dom';
 
 import { apolloClient } from './apollo';
 import { KYC_MODE } from './config';
@@ -84,14 +83,8 @@ export const App = () => {
           <button
             data-testid="reset-button"
             onClick={() => {
-              // flushSync: the "remounts" test asserts a fresh DOM node right
-              // after a raw .click() (no act/await), so this update must
-              // commit synchronously rather than on React's default
-              // microtask-scheduled flush.
-              flushSync(() => {
-                setOutcome(null);
-                setSessionKey(key => key + 1);
-              });
+              setOutcome(null);
+              setSessionKey(key => key + 1);
             }}
             type="button"
           >
