@@ -7,16 +7,16 @@
 export const typeDefs = `#graphql
   type Query {
     health: HealthCheck!
-    # Status of a session this backend brokered. Resolver: backend phase.
+    # Status of a session this backend brokered.
     verificationSession(id: ID!): VerificationSessionStatus!
   }
 
   type Mutation {
     # Create a verification session for the authenticated user and return
-    # everything a VerificationSource needs to run it. Resolver: backend phase.
+    # everything a VerificationSource needs to run it.
     verificationSessionStart(input: VerificationSessionStartInput!): VerificationSession!
     # Mint a fresh provider access token for an existing session (hosted mode
-    # token refresh). Resolver: backend phase.
+    # token refresh).
     verificationSessionRefresh(sessionId: ID!): AccessToken!
   }
 
