@@ -10,17 +10,16 @@ import {
   ClientErrorCodes,
   createSetTokenScript,
   isTokenRefreshable,
+  toVerificationError,
 } from '@blinkbitcoin/kyc-core/hosted';
-
-import { toVerificationError } from './verificationMachine';
 
 import type { MutableRefObject } from 'react';
 import type {
+  VerificationError,
   VerificationSession,
   VerificationSource,
   VerificationSourceError,
 } from '@blinkbitcoin/kyc-core/hosted';
-import type { VerificationError } from './verificationMachine';
 
 /** The slice of react-native-webview's ref this package needs. */
 export interface TokenInjectable {

@@ -27,15 +27,6 @@ export {
   matchesOrigin,
   originOf,
 } from './hosted/webViewProps';
-export {
-  describeOutcome,
-  initialMachineState,
-  isRestartableError,
-  machineReducer,
-  planEvent,
-  toVerificationError,
-  UNKNOWN_ERROR_CODE,
-} from './verificationMachine';
 export type * from './types';
 
 // The whole platform-agnostic core, re-exported for convenience (this entry

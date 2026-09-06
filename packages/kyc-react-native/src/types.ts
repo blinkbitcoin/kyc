@@ -4,22 +4,13 @@
 import type { ReactElement } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type {
+  VerificationError,
   VerificationResult,
   VerificationSource,
   VerificationStatus,
 } from '@blinkbitcoin/kyc-core/hosted';
 import type { CheckPermissions } from './useVerification';
-import type { VerificationError } from './verificationMachine';
 
-export type {
-  MachineAction,
-  MachineState,
-  PermissionReason,
-  VerificationEffect,
-  VerificationError,
-  VerificationPlan,
-  VerificationState,
-} from './verificationMachine';
 export type {
   CheckPermissions,
   PermissionState,

@@ -5,20 +5,24 @@
 
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import NetInfo from '@react-native-community/netinfo';
-import { isLaunchable } from '@blinkbitcoin/kyc-core/hosted';
-
 import {
   initialMachineState,
+  isLaunchable,
   machineReducer,
   planEvent,
   toVerificationError,
   UNKNOWN_ERROR_CODE,
-} from './verificationMachine';
+} from '@blinkbitcoin/kyc-core/hosted';
 import { useTokenRefresh } from './useTokenRefresh';
 
 import type { MutableRefObject } from 'react';
 import type {
   LaunchableSource,
+  MachineAction,
+  MachineState,
+  PermissionReason,
+  VerificationEffect,
+  VerificationError,
   VerificationEvent,
   VerificationResult,
   VerificationSession,
@@ -26,13 +30,6 @@ import type {
   VerificationSourceError,
   VerificationStatus,
 } from '@blinkbitcoin/kyc-core/hosted';
-import type {
-  MachineAction,
-  MachineState,
-  PermissionReason,
-  VerificationEffect,
-  VerificationError,
-} from './verificationMachine';
 import type { TokenInjectable } from './useTokenRefresh';
 
 /** What a host permission library reports back. */

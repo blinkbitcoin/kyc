@@ -11,15 +11,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { getErrorMessage, isLaunchable } from '@blinkbitcoin/kyc-core/hosted';
-
-import { HostedWebView } from './hosted/HostedWebView';
-import { useVerification } from './useVerification';
 import {
   describeFailure,
   describeOutcome,
+  getErrorMessage,
+  isLaunchable,
   isRestartableError,
-} from './verificationMachine';
+} from '@blinkbitcoin/kyc-core/hosted';
+
+import { HostedWebView } from './hosted/HostedWebView';
+import { useVerification } from './useVerification';
 
 import type { VerificationProps } from './types';
 
