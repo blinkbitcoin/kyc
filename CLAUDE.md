@@ -62,7 +62,7 @@ npm run typecheck            # tsc across all workspaces
 npm run lint                 # ESLint (mobile code) + Biome lint (backend)
 npm run format               # Biome format (all workspaces)
 npm run build                # Build the four libraries (bob for RN, tsup for core/sumsub/web)
-npm run check:packages       # publint + arethetypeswrong on the built packages
+npm run check:packages       # publint + arethetypeswrong on the built packages (CI: E2E / Build Packages)
 npm run codegen               # Emit schema.graphql from typeDefs.ts + regenerate core's client types
 npm start                    # Metro for the RN demo app
 npm run ios / android        # Run the RN demo app
@@ -181,17 +181,20 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
 ## CI and releases
 
 - One pipeline per branch (`ci.yml`): Checks (`checks.yml`: Changes, Code,
-  Packages, Commits, Docs) → Unit (`test.yml`) → E2E (`e2e.yml`: Backend, Web,
-  Build Android → Android, Build iOS → iOS) → Badges, then Publish → Verify on
-  `main`. Docs-only PRs stop after Checks; `main` skips docs-only pushes.
+  Commits, Docs - all static) → Unit (`test.yml`) → E2E (`e2e.yml`: Build
+  Packages → Web, Backend, Build Android → Android, Build iOS → iOS) → Badges,
+  then Publish → Verify on `main`. Build Packages is the one build of the
+  libraries: Web bundles the demo against its dist and Publish ships its
+  tarballs unchanged. Docs-only PRs stop after Checks; `main` skips docs-only
+  pushes.
 - iOS E2E is opt-in (macOS runners bill at 10x): PR label `e2e:ios` or repo
   variable `E2E_IOS=true`; `E2E_IOS_RUNNER` overrides `runs-on`.
 - Native E2E builds are cached on the inputs `scripts/native-deps-hash.sh`
   sees plus `android/**` / `ios/**`; bump the cache key's `v` suffix when an
   input the script cannot see changes.
 - Releases: prerelease (`next`) on every green push to `main`; stable is
-  `make release V=X.Y.Z` - the tag is the version, CI stamps it at publish
-  time, `package.json` stays at `0.0.0-development`. Release notes come from
+  `make release V=X.Y.Z` - the tag is the version, CI stamps it before
+  building the packages, `package.json` stays at `0.0.0-development`. Release notes come from
   PR titles (`.github/release.yml`). A release ships only once the commit's
   main run is green (`release-retry.yml` re-runs a blocked Publish).
 

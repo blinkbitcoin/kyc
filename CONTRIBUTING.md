@@ -27,11 +27,12 @@ environment variables, and troubleshooting:
   results (`scripts/status-badge.mjs`).
 - Git hooks (see [below](#git-hooks)) format, lint, and check the commit
   message locally.
-- CI (`ci.yml`) is one pipeline for every branch: unit suites with
-  coverage thresholds, the end-to-end suites (backend, browser, Android
+- CI (`ci.yml`) is one pipeline for every branch: static checks, unit
+  suites with coverage thresholds, then one build of the packages next to
+  the end-to-end suites (backend, browser - over that build - Android
   emulator; the iOS simulator suite only when opted in), and on `main`
-  the publish + registry smoke. A second workflow re-checks the commit convention on the PR's
-  commits and title.
+  the publish of those exact tarballs + registry smoke. A second workflow
+  re-checks the commit convention on the PR's commits and title.
 
 ## Commit messages
 
@@ -134,9 +135,9 @@ Escape hatches, for the rare cases where they are warranted:
   `npm i @blinkbitcoin/kyc-react-native@next`.
 - **Stable**: one step - `make release V=X.Y.Z` (which wraps
   `gh release create vX.Y.Z --target main --title vX.Y.Z --generate-notes`).
-  **The tag is the version**: CI stamps it into all four packages at publish
-  time and pins each one's `@blinkbitcoin/kyc-core` dependency to exactly that
-  version, so nothing is committed and `package.json` stays at
+  **The tag is the version**: CI stamps it into all four packages before
+  building them and pins each one's `@blinkbitcoin/kyc-core` dependency to
+  exactly that version, so nothing is committed and `package.json` stays at
   `0.0.0-development`. The release notes, generated from PR titles
   (`.github/release.yml`), are the changelog - there is no `CHANGELOG.md`. A
   tag with a prerelease part (`v1.0.0-rc.1`) ships under `next`. GitHub

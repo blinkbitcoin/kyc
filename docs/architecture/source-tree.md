@@ -101,6 +101,7 @@ kyc/
 │   │
 │   └── examples/react-demo/         # VITE_KYC_MODE hosted|proxy
 │       ├── src/{config,apollo,source}.ts
+│       ├── vite.config.ts           # libs from source when serving, dist when building
 │       └── e2e/                     # Playwright: launch, hosted, proxy
 │
 ├── 📚 DOCS

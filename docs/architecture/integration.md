@@ -79,7 +79,7 @@
 | Suite | Runner | What it actually integrates |
 |-------|--------|-----------------------------|
 | Backend | Vitest + dockerized Postgres on 5433 | Resolvers, migrations, the signed webhook and the hosted page HTML, end to end |
-| Web | Playwright (`make e2e-web`, `make e2e-web-proxy`) | The real cross-origin iframe (app on 5173/5174, page on 4000), so the `postMessage` path and the origin pin are genuinely exercised |
+| Web | Playwright (`make e2e-web`, `make e2e-web-proxy`) | The real cross-origin iframe (the built demo under `vite preview` on 5173/5174, bundling the libraries' `dist`; page on 4000), so the `postMessage` path and the origin pin are genuinely exercised against what a web consumer installs |
 | Mobile | Maestro (`make e2e-android`, `make e2e-ios`, `make e2e-fake-native`) | The real WebView, the bridge, and - via `createFakeLaunchableSource` - the native-launch branch without any provider SDK. CI's Metro starts with `KYC_MODE=hosted` (`scripts/e2e/metro-start.sh`); `e2e-fake-native` is manual, Android-emulator-only, and needs its own `KYC_MODE=fake-native` Metro |
 
 The real Sumsub sandbox is deliberately **not** in CI: it is a manual checklist, [../integration/sumsub.md](../integration/sumsub.md).

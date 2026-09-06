@@ -15,9 +15,9 @@ VITE_KYC_MODE=proxy npm run dev   # here, proxy mode
 
 The screen mirrors the React Native demo: `mode-label`, `reset-button`,
 `outcome`, around the library's `<Verification />`. The verification page is
-embedded in a genuinely cross-origin iframe (app `:5173` / `:5174`, page
-`:4000`), so the E2E suites exercise the real `postMessage` path and the
-origin pin.
+embedded in a genuinely cross-origin iframe (built app via `vite preview`
+`:5173` / `:5174`, page `:4000`), so the E2E suites exercise the real
+`postMessage` path and the origin pin.
 
 ## Permissions
 
@@ -35,6 +35,8 @@ make e2e-web         # hosted, :5173 - what CI runs
 make e2e-web-proxy   # proxy, :5174
 ```
 
-Both targets bring up the dockerized test Postgres, migrate it, and let
-Playwright start the backend and Vite. Both demo ports are already in
+Both targets build the libraries, bring up the dockerized test Postgres,
+migrate it, and let Playwright start the backend and build + preview the
+demo - so the browser drives the production bundle over the libraries' `dist`,
+which is what a consumer installs. Both demo ports are already in
 `apps/api/.env.test`'s `CORS_ALLOWED_ORIGINS`.

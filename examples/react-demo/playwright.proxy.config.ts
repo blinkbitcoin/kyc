@@ -2,7 +2,8 @@ import { defineConfig } from '@playwright/test';
 
 // Browser E2E for proxy mode: the same real stack as the hosted suite, but
 // the demo is built with VITE_KYC_MODE=proxy on a separate port (5174) so it
-// cannot collide with the hosted Vite. In proxy mode the backend owns the
+// cannot collide with the hosted demo. Like the hosted suite it builds the
+// demo (dist/proxy, over the libraries' dist) and previews it. In proxy mode the backend owns the
 // whole session lifecycle (create, refresh, webhook-driven status) and the
 // component embeds the url the mutation returned - so this suite proves the
 // Apollo path, not a second embedding mechanism.
@@ -31,7 +32,9 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
-      command: 'VITE_KYC_MODE=proxy npm run dev -- --port 5174 --strictPort',
+      // Production bundle over the libraries' built dist (see vite.config.ts).
+      command:
+        'VITE_KYC_MODE=proxy npm run build -- --outDir dist/proxy && npm run preview -- --outDir dist/proxy --port 5174 --strictPort',
       url: 'http://localhost:5174',
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
