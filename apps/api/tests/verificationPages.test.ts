@@ -263,6 +263,27 @@ describe('renderMockPage', () => {
     expect(html).toContain('window.__kycBridge');
   });
 
+  it('acknowledges a refreshed token in the DOM and stays interactive', () => {
+    // The acknowledgement must not be a bridge envelope: 'statusChanged' with
+    // 'pending' would hide and mute the page in the host, so a token refresh
+    // would end the flow instead of resuming it. The E2E flows read the
+    // dataset flag / the visible paragraph and then press Approve or Decline.
+    const setToken = html
+      .slice(html.indexOf('window.__kycBridge.setToken'), html.indexOf('function notify('))
+      // The handler's own comments explain what it must NOT do, so the
+      // negative assertions below judge the code alone.
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('//'))
+      .join('\n');
+    expect(setToken).toContain("document.body.dataset.tokenRefreshed = 'true'");
+    expect(setToken).toContain("ack.id = 'mock-token-refreshed'");
+    expect(setToken).toContain("ack.textContent = 'Token refreshed'");
+    // Idempotent: a second refresh must not append a second paragraph.
+    expect(setToken).toContain("if (!document.getElementById('mock-token-refreshed'))");
+    expect(setToken).not.toContain('statusChanged');
+    expect(setToken).not.toContain('post(');
+  });
+
   it('shows the session and applicant it is driving', () => {
     expect(html).toContain('session-1');
     expect(html).toContain('mock-applicant-1');

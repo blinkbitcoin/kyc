@@ -343,8 +343,22 @@ export const renderMockPage = ({
 
     window.__kycBridge.setToken = function (value) {
       // The mock page has nothing to do with a refreshed token beyond
-      // acknowledging it, so the host can assert the round trip.
-      if (readToken(value)) { post('statusChanged', { status: 'pending' }); }
+      // acknowledging it, so the host can assert the round trip. The
+      // acknowledgement is DOM, never a bridge envelope: a 'statusChanged'
+      // here would move the host's state machine (pending hides the page and
+      // mutes its controls), so a token refresh would end the flow instead of
+      // resuming it. Both inbound shapes land here - the bare token React
+      // Native injects and the envelope the web host posts - because
+      // readToken normalizes them.
+      if (!readToken(value)) { return; }
+      document.body.dataset.tokenRefreshed = 'true';
+      if (!document.getElementById('mock-token-refreshed')) {
+        var ack = document.createElement('p');
+        ack.id = 'mock-token-refreshed';
+        ack.className = 'meta';
+        ack.textContent = 'Token refreshed';
+        document.querySelector('.wrap').appendChild(ack);
+      }
     };
 
     // Drive the backend through the same signed webhook a real provider uses,

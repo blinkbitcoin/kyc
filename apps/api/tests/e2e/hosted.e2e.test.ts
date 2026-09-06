@@ -26,6 +26,10 @@ describe('hosted page (E2E)', () => {
     expect(res.text).toContain('id="mock-approve"');
     expect(res.text).toContain(session.providerApplicantId);
     expect(res.text).toContain("var BRIDGE_SOURCE = 'kyc-bridge';");
+    // A refreshed token is acknowledged in the DOM, not over the bridge, so
+    // the page stays interactive and a later Approve / Decline still works.
+    expect(res.text).toContain("document.body.dataset.tokenRefreshed = 'true'");
+    expect(res.text).toContain("ack.id = 'mock-token-refreshed'");
     expect(res.headers['x-frame-options']).toBeUndefined();
     expect(res.headers['content-security-policy']).toContain('frame-ancestors *');
     expect(res.headers['permissions-policy']).toContain('camera=');
