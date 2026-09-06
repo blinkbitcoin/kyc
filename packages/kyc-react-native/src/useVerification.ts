@@ -168,7 +168,14 @@ export const useVerification = (
           handlersRef.current.onCancel();
           break;
         case 'error':
-          handlersRef.current.onError(effect.error);
+          // A throwing host callback must not surface twice (once here, once
+          // as an unhandled rejection) - it already got the error, same as
+          // failWith below.
+          try {
+            handlersRef.current.onError(effect.error);
+          } catch {
+            // Swallowed: the state already reflects the failure.
+          }
           break;
         case 'refreshToken':
           refreshToken();

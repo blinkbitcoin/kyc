@@ -674,6 +674,23 @@ describe('useVerification - bridge messages', () => {
     expect(options.onError).toHaveBeenCalledWith(latest.error);
   });
 
+  it('does not throw out of handleMessage when onError itself throws on a bridge error event', async () => {
+    const onError = jest.fn(() => {
+      throw new Error('host onError exploded');
+    });
+    const options = { ...handlers(), onError };
+    await started(options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage(
+        messageOf({ type: 'error', code: ClientErrorCodes.NETWORK_ERROR }),
+      );
+    });
+
+    expect(latest.status).toBe('error');
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
   it('cancel() resets and calls back', async () => {
     const options = handlers();
     await started(options);
