@@ -29,7 +29,7 @@
 ### 2. Package → package: `@blinkbitcoin/kyc-core` is the only shared vocabulary
 
 - **From:** `kyc-react-native`, `kyc-react`, `kyc-sumsub`
-- **To:** `@blinkbitcoin/kyc-core` (a hard `dependency` of all three, pinned to the exact same version at publish time)
+- **To:** `@blinkbitcoin/kyc-core` (a hard `dependency` of all three, pinned to the exact same version when E2E / Build Packages builds them)
 - **Shared:** `VerificationStatus`, `VerificationEvent`, `VerificationSession`, `VerificationResult`, `VerificationSource` and its two capability sub-interfaces, `isTokenRefreshable` / `isLaunchable`, the bridge module, `ErrorCodes` / `ClientErrorCodes` / `getErrorMessage`, and the state machine (`machineReducer`, `planEvent`, `describeOutcome`, `isRestartableError`).
 - **Why the machine lives in core:** it is pure TypeScript over core's own vocabulary - no React, no React Native, no DOM, no Apollo - and both platform packages need byte-identical semantics for the eight states, the outcome copy and the Restart affordance. A copy per platform would create two sources of truth for the one thing they must never disagree about.
 - **Where the two platforms genuinely diverge:** the web hook intercepts a bridge `error` event carrying `PERMISSION_DENIED` into `permissionDenied` *before* the shared planner runs (`onError` is not called); React Native has no such interception; a denied `checkPermissions()` preflight is what drives `permissionDenied` there instead. This is a documented, deliberate divergence, not drift - see [mobile.md](mobile.md) and [web.md](web.md).

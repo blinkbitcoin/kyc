@@ -133,7 +133,7 @@ Escape hatches, for the rare cases where they are warranted:
 
 ## Releases
 
-Full walkthrough: [docs/releasing.md](docs/releasing.md).
+Step-by-step: [docs/releasing.md](docs/releasing.md).
 
 - **Prerelease** (`next` tag): automatic on every green push to `main`,
   versioned `<next patch after the latest tag>-pre.<run>.<sha>`. Install with
@@ -161,5 +161,5 @@ Full walkthrough: [docs/releasing.md](docs/releasing.md).
   would publish, `make version TAG=vX.Y.Z` prints what the tag would publish,
   and neither writes to any `package.json`. After a release,
   `make registry-smoke V=X.Y.Z` re-runs the consumer contract check against
-  GitHub Packages. Step-by-step:
+  GitHub Packages. First-release runbook:
   [docs/development-guide.md](docs/development-guide.md#first-release).
