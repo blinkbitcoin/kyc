@@ -1,7 +1,7 @@
 # Development Guide
 
 **Project:** kyc
-**Updated:** 2026-09-05
+**Updated:** 2026-09-06
 
 ## Prerequisites
 
@@ -16,7 +16,9 @@
 | direnv | Latest | Env management (house convention) - `brew install direnv` + shell hook |
 | Nix (flakes) | Latest | Toolchain pinning via `flake.nix` (node 24, jdk 17, ruby 3.3, watchman) - loaded by direnv's `use flake` |
 
-- Sumsub sandbox credentials are only needed once the Sumsub adapter lands.
+- Sumsub sandbox credentials are only needed for the manual checklist in
+  [integration/sumsub.md](integration/sumsub.md). Nothing in `npm test`,
+  `make coverage` or any E2E suite talks to Sumsub.
 
 ## Initial Setup
 
@@ -160,11 +162,11 @@ The npm scripts underneath:
 
 ## Testing
 
-**Unit + E2E suites are hermetic and mock-only by design.** They run against
-the `mock` `KYC_PROVIDER` and a real (or in-memory) Postgres, never against
-Sumsub. Setting `SUMSUB_*` variables does not (and should not) point these
-suites at the real provider - that only happens through manual, ad hoc runs
-of the demos once the Sumsub adapter lands in `apps/api`.
+**Unit and E2E suites are hermetic and mock-only by design.** They run against
+`KYC_PROVIDER=mock` and a real (or dockerized) Postgres, never against Sumsub.
+Setting `SUMSUB_*` variables does not - and must not - point these suites at
+the real provider: that happens only through the manual runs described in
+[integration/sumsub.md](integration/sumsub.md).
 
 ### Mobile Unit Tests
 
@@ -213,26 +215,52 @@ npm run test:e2e
 docker-compose -f docker-compose.test.yml down
 ```
 
+### Web E2E Tests (Playwright)
+
+```bash
+npx playwright install chromium     # once per machine
+make e2e-web                        # hosted mode on :5173 - what CI runs
+make e2e-web-proxy                  # proxy mode on :5174
+```
+
+Both targets bring up the dockerized test Postgres, migrate it, and let
+Playwright start the backend and Vite. Both demo ports are already in
+`apps/api/.env.test`'s `CORS_ALLOWED_ORIGINS`, and the app and the hosted page
+are genuinely cross-origin (`:5173`/`:5174` vs `:4000`), so the suites exercise
+the real `postMessage` path and the origin pin rather than a same-origin
+shortcut.
+
 ### Mobile E2E Tests (Maestro)
 
 ```bash
-# Install Maestro CLI
+# Install Maestro once
 curl -Ls "https://get.maestro.mobile.dev" | bash
 
-# Start backend with mock provider against the test database
-cd apps/api && KYC_PROVIDER=mock npx dotenv-cli -e .env.test -- npm run dev &
-
-# Build and run app on simulator
-npm run ios
-
-# Run Maestro tests
-maestro test examples/react-native-demo/.maestro/
+# The stack: backend + test DB, the debug APK, an emulator, and a Metro
+# started in the mode the flows expect
+make e2e-backend-up
+(cd examples/react-native-demo/android && ./gradlew assembleDebug)
+emulator -avd <avd> &
+#   in another terminal, from examples/react-native-demo:
+#   KYC_MODE=hosted npm start
+make e2e-android
+make e2e-backend-down
 ```
 
-`examples/react-native-demo/.maestro/` currently has the smoke flow
-(`app-launch.yaml`) that boots the app; verification-flow coverage grows here
-as the phases land (see
-[the design](superpowers/specs/2026-09-05-kyc-design.md)).
+Six flows run by default (`app-launch`, `hosted-happy-path`, `hosted-decline`,
+`hosted-cancel`, `hosted-token-refresh`, `hosted-error-retry`). Two more are
+tagged `fake-native` and excluded from the default run because they need their
+own Metro - which is why the CI-invoked script names never change:
+
+```bash
+#   in another terminal: KYC_MODE=fake-native npm start
+make e2e-fake-native      # no backend needed
+```
+
+`make e2e-ios` runs the same default suite on a booted simulator with the app
+installed. The Android runner does `adb reverse tcp:4000 tcp:4000`
+(`scripts/e2e/android-maestro.sh`), which is what makes the backend's
+`http://localhost:4000/hosted/<id>` load inside the emulator's WebView.
 
 ## Code Style
 
@@ -334,23 +362,27 @@ npm run migrate
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `KYC_PROVIDER` | No | Provider selection: `mock` (default) or `sumsub` |
-| `SUMSUB_APP_TOKEN` | sumsub | Sumsub app token |
-| `SUMSUB_SECRET_KEY` | sumsub | Sumsub secret key |
-| `SUMSUB_WEBHOOK_SECRET` | sumsub | Webhook signature validation secret |
-| `SUMSUB_BASE_URL` | no | Sumsub API base (defaults to `https://api.sumsub.com`) |
-| `OTEL_*` | no | Standard OpenTelemetry vars; tracing is off unless set (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, `OTEL_TRACES_EXPORTER=console` for stdout) |
-| `NODE_ENV` | no | `production` activates the fail-closed auth/webhook behavior described above |
 | `ALLOW_INSECURE_DEV` | no | Explicit opt-in to run without JWT/webhook secrets (never in prod) |
 | `CORS_ALLOWED_ORIGINS` | no | Comma-separated CORS allow-list |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `JWT_SECRET` | Prod | HS256 JWT verification secret. Unset: dev treats bearer token as userId; production treats requests as unauthenticated (fail-closed) |
+| `KYC_PROVIDER` | No | Provider selection: `mock` (default) or `sumsub` |
+| `MOCK_WEBHOOK_SECRET` | no | Secret the mock provider signs its own webhooks with, default `mock` |
+| `NODE_ENV` | no | `production` activates the fail-closed auth/webhook behavior described above |
+| `OTEL_*` | no | Standard OpenTelemetry vars; tracing is off unless set (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, `OTEL_TRACES_EXPORTER=console` for stdout) |
 | `PORT` | No | Server port (default: 4000) |
+| `PUBLIC_BASE_URL` | Prod | Absolute http(s) base the hosted-page url and the mock webhook target are built from; required unless `ALLOW_INSECURE_DEV=true`, default `http://localhost:4000` in insecure dev |
+| `SUMSUB_APP_TOKEN` | sumsub | Sumsub app token |
+| `SUMSUB_BASE_URL` | no | Sumsub API base (defaults to `https://api.sumsub.com`) |
+| `SUMSUB_LEVEL_NAME` | no | Verification level requested when the client does not send one, default `basic-kyc-level` |
+| `SUMSUB_SECRET_KEY` | sumsub | Sumsub secret key |
+| `SUMSUB_TOKEN_TTL_SECS` | no | Access-token lifetime in seconds, default `600` |
+| `SUMSUB_WEBHOOK_SECRET` | sumsub | Webhook signature validation secret |
 
-The `sumsub` column means required when `KYC_PROVIDER=sumsub` — the
-server refuses to start without them (fail-fast) unless `ALLOW_INSECURE_DEV=true`.
-The Sumsub adapter for `apps/api` (webhook + hosted page) lands in a later
-phase - see [the design](superpowers/specs/2026-09-05-kyc-design.md).
+The `sumsub` column means required when `KYC_PROVIDER=sumsub` - the server
+refuses to start without them unless `ALLOW_INSECURE_DEV=true`. The full
+control set, and what each one is defending against, is in
+[architecture/security.md](architecture/security.md).
 
 ### Mobile / web demos (bundle-time)
 
@@ -363,6 +395,26 @@ Both demos resolve the backend origin themselves (Android emulators reach the
 host machine via `10.0.2.2`, iOS simulators via `localhost`); the RN and web
 `Verification`/`useVerification` packages take a session/token source from
 the host app rather than owning a GraphQL client directly.
+
+## Documentation
+
+Docs are hand-maintained and live beside the code they describe. The map is
+[index.md](./index.md).
+
+```bash
+make docs-check       # warns on architecture changes without a docs/ update
+make diagrams         # renders docs/diagrams/dist/*.svg and reassembles the page
+make diagrams-check   # fails if the combined page is stale
+```
+
+Diagram sources are `docs/diagrams/src/*.mmd` and are canonical; the SVGs and
+`docs/diagrams/README.md` are generated. Adding a diagram means a new `.mmd`,
+an entry in `scripts/assemble-diagrams.mjs`'s `SECTIONS`, and a row in
+`.claude/skills/regenerate-mermaid-diagrams/SKILL.md`. Changing a source
+without committing its re-rendered SVG is a **hard CI failure**, not a warning.
+
+Keep labels free of bare `;` - mermaid parses it as a statement separator and
+mermaid-cli rejects it even where GitHub's renderer is lenient.
 
 ## CI/CD
 
@@ -431,3 +483,56 @@ make e2e-ios            # iOS: simulator booted with the app installed, Metro + 
 # Release plumbing
 make version            # what a push to main would publish; make version TAG=vX.Y.Z for a release
 ```
+
+### First release
+
+The repo publishes a `next` prerelease from every green push to `main`
+automatically. Cutting the first **stable** version is a deliberate, human
+step - nothing in this repository does it for you.
+
+1. **Land the work.** Either merge the phase branches in order (bootstrap →
+   core → api → sumsub → rn → react → demos/E2E → docs), or open one PR for
+   the whole v1 - the pipeline is identical either way. Every PR needs an
+   approving review under the org ruleset; `main` is never pushed to directly.
+2. **Wait for `main` to be green.** The Publish job refuses to ship from a red
+   main run, and a release cut against one is blocked until it turns green.
+3. **Check what a release would produce**, without touching anything:
+
+```bash
+DRY_RUN=1 bash scripts/release/resolve-version.sh          # the prerelease CI publishes today
+#   -> version=0.0.1-pre.<run>.<sha>   disttag=next
+make version                                                # the same thing, through make
+make version TAG=v0.1.0                                     # what the tag would publish
+#   -> version=0.1.0                  disttag=latest
+```
+
+   `DRY_RUN=1` prints the decision and skips both `npm pkg set` loops, so
+   `package.json` stays at `0.0.0-development`.
+
+4. **Cut it:**
+
+```bash
+make release V=0.1.0
+```
+
+   which is `gh release create v0.1.0 --target main --title v0.1.0
+   --generate-notes`. The tag *is* the version: CI stamps `0.1.0` into all
+   four packages at publish time and pins each one's `@blinkbitcoin/kyc-core`
+   dependency to exactly `0.1.0`. Nothing is committed.
+
+5. **Watch Publish and Verify.** `Verify` (`scripts/release/registry-smoke.sh`)
+   installs the published packages from GitHub Packages into a clean project
+   and asserts the consumer contract - including that `/hosted` and `/testing`
+   load without Apollo. You can re-run it later by hand:
+
+```bash
+make registry-smoke V=0.1.0
+```
+
+6. **If it fails**, fix forward and cut a **new tag**. GitHub Packages never
+   accepts the same version twice, so `v0.1.0` cannot be re-published.
+
+**There is no `CHANGELOG.md`, deliberately.** The release notes generated from
+PR titles (`.github/release.yml`) are the changelog, which is why the PR title
+is linted by commitlint and is the line reviewers see. A hand-maintained
+changelog would be a second source of truth that drifts.
