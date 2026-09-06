@@ -304,7 +304,7 @@ describe('Verification - the hosted page', () => {
 });
 
 describe('Verification - recovery screens', () => {
-  it('offers retry and optional settings when permission is denied', async () => {
+  it('offers a retry - and no settings trip - when permission was merely denied', async () => {
     const onOpenSettings = jest.fn();
     const checkPermissions = jest
       .fn<Promise<'denied' | 'granted'>, []>()
@@ -316,12 +316,28 @@ describe('Verification - recovery screens', () => {
     await press(renderer, 'verification-start-button');
     expect(has(renderer, 'permission-screen')).toBe(true);
     expect(p.onError).not.toHaveBeenCalled();
-
-    await press(renderer, 'open-settings-button');
-    expect(onOpenSettings).toHaveBeenCalledTimes(1);
+    // 'denied' can be re-asked in place; settings would be a detour.
+    expect(has(renderer, 'open-settings-button')).toBe(false);
 
     await press(renderer, 'retry-button');
     expect(has(renderer, 'verification-webview')).toBe(true);
+  });
+
+  it('offers settings - and no pointless retry - when permission is blocked', async () => {
+    const onOpenSettings = jest.fn();
+    const p = props({
+      checkPermissions: async () => 'blocked',
+      onOpenSettings,
+    });
+    const renderer = await render(p);
+
+    await press(renderer, 'verification-start-button');
+    expect(has(renderer, 'permission-screen')).toBe(true);
+    // Retrying a blocked permission just fails again: only settings can fix it.
+    expect(has(renderer, 'retry-button')).toBe(false);
+
+    await press(renderer, 'open-settings-button');
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
   it('hides the settings button when the host offers none', async () => {
@@ -329,6 +345,7 @@ describe('Verification - recovery screens', () => {
     const renderer = await render(p);
 
     await press(renderer, 'verification-start-button');
+    expect(has(renderer, 'permission-screen')).toBe(true);
     expect(has(renderer, 'open-settings-button')).toBe(false);
   });
 

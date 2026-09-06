@@ -14,6 +14,7 @@ import type { VerificationError } from './verificationMachine';
 export type {
   MachineAction,
   MachineState,
+  PermissionReason,
   VerificationEffect,
   VerificationError,
   VerificationPlan,

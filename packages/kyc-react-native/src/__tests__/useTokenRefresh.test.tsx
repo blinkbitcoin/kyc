@@ -196,6 +196,67 @@ describe('useTokenRefresh - guards', () => {
     );
   });
 
+  it('drops a token whose session was replaced while it was in flight', async () => {
+    let resolveToken!: (token: string) => void;
+    let live: VerificationSession | null = session;
+    const source = refreshable(
+      () => new Promise<string>(resolve => (resolveToken = resolve)),
+    );
+    const { injectJavaScript } = await mount(source, {
+      getSession: () => live,
+    });
+
+    await ReactTestRenderer.act(async () => {
+      refresh();
+    });
+    live = { provider: 'mock', sessionId: 'sess-2' };
+    await ReactTestRenderer.act(async () => {
+      resolveToken('for-sess-1');
+    });
+
+    expect(injectJavaScript).not.toHaveBeenCalled();
+  });
+
+  it('drops a token that arrives after the session is gone', async () => {
+    let resolveToken!: (token: string) => void;
+    let live: VerificationSession | null = session;
+    const source = refreshable(
+      () => new Promise<string>(resolve => (resolveToken = resolve)),
+    );
+    const { injectJavaScript } = await mount(source, {
+      getSession: () => live,
+    });
+
+    await ReactTestRenderer.act(async () => {
+      refresh();
+    });
+    live = null;
+    await ReactTestRenderer.act(async () => {
+      resolveToken('orphan');
+    });
+
+    expect(injectJavaScript).not.toHaveBeenCalled();
+  });
+
+  it('identifies a session by its url when it has no session id', async () => {
+    const hosted: VerificationSession = {
+      provider: 'mock',
+      url: 'https://kyc.example.com/hosted/a',
+    };
+    const { injectJavaScript } = await mount(
+      refreshable(async () => 'tok-3'),
+      { getSession: () => hosted },
+    );
+
+    await ReactTestRenderer.act(async () => {
+      refresh();
+    });
+
+    expect(injectJavaScript).toHaveBeenCalledWith(
+      createSetTokenScript('tok-3'),
+    );
+  });
+
   it('injects nothing and reports nothing after unmount', async () => {
     let resolveToken!: (token: string) => void;
     let rejectToken!: (cause: unknown) => void;

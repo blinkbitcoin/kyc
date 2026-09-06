@@ -138,6 +138,7 @@ describe('useVerification - preflight', () => {
     });
 
     expect(latest.status).toBe('permissionDenied');
+    expect(latest.permissionReason).toBe('blocked');
     expect(source.start).not.toHaveBeenCalled();
     expect(options.onError).not.toHaveBeenCalled();
   });
@@ -176,7 +177,7 @@ describe('useVerification - preflight', () => {
     expect(source.start).not.toHaveBeenCalled();
   });
 
-  it('retry() flags the connection check and recovers when back online', async () => {
+  it('retry() recovers when the connection is back', async () => {
     const source = hostedSource();
     await render(source, handlers());
 
@@ -185,14 +186,167 @@ describe('useVerification - preflight', () => {
       latest.start();
     });
     expect(latest.status).toBe('offline');
-    expect(latest.isCheckingConnection).toBe(false);
 
     setMockNetworkState(true);
     await ReactTestRenderer.act(async () => {
       latest.retry();
     });
     expect(latest.status).toBe('verifying');
-    expect(latest.isCheckingConnection).toBe(false);
+  });
+
+  it('reports why the preflight refused so the UI can offer the right way out', async () => {
+    await render(hostedSource(), {
+      ...handlers(),
+      checkPermissions: async () => 'denied',
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.permissionReason).toBe('denied');
+  });
+});
+
+describe('useVerification - one run at a time', () => {
+  it('ignores a second start() while the first is still in flight', async () => {
+    let resolveStart!: (value: VerificationSession) => void;
+    const source = hostedSource({
+      start: jest.fn(
+        () =>
+          new Promise<VerificationSession>(resolve => {
+            resolveStart = resolve;
+          }),
+      ),
+    });
+    await render(source, handlers());
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+      latest.start();
+    });
+    expect(source.start).toHaveBeenCalledTimes(1);
+
+    await ReactTestRenderer.act(async () => {
+      resolveStart(session);
+    });
+    expect(latest.status).toBe('verifying');
+
+    // The guard lifts once the run has settled.
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    expect(source.start).toHaveBeenCalledTimes(2);
+  });
+
+  it('retires the delayed onComplete of the run it replaces', async () => {
+    jest.useFakeTimers();
+    const source = createFakeLaunchableSource({ outcome: 'approved' });
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    expect(latest.status).toBe('success');
+
+    // The next run parks offline, so nothing but the retired timer could
+    // still call onComplete.
+    setMockNetworkState(false);
+    await ReactTestRenderer.act(async () => {
+      latest.restart();
+    });
+    await ReactTestRenderer.act(async () => {
+      jest.runAllTimers();
+    });
+
+    expect(latest.status).toBe('offline');
+    expect(options.onComplete).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('retires the delayed onComplete on cancel', async () => {
+    jest.useFakeTimers();
+    const source = createFakeLaunchableSource({ outcome: 'approved' });
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    await ReactTestRenderer.act(async () => {
+      latest.cancel();
+    });
+    await ReactTestRenderer.act(async () => {
+      jest.runAllTimers();
+    });
+
+    expect(latest.status).toBe('idle');
+    expect(options.onComplete).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+});
+
+describe('useVerification - a host callback that throws', () => {
+  it('surfaces it as the error state, not an unhandled rejection', async () => {
+    const options = handlers();
+    await render(hostedSource(), {
+      ...options,
+      checkPermissions: async () => {
+        throw new Error('permission library exploded');
+      },
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('error');
+    expect(latest.error).toEqual({
+      code: 'UNKNOWN_ERROR',
+      message: 'permission library exploded',
+    });
+    expect(options.onError).toHaveBeenCalledWith(latest.error);
+  });
+
+  it('falls back to the generic copy when the thrown value carries no message', async () => {
+    await render(hostedSource(), {
+      ...handlers(),
+      checkPermissions: async () => {
+        throw undefined;
+      },
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.error?.code).toBe('UNKNOWN_ERROR');
+    expect(latest.error?.message).toEqual(expect.any(String));
+  });
+
+  it('drops a host-callback rejection that arrives after unmount', async () => {
+    let rejectPermission!: (cause: unknown) => void;
+    const options = handlers();
+    const renderer = await render(hostedSource(), {
+      ...options,
+      checkPermissions: () =>
+        new Promise<'granted'>((_resolve, reject) => {
+          rejectPermission = reject;
+        }),
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    await ReactTestRenderer.act(async () => {
+      renderer.unmount();
+    });
+    await ReactTestRenderer.act(async () => {
+      rejectPermission(new Error('late'));
+    });
+
+    expect(options.onError).not.toHaveBeenCalled();
   });
 });
 

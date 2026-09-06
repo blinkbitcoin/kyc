@@ -36,6 +36,14 @@ export interface UseTokenRefreshOptions {
   onFailure: (error: VerificationError) => void;
 }
 
+/**
+ * Which session a token belongs to. A restart mints a new session while the
+ * old refresh may still be in flight; injecting its token would hand the page
+ * a credential for a session that no longer exists.
+ */
+const identityOf = (session: VerificationSession): string | undefined =>
+  session.sessionId ?? session.url;
+
 export const useTokenRefresh = (
   source: VerificationSource,
   options: UseTokenRefreshOptions,
@@ -44,7 +52,8 @@ export const useTokenRefresh = (
   const optionsRef = useRef(options);
   const mountedRef = useRef(true);
   // Only the newest refresh may inject: a second tokenExpired supersedes the
-  // first, so a stale token can never overwrite a fresh one.
+  // first, so a stale token can never overwrite a fresh one. The session the
+  // refresh was dispatched for is checked too - see identityOf.
   const seqRef = useRef(0);
 
   useEffect(() => {
@@ -71,9 +80,16 @@ export const useTokenRefresh = (
 
     seqRef.current += 1;
     const seq = seqRef.current;
+    const identity = identityOf(session);
     current.refreshToken(session).then(
       token => {
-        if (!mountedRef.current || seq !== seqRef.current) {
+        const settled = optionsRef.current.getSession();
+        if (
+          !mountedRef.current ||
+          seq !== seqRef.current ||
+          !settled ||
+          identityOf(settled) !== identity
+        ) {
           return;
         }
         optionsRef.current.target.current?.injectJavaScript(

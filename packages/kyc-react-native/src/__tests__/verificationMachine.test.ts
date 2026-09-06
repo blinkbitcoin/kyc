@@ -52,6 +52,7 @@ describe('machineReducer', () => {
       session: null,
       result: null,
       error: null,
+      permissionReason: null,
     });
   });
 
@@ -66,13 +67,17 @@ describe('machineReducer', () => {
       session: null,
       result: null,
       error: null,
+      permissionReason: null,
     });
   });
 
   it('parks on permissionDenied and offline without touching the session', () => {
-    expect(machineReducer(verifying, { type: 'permissionDenied' }).status).toBe(
-      'permissionDenied',
-    );
+    const denied = machineReducer(verifying, {
+      type: 'permission',
+      reason: 'denied',
+    });
+    expect(denied.status).toBe('permissionDenied');
+    expect(denied.session).toBe(session);
     expect(machineReducer(verifying, { type: 'offline' }).status).toBe(
       'offline',
     );
@@ -81,10 +86,27 @@ describe('machineReducer', () => {
     );
   });
 
+  it('carries the reason the preflight refused, and clears it on begin', () => {
+    const blocked = machineReducer(verifying, {
+      type: 'permission',
+      reason: 'blocked',
+    });
+    expect(blocked.permissionReason).toBe('blocked');
+    expect(
+      machineReducer(blocked, { type: 'begin' }).permissionReason,
+    ).toBeNull();
+  });
+
   it('enters verifying when the session resolves', () => {
     expect(
       machineReducer(initialMachineState, { type: 'session', session }),
-    ).toEqual({ status: 'verifying', session, result: null, error: null });
+    ).toEqual({
+      status: 'verifying',
+      session,
+      result: null,
+      error: null,
+      permissionReason: null,
+    });
   });
 
   it('records the applicant id on the running session', () => {
@@ -152,6 +174,7 @@ describe('machineReducer', () => {
       session,
       result: null,
       error,
+      permissionReason: null,
     });
     expect(
       machineReducer(verifying, { type: 'failed', error, keepSession: false })

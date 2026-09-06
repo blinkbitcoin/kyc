@@ -3,7 +3,7 @@
 // hosted page's message pump. Renders nothing - Verification.tsx is the
 // default UI over this hook, and a host can write its own.
 
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import { isLaunchable } from '@blinkbitcoin/kyc-core/hosted';
 
@@ -29,13 +29,14 @@ import type {
 import type {
   MachineAction,
   MachineState,
+  PermissionReason,
   VerificationEffect,
   VerificationError,
 } from './verificationMachine';
 import type { TokenInjectable } from './useTokenRefresh';
 
 /** What a host permission library reports back. */
-export type PermissionState = 'granted' | 'denied' | 'blocked';
+export type PermissionState = 'granted' | PermissionReason;
 
 /** Host seam: preflight the camera with whatever library the app already uses. */
 export type CheckPermissions = () => Promise<PermissionState>;
@@ -54,8 +55,7 @@ export interface UseVerificationOptions {
 }
 
 export interface UseVerification extends MachineState {
-  /** True while retry() re-checks connectivity - drives the offline button. */
-  isCheckingConnection: boolean;
+  /** Ignored while a run is already in flight. */
   start: () => void;
   /** Re-run the flow from the top (error / permissionDenied / offline). */
   retry: () => void;
@@ -82,7 +82,6 @@ export const useVerification = (
   options: UseVerificationOptions,
 ): UseVerification => {
   const [state, dispatch] = useReducer(machineReducer, initialMachineState);
-  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
 
   // Mirrors `state` through the same reducer, so async work reads the current
   // machine without re-subscribing. Never assigned during render.
@@ -92,6 +91,9 @@ export const useVerification = (
   const handlersRef = useRef(options);
   const sourceRef = useRef(source);
   const mountedRef = useRef(true);
+  // True from the moment begin() is called until it settles, so a second
+  // start() cannot mint a second session over the first.
+  const runningRef = useRef(false);
   const completeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webViewRef = useRef<TokenInjectable | null>(null);
 
@@ -100,15 +102,22 @@ export const useVerification = (
     sourceRef.current = source;
   });
 
+  // A delayed onComplete belongs to the run that scheduled it: a new run, a
+  // cancel or an unmount must retire it, or it fires over the new state.
+  const clearCompleteTimeout = useCallback(() => {
+    if (completeTimeoutRef.current) {
+      clearTimeout(completeTimeoutRef.current);
+      completeTimeoutRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      if (completeTimeoutRef.current) {
-        clearTimeout(completeTimeoutRef.current);
-      }
+      clearCompleteTimeout();
     };
-  }, []);
+  }, [clearCompleteTimeout]);
 
   const applyAction = useCallback((action: MachineAction) => {
     stateRef.current = machineReducer(stateRef.current, action);
@@ -250,86 +259,102 @@ export const useVerification = (
     [failWith, handleEvent],
   );
 
+  // Never rejects: a host callback that throws (checkPermissions, a source
+  // that throws synchronously) becomes the error state, not an unhandled
+  // rejection in the app's console. That is why the call sites can be bare.
   const begin = useCallback(async () => {
-    applyAction({ type: 'begin' });
+    runningRef.current = true;
+    clearCompleteTimeout();
+    try {
+      applyAction({ type: 'begin' });
 
-    const check = handlersRef.current.checkPermissions;
-    if (check) {
-      const permission = await check();
+      const check = handlersRef.current.checkPermissions;
+      if (check) {
+        const permission = await check();
+        if (!mountedRef.current) {
+          return;
+        }
+        if (permission !== 'granted') {
+          // Not an error: a distinct state with its own Retry / Settings copy.
+          applyAction({ type: 'permission', reason: permission });
+          return;
+        }
+      }
+
+      const online = await isOnline();
       if (!mountedRef.current) {
         return;
       }
-      if (permission !== 'granted') {
-        // Not an error: a distinct state with its own Retry / Settings copy.
-        applyAction({ type: 'permissionDenied' });
+      if (!online) {
+        // Not an error either - expected, and recoverable with retry().
+        applyAction({ type: 'offline' });
         return;
       }
-    }
 
-    const online = await isOnline();
-    if (!mountedRef.current) {
-      return;
-    }
-    if (!online) {
-      // Not an error either - expected, and recoverable with retry().
-      applyAction({ type: 'offline' });
-      return;
-    }
+      let acquired: VerificationSession;
+      try {
+        acquired = await sourceRef.current.start();
+      } catch (cause) {
+        if (!mountedRef.current) {
+          return;
+        }
+        const sourceError = cause as VerificationSourceError | undefined;
+        failWith(
+          toVerificationError(
+            sourceError?.code ?? UNKNOWN_ERROR_CODE,
+            sourceError?.message,
+          ),
+          false,
+        );
+        return;
+      }
+      if (!mountedRef.current) {
+        return;
+      }
+      applyAction({ type: 'session', session: acquired });
 
-    let acquired: VerificationSession;
-    try {
-      acquired = await sourceRef.current.start();
+      const current = sourceRef.current;
+      if (isLaunchable(current)) {
+        await runLaunch(current, acquired);
+      }
     } catch (cause) {
       if (!mountedRef.current) {
         return;
       }
-      const sourceError = cause as VerificationSourceError | undefined;
-      failWith(
-        toVerificationError(
-          sourceError?.code ?? UNKNOWN_ERROR_CODE,
-          sourceError?.message,
-        ),
-        false,
-      );
-      return;
+      const thrown = cause as VerificationError | undefined;
+      failWith(toVerificationError(UNKNOWN_ERROR_CODE, thrown?.message), false);
+    } finally {
+      runningRef.current = false;
     }
-    if (!mountedRef.current) {
-      return;
-    }
-    applyAction({ type: 'session', session: acquired });
-
-    const current = sourceRef.current;
-    if (isLaunchable(current)) {
-      await runLaunch(current, acquired);
-    }
-  }, [applyAction, failWith, runLaunch]);
+  }, [applyAction, clearCompleteTimeout, failWith, runLaunch]);
 
   const start = useCallback(() => {
+    if (runningRef.current) {
+      return;
+    }
+    // Safe to leave floating: begin() never rejects (see above).
     begin();
   }, [begin]);
 
   const retry = useCallback(() => {
-    setIsCheckingConnection(true);
-    begin().finally(() => {
-      if (mountedRef.current) {
-        setIsCheckingConnection(false);
-      }
-    });
+    // Safe to leave floating: begin() never rejects (see above).
+    begin();
   }, [begin]);
 
   const restart = useCallback(() => {
     applyAction({ type: 'clearSession' });
+    // Safe to leave floating: begin() never rejects (see above).
     begin();
   }, [applyAction, begin]);
 
   const cancel = useCallback(() => {
+    clearCompleteTimeout();
     applyAction({ type: 'cancelled' });
     runEffect({ type: 'cancel' });
-  }, [applyAction, runEffect]);
+  }, [applyAction, clearCompleteTimeout, runEffect]);
 
   return {
     ...state,
-    isCheckingConnection,
     start,
     retry,
     restart,

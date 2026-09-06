@@ -38,6 +38,7 @@ export const Verification: React.FC<VerificationProps> = ({
 }) => {
   const {
     status,
+    permissionReason,
     session,
     result,
     error,
@@ -168,7 +169,10 @@ export const Verification: React.FC<VerificationProps> = ({
             <Text style={styles.subtitle}>
               {getErrorMessage('PERMISSION_DENIED')}
             </Text>
-            {onOpenSettings ? (
+            {/* 'blocked' cannot be retried in place - only the OS settings
+                can change it - and 'denied' can, so each reason gets exactly
+                the affordance that can resolve it. */}
+            {permissionReason === 'blocked' && onOpenSettings ? (
               <TouchableOpacity
                 style={styles.button}
                 onPress={onOpenSettings}
@@ -179,15 +183,17 @@ export const Verification: React.FC<VerificationProps> = ({
                 <Text style={styles.buttonText}>Open settings</Text>
               </TouchableOpacity>
             ) : null}
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={retry}
-              testID="retry-button"
-              accessibilityRole="button"
-              accessibilityLabel="Try again"
-            >
-              <Text style={styles.secondaryButtonText}>Try again</Text>
-            </TouchableOpacity>
+            {permissionReason === 'denied' ? (
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={retry}
+                testID="retry-button"
+                accessibilityRole="button"
+                accessibilityLabel="Try again"
+              >
+                <Text style={styles.secondaryButtonText}>Try again</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         );
 

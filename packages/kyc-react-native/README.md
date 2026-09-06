@@ -121,9 +121,11 @@ there is no hard dependency on one:
 />
 ```
 
-`denied` / `blocked` shows a dedicated screen with **Try again** (and **Open
-settings** when `onOpenSettings` is given). It is not an error: `onError` is
-not called for it, exactly like the offline state.
+Both refusals show a dedicated screen carrying the affordance that can
+actually resolve them: **Try again** for `denied` (the OS will ask again),
+**Open settings** for `blocked` — and only when `onOpenSettings` is given,
+without it that screen is informational. Neither is an error: `onError` is
+not called for them, exactly like the offline state.
 
 ## `<Verification />` props
 
@@ -153,7 +155,7 @@ const {
   session,     // the running VerificationSession, or null
   result,      // the terminal VerificationResult, or null
   error,       // { code, message } | null
-  isCheckingConnection,
+  permissionReason,  // 'denied' | 'blocked' | null (with 'permissionDenied')
   start, retry, restart, cancel,
   handleMessage,   // feed the WebView's raw onMessage payload in
   handleEvent,     // feed an already-normalized VerificationEvent in
@@ -164,10 +166,12 @@ const {
 - `success` means **approved**. Every other terminal status renders as the
   outcome screen (`status === 'pending'`) with `result.status` carrying the
   detail — `describeOutcome(result.status)` is the copy the component uses.
-- `retry()` re-runs the whole flow (and flags `isCheckingConnection` so the
-  offline button can show "Checking…"); `restart()` additionally drops the
-  stored session, which is what a `TOKEN_EXPIRED` / `TOKEN_REFRESH_FAILED`
-  error screen offers.
+- `start()` is a no-op while a run is still in flight; `retry()` re-runs the
+  whole flow, and `restart()` additionally drops the stored session, which is
+  what a `TOKEN_EXPIRED` / `TOKEN_REFRESH_FAILED` error screen offers.
+- `permissionReason` says whether the preflight can be re-asked in place
+  (`'denied'`) or only the OS settings can change it (`'blocked'`); the
+  default UI offers exactly the affordance that can resolve it.
 - Token refresh is automatic when the source implements `refreshToken`: the
   page's `tokenExpired` triggers `refreshToken(session)` and the new token is
   injected as `window.__kycBridge.setToken(...)`. A refresh that arrives

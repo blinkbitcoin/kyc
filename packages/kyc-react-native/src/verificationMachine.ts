@@ -29,6 +29,9 @@ export type VerificationState =
   | 'error'
   | 'offline';
 
+/** Why the camera preflight refused: recoverable by retrying, or not. */
+export type PermissionReason = 'denied' | 'blocked';
+
 /** An error with copy already resolved - what onError receives. */
 export interface VerificationError {
   code: string;
@@ -42,11 +45,16 @@ export interface MachineState {
   /** The terminal outcome, once one arrived. */
   result: VerificationResult | null;
   error: VerificationError | null;
+  /**
+   * Set with status 'permissionDenied'. 'denied' can be retried in place;
+   * 'blocked' cannot - only the OS settings can change it.
+   */
+  permissionReason: PermissionReason | null;
 }
 
 export type MachineAction =
   | { type: 'begin' }
-  | { type: 'permissionDenied' }
+  | { type: 'permission'; reason: PermissionReason }
   | { type: 'offline' }
   | { type: 'session'; session: VerificationSession }
   | { type: 'applicant'; applicantId: string }
@@ -77,6 +85,7 @@ export const initialMachineState: MachineState = {
   session: null,
   result: null,
   error: null,
+  permissionReason: null,
 };
 
 /** Attach the user-facing copy once, at the edge. */
@@ -91,9 +100,19 @@ export const machineReducer = (
 ): MachineState => {
   switch (action.type) {
     case 'begin':
-      return { ...state, status: 'loading', result: null, error: null };
-    case 'permissionDenied':
-      return { ...state, status: 'permissionDenied' };
+      return {
+        ...state,
+        status: 'loading',
+        result: null,
+        error: null,
+        permissionReason: null,
+      };
+    case 'permission':
+      return {
+        ...state,
+        status: 'permissionDenied',
+        permissionReason: action.reason,
+      };
     case 'offline':
       return { ...state, status: 'offline' };
     case 'session':
@@ -102,6 +121,7 @@ export const machineReducer = (
         session: action.session,
         result: null,
         error: null,
+        permissionReason: null,
       };
     case 'applicant':
       return state.session
@@ -127,6 +147,7 @@ export const machineReducer = (
         session: action.keepSession ? state.session : null,
         result: null,
         error: action.error,
+        permissionReason: null,
       };
     case 'clearSession':
       return { ...state, session: null };
