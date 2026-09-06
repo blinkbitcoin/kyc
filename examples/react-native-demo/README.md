@@ -82,12 +82,22 @@ KYC_MODE=fake-native npm start   # in another terminal
 make e2e-fake-native
 ```
 
-The Android runner does `adb reverse tcp:4000 tcp:4000`
-(`scripts/e2e/android-maestro.sh`), which is what makes the backend's
-`http://localhost:4000/hosted/<id>` URL load inside the emulator's WebView —
-so `PUBLIC_BASE_URL` stays `http://localhost:4000` for both Chromium and the
-emulator. If a runner ever drops that reverse, override `PUBLIC_BASE_URL` to
-`http://10.0.2.2:4000` for the Android job only.
+Android networking to the backend is two separate paths, both pointed at the
+same backend on the host machine:
+
+- **GraphQL** (`verificationSessionStart`/`Refresh`, the mutations the app
+  itself calls): `src/config.ts`'s `getDevBackendHost` resolves to the
+  emulator's `10.0.2.2` alias for the host loopback, so `GRAPHQL_URL` is
+  `http://10.0.2.2:4000/graphql` on Android without any extra setup.
+- **The hosted page** (what loads *inside* the WebView): the backend mints
+  its URL from `PUBLIC_BASE_URL`, which stays `http://localhost:4000` for
+  both Chromium and the emulator - so the Android runner does
+  `adb reverse tcp:4000 tcp:4000` (`scripts/e2e/android-maestro.sh`) to make
+  the emulator's `localhost:4000` actually reach the host, which is what
+  makes `http://localhost:4000/hosted/<id>` load inside the emulator's
+  WebView. If a runner ever drops that reverse, override `PUBLIC_BASE_URL`
+  to `http://10.0.2.2:4000` for the Android job only - GraphQL doesn't need
+  this because it already goes through `10.0.2.2` directly.
 
 ## Sumsub sandbox (manual)
 

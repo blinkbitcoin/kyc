@@ -17,6 +17,7 @@ peer installed — it is the manual Sumsub-sandbox mode, never CI.
 `fake-native` needs nothing: it swaps the provider SDK for
 `createFakeLaunchableSource()` from `@blinkbitcoin/kyc-core/testing` and an
 in-app fake SDK screen, so the native-launch branch is testable offline.
+`make e2e-fake-native` is Android emulator only - it is not wired for iOS.
 
 `make help` here fans common targets (`test`, `coverage`, `typecheck`) out to
 every example; examples with a `Makefile` are discovered automatically.

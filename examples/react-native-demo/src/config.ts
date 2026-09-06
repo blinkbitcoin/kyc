@@ -18,7 +18,9 @@ const BACKEND_PORT = 4000;
 export const getDevBackendHost = (platformOs: string): string =>
   platformOs === 'android' ? '10.0.2.2' : 'localhost';
 
-export const API_ORIGIN = `http://${getDevBackendHost(Platform.OS)}:${BACKEND_PORT}`;
+// Not exported: nothing outside this module needs the bare origin, only the
+// derived GRAPHQL_URL - keep it private until something does.
+const API_ORIGIN = `http://${getDevBackendHost(Platform.OS)}:${BACKEND_PORT}`;
 
 export const GRAPHQL_URL = `${API_ORIGIN}/graphql`;
 

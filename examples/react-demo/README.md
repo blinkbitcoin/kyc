@@ -19,6 +19,15 @@ embedded in a genuinely cross-origin iframe (app `:5173` / `:5174`, page
 `:4000`), so the E2E suites exercise the real `postMessage` path and the
 origin pin.
 
+## Permissions
+
+Camera/microphone access is delegated to the iframe through its `allow`
+attribute (`HostedFrame` sets this) - there is no separate JS permission API
+on the web the way there is on native. A real host embedding the page must
+not strip that `allow` attribute (e.g. by re-wrapping the iframe or copying
+its markup without it), or the browser silently denies the verification
+page's own camera/mic prompt with no error the host can see.
+
 ## E2E
 
 ```bash

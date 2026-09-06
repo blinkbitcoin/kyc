@@ -149,7 +149,7 @@ e2e-ios: ## Maestro E2E, iOS (needs: booted simulator with the app installed, Me
 e2e-android: ## Maestro E2E, Android (needs: emulator, debug APK built, Metro + backend running)
 	bash scripts/e2e/android-maestro.sh
 
-e2e-fake-native: ## Maestro E2E, fake native SDK (MANUAL: needs a `KYC_MODE=fake-native npm start` Metro, an emulator and the debug APK; no backend needed)
+e2e-fake-native: ## Maestro E2E, fake native SDK (MANUAL, Android emulator only: needs a `KYC_MODE=fake-native npm start` Metro, an emulator and the debug APK; no backend needed)
 	npm run test:e2e:fake-native -w examples/react-native-demo
 
 # ---------- Housekeeping ----------

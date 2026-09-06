@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { App, outcomeText } from '../App';
+import { getAuthToken } from '../apollo';
+import { App, outcomeText, VerificationScreen } from '../App';
 
 describe('demo App', () => {
   it('boots to the idle verification screen with the mode label', () => {
@@ -65,5 +66,22 @@ describe('proxy mode', () => {
 
     vi.doUnmock('../config');
     vi.resetModules();
+  });
+});
+
+describe('getAuthToken', () => {
+  it('returns the demo passthrough token', () => {
+    expect(getAuthToken()).toBe('demo-user');
+  });
+});
+
+describe('VerificationScreen', () => {
+  it('reports a cancellation from the idle screen', () => {
+    const onOutcome = vi.fn();
+    render(<VerificationScreen onOutcome={onOutcome} />);
+
+    screen.getByTestId('verification-cancel-button').click();
+
+    expect(onOutcome).toHaveBeenCalledWith({ kind: 'cancelled' });
   });
 });
