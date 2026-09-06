@@ -1,6 +1,21 @@
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'vitest/config';
 
+// Unit tests read the packages' TypeScript sources: no build step before
+// `npm test`, and a package change is picked up immediately. Runtime and the
+// E2E suite deliberately do NOT alias - they resolve dist/ through the
+// workspace link, exactly as a published consumer would (apps/api's
+// build:deps hook makes sure it is built first).
+const fromRoot = (relative: string): string => fileURLToPath(new URL(relative, import.meta.url));
+
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@blinkbitcoin/kyc-sumsub': fromRoot('../../packages/kyc-sumsub/src/index.ts'),
+      '@blinkbitcoin/kyc-core/hosted': fromRoot('../../packages/kyc-core/src/hosted.ts'),
+    },
+  },
   test: {
     environment: 'node',
     globals: true,

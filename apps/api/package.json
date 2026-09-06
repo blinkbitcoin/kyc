@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
+    "build:deps": "cd ../.. && npm run build -w packages/kyc-core -w packages/kyc-sumsub",
+    "predev": "npm run build:deps",
     "dev": "tsx watch src/index.ts",
+    "prebuild": "npm run build:deps",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "pretest:e2e": "npm run build:deps",
     "test:e2e": "dotenv -e .env.test -- vitest run --config vitest.e2e.config.ts",
     "migrate": "tsx \"$(command -v knex)\" migrate:latest",
     "migrate:test": "dotenv -e .env.test -- npm run migrate",
@@ -15,6 +19,7 @@
     "lint:fix": "biome lint --write .",
     "format": "biome format --write .",
     "format:check": "biome format .",
+    "pretypecheck": "npm run build:deps",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "schema:emit": "tsx scripts/emit-schema.ts"
   },
@@ -25,6 +30,7 @@
   "dependencies": {
     "@apollo/server": "^5.5.1",
     "@as-integrations/express5": "^1.1.2",
+    "@blinkbitcoin/kyc-sumsub": "0.0.0-development",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/instrumentation-express": "^0.69.0",
     "@opentelemetry/instrumentation-graphql": "^0.69.0",

@@ -4,6 +4,9 @@
 // webhook arrives, which is why createSession returns no
 // providerApplicantId and getStatusByUserId exists as a capability.
 
+import type { SumsubWebhookPayload } from '@blinkbitcoin/kyc-sumsub';
+import { mapSumsubStatus, mapSumsubWebhookStatus } from '@blinkbitcoin/kyc-sumsub';
+
 import { Errors } from '../../errors';
 import { verifyHexDigest } from '../../signature';
 import type {
@@ -25,10 +28,6 @@ import {
   withRetry,
 } from './client';
 import { getConfig } from './config';
-import type { SumsubWebhookPayload } from './mapping';
-// PHASE 4: import mapSumsubStatus / mapSumsubWebhookStatus from
-// '@blinkbitcoin/kyc-sumsub' instead, and delete ./mapping.ts.
-import { mapSumsubStatus, mapSumsubWebhookStatus } from './mapping';
 
 // A truly missing header returns undefined so verifyHexDigest can apply its
 // default algorithm; an array-valued header (more than one instance of the
@@ -130,6 +129,6 @@ export const SumsubProvider: VerificationProvider = {
   },
 };
 
+export type { SumsubWebhookPayload } from '@blinkbitcoin/kyc-sumsub';
 export { HttpError, withRetry } from './client';
 export { getConfig, validateConfig } from './config';
-export type { SumsubWebhookPayload } from './mapping';

@@ -1,4 +1,4 @@
-import { mapSumsubStatus } from '../src/providers/sumsub/mapping';
+import { mapSumsubStatus } from '@blinkbitcoin/kyc-sumsub';
 import {
   BRIDGE_PROTOCOL_VERSION,
   BRIDGE_SOURCE,
