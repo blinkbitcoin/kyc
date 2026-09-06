@@ -63,7 +63,10 @@ button at all.
 
 Six flows run by default; the two `fake-native`-tagged flows need their own
 Metro and are excluded (`--exclude-tags=fake-native`), which is why the
-CI-invoked script names never change.
+CI-invoked script names never change. CI itself starts Metro via
+`scripts/e2e/metro-start.sh`, which defaults `KYC_MODE` to `hosted` (the
+default suite's bundle-time mode) unless the caller overrides it — the
+`KYC_MODE=hosted npm start` below is the manual equivalent.
 
 ```bash
 # Android (what CI runs)

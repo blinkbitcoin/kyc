@@ -12,6 +12,12 @@
 # appearing while the component is still on `verification-webview`, never by
 # a state change: the frame stays in `verifying`, which is exactly what lets
 # this flow go on to tap Approve and finish the journey.
+#
+# "Expire the token" and "Approve" are unique text on screen at this point
+# (the component's own controls at this stage are icon/testID-only, not text
+# buttons reading the same words), so neither tap needs `childOf` scoping to
+# the WebView - unlike hosted-cancel.yaml, where the component's own Cancel
+# button also reads "Cancel" and scoping is required to disambiguate.
 appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android: com.reactnativesandbox
 ---
 - retry:
@@ -35,11 +41,8 @@ appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android:
           visible: "Expire the token"
           timeout: 20000
 
-      # Scope the tap to the page: the button lives in the WebView document.
       - tapOn:
           text: "Expire the token"
-          childOf:
-            id: "verification-webview"
 
       # The refresh is silent as far as the component is concerned: it stays
       # on the (visible, interactive) page and never reaches the review wait.
@@ -57,8 +60,6 @@ appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android:
       # The session is still usable with the fresh token: finish it.
       - tapOn:
           text: "Approve"
-          childOf:
-            id: "verification-webview"
 
       - extendedWaitUntil:
           visible:

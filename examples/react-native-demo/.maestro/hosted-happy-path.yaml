@@ -27,14 +27,18 @@ appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android:
           id: "verification-start-button"
           label: "Start verification"
 
-      # The backend's mock provider page loads in the real WebView
+      # The backend's mock provider page loads in the real WebView. This is
+      # the very first WebView instantiation of the run (process boot, WebView
+      # engine warm-up) AND the first token mint, both on a cold emulator -
+      # 60s covers that; later flows reuse an already-warm WebView and stay
+      # at 20s.
       - extendedWaitUntil:
           visible:
             id: "verification-webview"
-          timeout: 20000
+          timeout: 60000
       - extendedWaitUntil:
           visible: "Mock Identity Verification"
-          timeout: 20000
+          timeout: 60000
 
       # Interact with the page itself: page -> bridge -> component -> host
       - tapOn: "Approve"
