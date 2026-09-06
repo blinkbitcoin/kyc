@@ -1,6 +1,7 @@
 // Guard: the ./hosted entry must stay Apollo-free.
 //
-// Walks the static import graph from src/hosted.ts, following relative
+// Walks the import graph (static, dynamic and side-effect) from
+// src/hosted.ts, following relative
 // imports AND crossing into @blinkbitcoin/kyc-core's source (so the core's
 // own hosted subpath is walked, not its package.json), and asserts that no
 // reached file imports '@apollo/*' or 'graphql'. This is the guarantee that
@@ -13,8 +14,15 @@ const RN_SRC = path.resolve(__dirname, '..');
 const CORE_SRC = path.resolve(__dirname, '../../../kyc-core/src');
 const CORE_PKG = '@blinkbitcoin/kyc-core';
 
+// Static + type imports/re-exports: import ... from 'x' / export ... from 'x'
 const IMPORT_RE =
   /(?:import|export)\s+(?:type\s+)?[^'"]*from\s+['"]([^'"]+)['"]/g;
+
+// What IMPORT_RE misses, and what a lazy `require('@apollo/client')` would
+// hide behind: `import('x')` / `require('x')` calls and bare side-effect
+// imports (`import 'x'`). Same pattern as the core package's walker.
+const DYNAMIC_IMPORT_RE =
+  /(?:^|[^\w])(?:import|require)\s*\(\s*['"]([^'"]+)['"]\s*\)|^\s*import\s+['"]([^'"]+)['"]/gm;
 
 const resolveRelative = (fromFile: string, spec: string): string | null => {
   const base = path.resolve(path.dirname(fromFile), spec);
@@ -41,8 +49,14 @@ const collectExternals = (entry: string): string[] => {
       continue;
     }
     seen.add(file);
-    for (const match of fs.readFileSync(file, 'utf8').matchAll(IMPORT_RE)) {
-      const spec = match[1];
+    const source = fs.readFileSync(file, 'utf8');
+    const specs = [
+      ...[...source.matchAll(IMPORT_RE)].map(match => match[1]),
+      ...[...source.matchAll(DYNAMIC_IMPORT_RE)].map(
+        match => match[1] ?? match[2],
+      ),
+    ];
+    for (const spec of specs) {
       if (spec.startsWith('.')) {
         const resolved = resolveRelative(file, spec);
         if (resolved) {

@@ -94,6 +94,16 @@ export const toVerificationError = (
   message?: string,
 ): VerificationError => ({ code, message: getErrorMessage(code, message) });
 
+/**
+ * The failure the error screen renders. The machine only ever enters 'error'
+ * together with an error, but MachineState cannot express that, so this is
+ * the one place the invariant is stated - explicitly, instead of a cast that
+ * would hand the UI `undefined.message` if it ever broke.
+ */
+export const describeFailure = (
+  error: VerificationError | null,
+): VerificationError => error ?? toVerificationError(UNKNOWN_ERROR_CODE);
+
 export const machineReducer = (
   state: MachineState,
   action: MachineAction,

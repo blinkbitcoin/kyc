@@ -1,6 +1,9 @@
 module.exports = {
   preset: '@react-native/jest-preset',
   testPathIgnorePatterns: ['/node_modules/', '/lib/'],
+  // The built package carries a copy of __mocks__; without this, jest-haste-map
+  // sees two manual mocks with the same name and warns on every run.
+  modulePathIgnorePatterns: ['<rootDir>/lib/'],
   moduleNameMapper: {
     '^@blinkbitcoin/kyc-core/hosted$': '<rootDir>/../kyc-core/src/hosted.ts',
     '^@blinkbitcoin/kyc-core$': '<rootDir>/../kyc-core/src/index.ts',

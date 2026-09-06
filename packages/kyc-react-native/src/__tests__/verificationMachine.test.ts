@@ -4,6 +4,7 @@ import {
 } from '@blinkbitcoin/kyc-core/hosted';
 
 import {
+  describeFailure,
   describeOutcome,
   initialMachineState,
   isRestartableError,
@@ -42,6 +43,19 @@ describe('toVerificationError', () => {
       code: 'UNKNOWN_ERROR',
       message: 'boom',
     });
+  });
+});
+
+describe('describeFailure', () => {
+  it('passes the error the machine set through', () => {
+    const error = toVerificationError(ClientErrorCodes.NETWORK_ERROR);
+    expect(describeFailure(error)).toBe(error);
+  });
+
+  it('stands in for a cast when there is somehow no error', () => {
+    expect(describeFailure(null)).toEqual(
+      toVerificationError(UNKNOWN_ERROR_CODE),
+    );
   });
 });
 

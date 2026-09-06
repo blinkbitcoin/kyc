@@ -139,10 +139,10 @@ not called for them, exactly like the offline state.
 | `label` | `string` | `'Verify identity'` | Idle-screen title and button. |
 | `successDelayMs` | `number` | `1500` | Success screen before `onComplete` (approvals only). |
 | `checkPermissions` | `() => Promise<'granted' \| 'denied' \| 'blocked'>` | — | Camera preflight. |
-| `onOpenSettings` | `() => void` | — | Adds an "Open settings" button to the permission screen. |
-| `allowedNavigationOrigins` | `string[]` | `[]` | Extra origins the page may navigate to; `'https://*.sumsub.com'` style wildcards allowed. |
+| `onOpenSettings` | `() => void` | — | Adds an "Open settings" button to the permission screen — shown only when the preflight reported `'blocked'`. |
+| `allowedNavigationOrigins` | `string[]` | `[]` | Extra origins the page may navigate to (whitelist **and** guard); `'https://*.sumsub.com'` style wildcards allowed. |
 | `renderLoading` | `() => ReactElement` | — | Custom loading view inside the WebView. |
-| `style` | `StyleProp<ViewStyle>` | — | Applied to every screen and to the WebView container. |
+| `style` | `StyleProp<ViewStyle>` | — | Applied to the root view the component renders (the page and every screen live inside it). |
 
 ## `useVerification(source, options)`
 
@@ -166,6 +166,8 @@ const {
 - `success` means **approved**. Every other terminal status renders as the
   outcome screen (`status === 'pending'`) with `result.status` carrying the
   detail — `describeOutcome(result.status)` is the copy the component uses.
+  The hosted page stays mounted (hidden) across `verifying → pending`, so a
+  late message — a decision, a token refresh — still reaches the hook.
 - `start()` is a no-op while a run is still in flight; `retry()` re-runs the
   whole flow, and `restart()` additionally drops the stored session, which is
   what a `TOKEN_EXPIRED` / `TOKEN_REFRESH_FAILED` error screen offers.

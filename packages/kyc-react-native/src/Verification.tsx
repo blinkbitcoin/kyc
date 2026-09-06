@@ -15,9 +15,12 @@ import { getErrorMessage, isLaunchable } from '@blinkbitcoin/kyc-core/hosted';
 
 import { HostedWebView } from './hosted/HostedWebView';
 import { useVerification } from './useVerification';
-import { describeOutcome, isRestartableError } from './verificationMachine';
+import {
+  describeFailure,
+  describeOutcome,
+  isRestartableError,
+} from './verificationMachine';
 
-import type { VerificationError } from './verificationMachine';
 import type { VerificationProps } from './types';
 
 export const DEFAULT_LABEL = 'Verify identity';
@@ -217,7 +220,7 @@ export const Verification: React.FC<VerificationProps> = ({
         );
 
       case 'error': {
-        const failure = error as VerificationError;
+        const failure = describeFailure(error);
         const restartable = isRestartableError(failure.code);
         return (
           <View style={styles.screen} testID="error-screen">
