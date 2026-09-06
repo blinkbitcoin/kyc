@@ -233,6 +233,29 @@ describe('Verification - the hosted page', () => {
     expect(p.onError).toHaveBeenCalled();
   });
 
+  it('makes the hidden pending WebView non-interactive by construction', async () => {
+    const p = props({ successDelayMs: 0 });
+    const renderer = await start(p);
+
+    expect(
+      renderer.root.findAllByProps({ accessibilityElementsHidden: true })
+        .length,
+    ).toBe(0);
+
+    await ReactTestRenderer.act(async () => {
+      simulateRawWebViewMessage(bridge({ type: 'submitted' }));
+    });
+    expect(has(renderer, 'pending-screen')).toBe(true);
+
+    const hiddenWrapper = renderer.root.findByProps({
+      accessibilityElementsHidden: true,
+    });
+    expect(hiddenWrapper.props.pointerEvents).toBe('none');
+    expect(hiddenWrapper.props.importantForAccessibility).toBe(
+      'no-hide-descendants',
+    );
+  });
+
   it('returns to idle when the page reports a cancel', async () => {
     const p = props();
     const renderer = await start(p);

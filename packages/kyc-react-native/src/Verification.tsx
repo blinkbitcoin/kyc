@@ -135,16 +135,22 @@ export const Verification: React.FC<VerificationProps> = ({
       if (session?.url && !isLaunchable(source)) {
         return (
           <View style={[styles.container, style]} testID="pending-screen">
-            <HostedWebView
-              url={session.url}
-              allowedOrigin={session.allowedOrigin}
-              allowedNavigationOrigins={allowedNavigationOrigins}
-              onMessage={handleMessage}
-              onEvent={handleEvent}
-              webViewRef={webViewRef}
-              renderLoading={renderLoading}
+            <View
               style={styles.hiddenWebView}
-            />
+              pointerEvents="none"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
+              <HostedWebView
+                url={session.url}
+                allowedOrigin={session.allowedOrigin}
+                allowedNavigationOrigins={allowedNavigationOrigins}
+                onMessage={handleMessage}
+                onEvent={handleEvent}
+                webViewRef={webViewRef}
+                renderLoading={renderLoading}
+              />
+            </View>
             <Text style={styles.title}>Thanks</Text>
             <Text style={styles.subtitle} testID="pending-message">
               {describeOutcome(result?.status)}
