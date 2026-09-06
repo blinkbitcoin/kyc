@@ -247,6 +247,30 @@ describe('useVerification - connectivity', () => {
     expect(view.result.current.isOnline).toBe(true);
   });
 
+  it('drops to offline when the browser goes offline while the outcome is pending', async () => {
+    const options = handlers();
+    const view = mount(hostedSource(), options);
+    await act(async () => {
+      view.result.current.start();
+    });
+    act(() => {
+      view.result.current.handleMessage(messageOf({ type: 'submitted' }));
+    });
+    expect(view.result.current.status).toBe('pending');
+
+    // The page is still mounted behind the outcome screen, so a lost
+    // connection is as fatal there as it is while it is showing - but it is
+    // still an expected, recoverable state, not an onError failure.
+    act(() => {
+      setNavigatorOnline(false);
+      window.dispatchEvent(new Event('offline'));
+    });
+
+    expect(view.result.current.status).toBe('offline');
+    expect(view.result.current.isOnline).toBe(false);
+    expect(options.onError).not.toHaveBeenCalled();
+  });
+
   it('ignores an offline event when nothing is running', () => {
     const view = mount(hostedSource(), handlers());
 
@@ -397,6 +421,58 @@ describe('useVerification - the launchable path', () => {
     });
   });
 
+  it('reports onError exactly once when the launch both emits error and rejects', async () => {
+    // The real contract for a launch failure: the SDK reports the error
+    // through onEvent and then rejects the promise. onError must fire once,
+    // not once per signal, and the event's error wins over the rejection's.
+    const source = {
+      ...hostedSource({ start: async () => ({ provider: 'sdk' }) }),
+      launch: async (
+        _s: VerificationSession,
+        onEvent: (event: VerificationEvent) => void,
+      ) => {
+        onEvent({ type: 'error', code: 'PROVIDER_UNAVAILABLE' });
+        throw { code: ClientErrorCodes.SDK_UNAVAILABLE, message: 'torn down' };
+      },
+    } as VerificationSource;
+    const options = handlers();
+    const view = mount(source, options);
+
+    await act(async () => {
+      view.result.current.start();
+    });
+
+    expect(view.result.current.status).toBe('error');
+    expect(view.result.current.error?.code).toBe('PROVIDER_UNAVAILABLE');
+    expect(options.onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats a cancel event followed by a launch rejection as an abort, not an error', async () => {
+    const source = {
+      ...hostedSource({ start: async () => ({ provider: 'sdk' }) }),
+      launch: async (
+        _s: VerificationSession,
+        onEvent: (event: VerificationEvent) => void,
+      ) => {
+        onEvent({ type: 'cancel' });
+        throw {
+          code: ClientErrorCodes.SDK_UNAVAILABLE,
+          message: 'torn down after cancel',
+        };
+      },
+    } as VerificationSource;
+    const options = handlers();
+    const view = mount(source, options);
+
+    await act(async () => {
+      view.result.current.start();
+    });
+
+    expect(view.result.current.status).toBe('idle');
+    expect(options.onCancel).toHaveBeenCalledTimes(1);
+    expect(options.onError).not.toHaveBeenCalled();
+  });
+
   it('does not overwrite an error the launch already reported', async () => {
     const source = {
       ...hostedSource({ start: async () => ({ provider: 'sdk' }) }),
@@ -417,6 +493,65 @@ describe('useVerification - the launchable path', () => {
 
     expect(view.result.current.error?.code).toBe('PROVIDER_UNAVAILABLE');
     expect(options.onComplete).not.toHaveBeenCalled();
+  });
+});
+
+describe('useVerification - a host callback that throws', () => {
+  // The package has no Node types (it is a browser library), so the runner's
+  // process is reached through globalThis with just the two methods this
+  // assertion needs.
+  interface RejectionReporter {
+    on: (event: 'unhandledRejection', listener: () => void) => void;
+    off: (event: 'unhandledRejection', listener: () => void) => void;
+  }
+  const runner = (globalThis as unknown as { process: RejectionReporter })
+    .process;
+
+  it('calls onError exactly once and does not reject begin() when onError itself throws', async () => {
+    const onError = jest.fn(() => {
+      throw new Error('host onError exploded');
+    });
+    const options = handlers({ onError });
+    const source = hostedSource({
+      start: jest.fn(async () => {
+        throw { code: 'SESSION_CREATION_FAILED', message: 'nope' };
+      }),
+    });
+    const view = mount(source, options);
+
+    const unhandled = jest.fn();
+    runner.on('unhandledRejection', unhandled);
+    try {
+      await act(async () => {
+        view.result.current.start();
+      });
+    } finally {
+      runner.off('unhandledRejection', unhandled);
+    }
+
+    expect(view.result.current.status).toBe('error');
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(unhandled).not.toHaveBeenCalled();
+  });
+
+  it('does not throw out of handleMessage when onError itself throws on a bridge error event', async () => {
+    const onError = jest.fn(() => {
+      throw new Error('host onError exploded');
+    });
+    const options = handlers({ onError });
+    const view = mount(hostedSource(), options);
+    await act(async () => {
+      view.result.current.start();
+    });
+
+    act(() => {
+      view.result.current.handleMessage(
+        messageOf({ type: 'error', code: ClientErrorCodes.NETWORK_ERROR }),
+      );
+    });
+
+    expect(view.result.current.status).toBe('error');
+    expect(onError).toHaveBeenCalledTimes(1);
   });
 });
 

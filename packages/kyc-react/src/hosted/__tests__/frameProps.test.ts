@@ -26,8 +26,8 @@ describe('createHostedFrameProps', () => {
     });
   });
 
-  it('delegates camera and microphone, which the provider needs for liveness', () => {
-    expect(FRAME_ALLOW).toBe('camera; microphone');
+  it('delegates camera, microphone and fullscreen, which the provider needs for liveness and document capture', () => {
+    expect(FRAME_ALLOW).toBe('camera; microphone; fullscreen');
   });
 
   it('keeps allow-same-origin, which the provider SDK needs for its own storage', () => {

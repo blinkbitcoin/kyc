@@ -127,7 +127,14 @@ export const useVerification = (
     const goOffline = (): void => {
       setIsOnline(false);
       const { status } = stateRef.current;
-      if (status === 'loading' || status === 'verifying') {
+      // 'pending' counts as on screen: the page is still mounted behind the
+      // outcome overlay and can still be sent a late decision or a token
+      // refresh, neither of which can arrive without a connection.
+      if (
+        status === 'loading' ||
+        status === 'verifying' ||
+        status === 'pending'
+      ) {
         applyAction({ type: 'offline' });
       }
     };
@@ -142,7 +149,13 @@ export const useVerification = (
   const failWith = useCallback(
     (error: VerificationError, keepSession: boolean) => {
       applyAction({ type: 'failed', error, keepSession });
-      handlersRef.current.onError(error);
+      // A throwing host callback must not surface twice (once here, once as
+      // an unhandled rejection out of begin()) - it already got the error.
+      try {
+        handlersRef.current.onError(error);
+      } catch {
+        // Swallowed: the state already reflects the failure.
+      }
     },
     [applyAction],
   );
@@ -180,7 +193,14 @@ export const useVerification = (
           handlersRef.current.onCancel();
           break;
         case 'error':
-          handlersRef.current.onError(effect.error);
+          // A throwing host callback must not surface twice (once here, once
+          // as an unhandled rejection) - it already got the error, same as
+          // failWith above.
+          try {
+            handlersRef.current.onError(effect.error);
+          } catch {
+            // Swallowed: the state already reflects the failure.
+          }
           break;
         case 'refreshToken':
           refreshToken();
@@ -260,6 +280,19 @@ export const useVerification = (
         );
       } catch (cause) {
         if (!mountedRef.current) {
+          return;
+        }
+        const current = stateRef.current;
+        // Mirrors the resolve path's guard: a cancel (idle), a failure
+        // (error) or a complete event already settled the flow via the
+        // emitted event before the promise rejected - the rejection is the
+        // same failure surfacing a second way, not a new one, and the
+        // event's error (fired first) wins over the rejection's.
+        if (
+          current.result !== null ||
+          current.status === 'idle' ||
+          current.status === 'error'
+        ) {
           return;
         }
         const sourceError = cause as VerificationSourceError | undefined;

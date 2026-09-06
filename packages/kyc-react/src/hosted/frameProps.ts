@@ -3,10 +3,13 @@
 // Every security-relevant decision about embedding the hosted page lives here
 // so it can be unit tested as a plain object / a plain predicate and reviewed
 // in one place:
-//   - `allow` delegates camera and microphone to the frame. Without this the
-//     provider's liveness step cannot open the camera at all, which is the
-//     class of bug this whole library exists to fix. The EMBEDDING page must
-//     itself be permitted to use them (its own Permissions-Policy) for the
+//   - `allow` delegates camera, microphone and fullscreen to the frame.
+//     Without the first two the provider's liveness step cannot open the
+//     camera at all, which is the class of bug this whole library exists to
+//     fix; `fullscreen` is what a provider SDK asks for when its document
+//     capture step wants the whole viewport, and a frame that is not
+//     delegated it simply fails the request. The EMBEDDING page must itself
+//     be permitted to use them (its own Permissions-Policy) for the
 //     delegation to land.
 //   - `sandbox` keeps allow-scripts (the page is a JS app), allow-forms (some
 //     provider steps post a form) and allow-same-origin. allow-same-origin is
@@ -26,7 +29,7 @@
 // boundary can be drawn. createMessageGuard draws it.
 
 /** Capability delegation the provider's liveness/document capture needs. */
-export const FRAME_ALLOW = 'camera; microphone';
+export const FRAME_ALLOW = 'camera; microphone; fullscreen';
 
 /** See the note above - allow-same-origin is required by the provider SDK. */
 export const FRAME_SANDBOX = 'allow-scripts allow-same-origin allow-forms';

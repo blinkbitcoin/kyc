@@ -219,6 +219,7 @@ describe('Verification - the hosted page', () => {
     const wrapper = frame.parentElement?.parentElement as HTMLElement;
     expect(wrapper.hasAttribute('hidden')).toBe(false);
     expect(wrapper.getAttribute('aria-hidden')).toBe('false');
+    expect(wrapper.hasAttribute('inert')).toBe(false);
 
     // The page keeps talking after 'submitted' - a remount would reload it
     // and drop the provider's in-page state, so the SAME element must stay.
@@ -227,6 +228,11 @@ describe('Verification - the hosted page', () => {
     expect(screen.getByTestId('verification-iframe')).toBe(frame);
     expect(wrapper.hasAttribute('hidden')).toBe(true);
     expect(wrapper.getAttribute('aria-hidden')).toBe('true');
+    // Only presence is asserted: React 19 normalizes the truthy string to
+    // `inert=""` while React 18 - still a supported peer, where `inert={true}`
+    // would be dropped entirely - passes `inert="true"` through. The DOM
+    // treats both as inert.
+    expect(wrapper.hasAttribute('inert')).toBe(true);
     expect(wrapper.style.visibility).toBe('hidden');
 
     // ...and it is still the same element after a further message.

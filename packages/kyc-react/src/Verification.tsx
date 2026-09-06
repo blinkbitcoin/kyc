@@ -266,7 +266,16 @@ export const Verification: FC<VerificationProps> = ({
         <div
           style={hidden ? styles.hiddenEmbed : styles.embed}
           hidden={hidden}
-          inert={hidden}
+          // A non-empty string, because no single value renders on both
+          // supported React majors otherwise: React 18 does not know `inert`
+          // and drops `inert={true}` as "a non-boolean attribute given
+          // `true`", while React 19 rejects `inert=""` as "an empty string for
+          // a boolean attribute ... treated as false". A truthy string is
+          // passed straight through by 18 (`inert="true"`) and normalized by
+          // 19 (`inert=""`); the HTML attribute is present either way, which
+          // is all the DOM looks at. The cast is only needed because
+          // @types/react types the prop the way React 19 accepts it.
+          inert={(hidden ? 'true' : undefined) as unknown as boolean}
           aria-hidden={hidden}
         >
           {showsMount ? (
