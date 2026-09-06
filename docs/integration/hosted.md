@@ -92,6 +92,11 @@ The iframe is rendered with `allow="camera; microphone; fullscreen"`, `sandbox="
 
 `mediaCapturePermissionGrantType: 'grant'` (iOS/macOS only - grants WKWebView capture without a second in-page prompt, the single most common cause of a false "Allow camera access" loop; Android has no equivalent property, and relies on `react-native-webview`'s own `onPermissionRequest` granting whatever the app already holds OS permission for), `allowsInlineMediaPlayback`, `mediaPlaybackRequiresUserAction: false`, `originWhitelist` pinned to `[sessionOrigin, ...allowedNavigationOrigins]` (checked first, for every navigation - react-native-webview opens a miss in the system browser rather than consulting the guard below), a navigation guard re-checking the same list for every navigation action including subframes (and, on Android, allowing an unanswered check through after 250 ms - defense in depth, not a sandbox), `setSupportMultipleWindows: false`, `cacheEnabled: false`, `allowFileAccess: false`, and a pre-content script that installs `window.__kycBridge` so a token arriving before the page's own handler is queued rather than lost. The full table is in [../architecture/mobile.md](../architecture/mobile.md#the-hardened-webview).
 
+## Known limitations
+
+- The hosted URL has no max-age of its own: `GET /hosted/:sessionId` serves the page until the session reaches a terminal status (then it renders the expired page). Session ids are unguessable, and the provider access token inside the page still expires on the provider's schedule.
+- The `Verification` components' built-in strings (buttons, status copy, permission screens) are English only and not overridable yet; use `useVerification` and render your own UI if you need localized copy.
+
 ## Writing your own hosted page
 
 Everything the packages require of a page:

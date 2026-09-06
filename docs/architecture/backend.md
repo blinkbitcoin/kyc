@@ -129,7 +129,7 @@ The OTel SDK starts only when configured; the `@opentelemetry/api` facade makes 
 
 ## Testing strategy
 
-- **Unit (Vitest, 100% s/b/f/l):** every module under `src/`, with `src/generated/**` and `src/index.ts` the only permanent coverage exclusions.
+- **Unit (Vitest, 100% s/b/f/l):** every module under `src/`, with `src/index.ts` (the port-binding bootstrap) the only permanent coverage exclusion.
 - **E2E (Vitest + dockerized Postgres on 5433, `make e2e-backend`):** session start / refresh / status, the signed webhook and its state machine, and the hosted page's rendered bridge script.
 
 ## Environment variables

@@ -47,7 +47,7 @@ a diagram must update its "Embedded in" doc too:
 | 4 | Database ERD | `erDiagram` | `docs/architecture/data-models.md`; verify against `apps/api/migrations/` | `architecture/data-models.md` (ERD section) |
 | 5 | Component Hierarchy | `flowchart TB` | `docs/architecture/mobile.md` + `docs/architecture/web.md` + the demos' `source.ts` | `architecture/mobile.md` (Component hierarchy) |
 | 6 | Webhook Flow | `sequenceDiagram` | `docs/architecture/backend.md` + `apps/api/src/webhook.ts` | `architecture/backend.md` (Webhook processing) |
-| 7 | GraphQL Request Flow | `sequenceDiagram` | `docs/architecture/api-contracts.md` + `apps/api/src/schema.ts` | `architecture/api-contracts.md` (verificationSessionStart) |
+| 7 | GraphQL Request Flow | `sequenceDiagram` | `docs/architecture/backend.md` + `docs/architecture/api-contracts.md` + `apps/api/src/schema.ts` | `architecture/backend.md` (GraphQL API) |
 | 8 | Hosted Bridge Flow | `sequenceDiagram` | `docs/integration/hosted.md` + `packages/kyc-core/src/verification/bridge.ts` + `apps/api/src/verificationPages.ts` | `integration/hosted.md` (The bridge protocol) |
 
 ## Pedagogy and consistency rules

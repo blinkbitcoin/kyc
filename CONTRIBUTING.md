@@ -28,9 +28,9 @@ environment variables, and troubleshooting:
 - Git hooks (see [below](#git-hooks)) format, lint, and check the commit
   message locally.
 - CI (`ci.yml`) is one pipeline for every branch: unit suites with
-  coverage thresholds, all end-to-end suites (backend, browser, iOS
-  simulator, Android emulator), and on `main` the publish + registry
-  smoke. A second workflow re-checks the commit convention on the PR's
+  coverage thresholds, the end-to-end suites (backend, browser, Android
+  emulator; the iOS simulator suite only when opted in), and on `main`
+  the publish + registry smoke. A second workflow re-checks the commit convention on the PR's
   commits and title.
 
 ## Commit messages

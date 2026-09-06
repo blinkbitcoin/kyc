@@ -18,6 +18,12 @@
       "@blinkbitcoin/kyc-core/hosted": ["../../packages/kyc-core/src/hosted.ts"]
     }
   },
-  "include": ["src", "e2e", "playwright.config.ts"],
+  "include": [
+    "src",
+    "e2e",
+    "playwright.config.ts",
+    "playwright.proxy.config.ts",
+    "vite.config.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

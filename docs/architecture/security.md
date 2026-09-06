@@ -8,12 +8,17 @@ This is the threat model and the controls, across the packages and the reference
 
 Identity documents, selfies and liveness video - the highest-sensitivity personal data most apps will ever touch. The architectural answer is that **none of it flows through this repo**: the applicant's camera stream and documents go from the device or browser straight to the provider, either in-process (mode 1) or inside the provider's own SDK on the hosted page (mode 2). `apps/api` stores an applicant id and a status, never a document, an image, or a name.
 
+## Known limitations
+
+- The hosted session URL carries no max-age; only a terminal status retires it (see `docs/integration/hosted.md`, Known limitations).
+- `SumsubProvider.getStatus` maps any Sumsub `4xx` other than `404` and `429` (so `401`/`403` included) to `VALIDATION_ERROR` rather than a dedicated credential error, so a rotated or revoked app token surfaces as a validation failure on `verificationSession` queries. Check the API logs for the upstream status.
+
 ## Boot-time enforcement (fail-closed)
 
-`validateSecurityConfig` runs before the server binds a port. It refuses to start when:
+`validateSecurityConfig` runs before the server binds a port. It refuses to start when **any** of these holds:
 
-- `JWT_SECRET` is unset, and
-- with `KYC_PROVIDER=sumsub`, any of `SUMSUB_APP_TOKEN`, `SUMSUB_SECRET_KEY`, `SUMSUB_WEBHOOK_SECRET` is unset, and
+- `JWT_SECRET` is unset;
+- with `KYC_PROVIDER=sumsub`, any of `SUMSUB_APP_TOKEN`, `SUMSUB_SECRET_KEY`, `SUMSUB_WEBHOOK_SECRET` is unset;
 - `PUBLIC_BASE_URL` is unset, or set but not an absolute `http(s)` URL.
 
 Every missing item is listed in one error rather than one per restart. The single escape hatch is `ALLOW_INSECURE_DEV=true`, which prints a loud warning and must never be set in production; `apps/api/.env.test` sets it because the test suites run against the mock provider with no secrets. Selecting `KYC_PROVIDER=mock` itself requires the same flag (`assertMockProviderAllowed`), since the mock provider signs its own webhooks with a key that defaults to `"mock"`.
