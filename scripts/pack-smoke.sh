@@ -45,8 +45,8 @@ npm init -y >/dev/null
 npm pkg set "overrides.@blinkbitcoin/kyc-core=file:$CORE_TGZ" >/dev/null
 npm pkg set "dependencies.@blinkbitcoin/kyc-core=file:$CORE_TGZ" >/dev/null
 npm pkg set "dependencies.@blinkbitcoin/kyc-sumsub=file:$SUMSUB_TGZ" >/dev/null
-npm install >/dev/null
-npm install --no-save "${RN_TGZS[0]}" "${WEB_TGZS[0]}" >/dev/null 2>&1 || true
+npm install --prefer-offline >/dev/null
+npm install --no-save --prefer-offline "${RN_TGZS[0]}" "${WEB_TGZS[0]}" >/dev/null 2>&1 || true
 
 node - <<'NODE'
 const assert = require('node:assert');
