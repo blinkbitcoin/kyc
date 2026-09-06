@@ -17,7 +17,8 @@ export const knex = createKnex({
   connection: connectionString,
 });
 
-// Verify database connection, apply migrations, and clean state before running tests
+// Verify the connection and clean state before this file's tests. The schema
+// is already migrated: tests/e2e/globalSetup.ts does that once for the suite.
 beforeAll(async () => {
   // Test connection with retry logic
   let connected = false;
@@ -38,9 +39,6 @@ beforeAll(async () => {
   if (!connected) {
     throw new Error(`Failed to connect to test database after 5 attempts: ${lastError?.message}`);
   }
-
-  // Ensure schema is up to date (directory is resolved relative to process.cwd())
-  await knex.migrate.latest({ directory: 'migrations', extension: 'ts' });
 
   // TRUNCATE CASCADE ensures all related records are removed
   // Order matters due to foreign key constraints: AuditLog references VerificationSession

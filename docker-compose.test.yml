@@ -14,7 +14,10 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test -d kyc_test"]
+      # -h forces a TCP check: the default Unix-socket probe reports ready
+      # while Postgres's first-boot restart still has the TCP listener down,
+      # which is exactly the window the E2E suite connects in.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U test -d kyc_test"]
       interval: 2s
       timeout: 5s
       retries: 10

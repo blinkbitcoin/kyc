@@ -10,10 +10,32 @@ for p in packages/kyc-core packages/kyc-sumsub packages/kyc-react-native package
   (cd "$p" && npm pack --pack-destination "$SMOKE" >/dev/null)
 done
 
+# One tarball per package, resolved through the shell's own globbing: `ls` on
+# an unquoted glob silently returns several paths (or the literal pattern
+# when nothing matched) and hands npm a spec it cannot parse. The [0-9]
+# anchors the version so kyc-react-* does not also catch kyc-react-native-*.
+assert_one() {
+  local name=$1
+  shift
+  if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then
+    echo "ERROR: expected exactly one $name tarball in $SMOKE, got: $*" >&2
+    exit 1
+  fi
+}
+
+CORE_TGZS=("$SMOKE"/blinkbitcoin-kyc-core-[0-9]*.tgz)
+SUMSUB_TGZS=("$SMOKE"/blinkbitcoin-kyc-sumsub-[0-9]*.tgz)
+RN_TGZS=("$SMOKE"/blinkbitcoin-kyc-react-native-[0-9]*.tgz)
+WEB_TGZS=("$SMOKE"/blinkbitcoin-kyc-react-[0-9]*.tgz)
+assert_one kyc-core "${CORE_TGZS[@]}"
+assert_one kyc-sumsub "${SUMSUB_TGZS[@]}"
+assert_one kyc-react-native "${RN_TGZS[@]}"
+assert_one kyc-react "${WEB_TGZS[@]}"
+CORE_TGZ="${CORE_TGZS[0]}"
+SUMSUB_TGZ="${SUMSUB_TGZS[0]}"
+
 cd "$SMOKE"
 npm init -y >/dev/null
-CORE_TGZ="$(ls "$SMOKE"/blinkbitcoin-kyc-core-*.tgz)"
-SUMSUB_TGZ="$(ls "$SMOKE"/blinkbitcoin-kyc-sumsub-*.tgz)"
 # kyc-sumsub depends on kyc-core@0.0.0-development, a version that exists only
 # in this workspace: the override points that spec at the packed core tarball
 # so the pair installs from disk, with no registry lookup. Declaring both as
@@ -24,7 +46,7 @@ npm pkg set "overrides.@blinkbitcoin/kyc-core=file:$CORE_TGZ" >/dev/null
 npm pkg set "dependencies.@blinkbitcoin/kyc-core=file:$CORE_TGZ" >/dev/null
 npm pkg set "dependencies.@blinkbitcoin/kyc-sumsub=file:$SUMSUB_TGZ" >/dev/null
 npm install >/dev/null
-npm install --no-save ./blinkbitcoin-kyc-react-native-*.tgz ./blinkbitcoin-kyc-react-*.tgz >/dev/null 2>&1 || true
+npm install --no-save "${RN_TGZS[0]}" "${WEB_TGZS[0]}" >/dev/null 2>&1 || true
 
 node - <<'NODE'
 const assert = require('node:assert');
