@@ -11,7 +11,7 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
-    "types": ["vitest/globals"],
+    "types": ["vitest/globals", "node"],
     "paths": {
       "@blinkbitcoin/kyc-react": ["../../packages/kyc-react/src"],
       "@blinkbitcoin/kyc-core": ["../../packages/kyc-core/src/index.ts"],
