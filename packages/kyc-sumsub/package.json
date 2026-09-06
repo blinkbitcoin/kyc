@@ -33,7 +33,7 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["src", "dist", "!**/__tests__"],
+  "files": ["src", "dist", "__mocks__", "!**/__tests__"],
   "sideEffects": false,
   "scripts": {
     "test": "jest",

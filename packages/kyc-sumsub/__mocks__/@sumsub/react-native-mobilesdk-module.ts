@@ -2,7 +2,8 @@
 // lets a test drive the handlers, and resolves (or rejects) launch() on
 // demand. Used by this package's tests and mapped into the React Native
 // demo's Jest via moduleNameMapper, so the demo never loads the real native
-// module. Not shipped: `files` in package.json lists src + dist only.
+// module. Shipped as a test double (`files` in package.json lists __mocks__)
+// so a consumer can point its own Jest at this file - see the README.
 
 import type {
   SumsubBuilderLike,
