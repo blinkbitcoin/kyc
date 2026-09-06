@@ -1,6 +1,22 @@
-# Maestro workspace config. app-launch is the boot smoke and, once more flows
-# exist, the ONLY flow that launches the app (subsequent flows reset via the
-# demo's UI instead of relaunching, to keep the suite fast).
+# Maestro workspace config.
+#
+# app-launch always runs first: it is the boot smoke and the ONLY flow that
+# launches the app cold, absorbing the one-time cost (driver install, app
+# boot, JS bundle load) with a generous, retried wait. Every later flow keeps
+# the running process (launchApp stopApp: false) and resets through the
+# demo's "Start over" control - relaunching per flow raced the iOS driver and
+# flaked on slow CI runners.
+#
+# The two fake-native flows are tagged and excluded from the default suite
+# (npm run test:e2e / test:e2e:android): they need a Metro bundled with
+# KYC_MODE=fake-native. Run them with npm run test:e2e:fake-native.
 executionOrder:
   flowsOrder:
     - app-launch
+    - hosted-happy-path
+    - hosted-decline
+    - hosted-cancel
+    - hosted-token-refresh
+    - hosted-error-retry
+    - fake-native-happy-path
+    - fake-native-cancel

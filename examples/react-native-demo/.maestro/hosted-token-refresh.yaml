@@ -1,0 +1,69 @@
+# Maestro E2E: the provider token expires mid-flow and is refreshed without
+# the user noticing - and the session survives it.
+#
+# "Expire the token" posts a bridge `tokenExpired`. The hosted source is
+# token-refreshable (it delegates to the backend's verificationSessionRefresh
+# mutation), so the hook mints a fresh token and injects it back into the
+# page as injectJavaScript(window.__kycBridge.setToken(...)). The mock page
+# only acknowledges a VALID token, and it acknowledges IN THE PAGE - it
+# renders "Token refreshed" (id="mock-token-refreshed", plus
+# body[data-token-refreshed=true]) and posts NO bridge event. So the full
+# round trip (page -> app -> backend -> app -> page) is proven by that text
+# appearing while the component is still on `verification-webview`, never by
+# a state change: the frame stays in `verifying`, which is exactly what lets
+# this flow go on to tap Approve and finish the journey.
+appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android: com.reactnativesandbox
+---
+- retry:
+    maxRetries: 1
+    commands:
+      - launchApp:
+          stopApp: false
+      - tapOn:
+          id: "reset-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-start-button"
+          timeout: 10000
+      - tapOn:
+          id: "verification-start-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-webview"
+          timeout: 20000
+      - extendedWaitUntil:
+          visible: "Expire the token"
+          timeout: 20000
+
+      # Scope the tap to the page: the button lives in the WebView document.
+      - tapOn:
+          text: "Expire the token"
+          childOf:
+            id: "verification-webview"
+
+      # The refresh is silent as far as the component is concerned: it stays
+      # on the (visible, interactive) page and never reaches the review wait.
+      - assertVisible:
+          id: "verification-webview"
+      - assertNotVisible:
+          id: "pending-screen"
+
+      # The page's own acknowledgement. Maestro reads WebView text on
+      # Android, so this asserts the injected setToken actually landed.
+      - extendedWaitUntil:
+          visible: "Token refreshed"
+          timeout: 20000
+
+      # The session is still usable with the fresh token: finish it.
+      - tapOn:
+          text: "Approve"
+          childOf:
+            id: "verification-webview"
+
+      - extendedWaitUntil:
+          visible:
+            id: "success-screen"
+          timeout: 20000
+      - extendedWaitUntil:
+          visible: "completed: approved"
+          timeout: 15000

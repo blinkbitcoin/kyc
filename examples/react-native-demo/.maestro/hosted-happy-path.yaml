@@ -1,0 +1,48 @@
+# Maestro E2E: the whole hosted journey.
+# idle -> backend mints a session -> the mock page loads in the real WebView
+# -> "Approve" posts a signed webhook AND a bridge complete envelope ->
+# success screen -> onComplete fires after successDelayMs (4s).
+#
+# REQUIREMENTS: backend running with KYC_PROVIDER=mock (make e2e-backend-up),
+# the E2E Postgres up and migrated, Metro running with KYC_MODE=hosted.
+appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android: com.reactnativesandbox
+---
+# Per-flow retry: a driver hiccup re-runs this flow from the in-app reset
+# instead of failing the suite. Safe because the flow starts by resetting.
+- retry:
+    maxRetries: 1
+    commands:
+      # Foreground the already-running app (app-launch booted it) and reset
+      # the component to idle in-app - no relaunch, see app-launch.yaml.
+      - launchApp:
+          stopApp: false
+      - tapOn:
+          id: "reset-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-start-button"
+          timeout: 10000
+
+      - tapOn:
+          id: "verification-start-button"
+          label: "Start verification"
+
+      # The backend's mock provider page loads in the real WebView
+      - extendedWaitUntil:
+          visible:
+            id: "verification-webview"
+          timeout: 20000
+      - extendedWaitUntil:
+          visible: "Mock Identity Verification"
+          timeout: 20000
+
+      # Interact with the page itself: page -> bridge -> component -> host
+      - tapOn: "Approve"
+
+      - extendedWaitUntil:
+          visible:
+            id: "success-screen"
+          timeout: 20000
+      - extendedWaitUntil:
+          visible: "completed: approved"
+          timeout: 15000
