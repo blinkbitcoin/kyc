@@ -11,7 +11,7 @@ The four packages publish to **GitHub Packages** under the `blinkbitcoin` org:
 | `@blinkbitcoin/kyc-sumsub` | The Sumsub adapters (mode 1, and the shared mapping) |
 | `@blinkbitcoin/kyc-core` | Transitive dependency of the other three; also usable standalone |
 
-Publishing has two channels, both gated on the full fleet (unit coverage thresholds plus the backend, web and Android E2E suites):
+Publishing has two channels, both gated on the full fleet (unit coverage thresholds plus the backend, web, Android and iOS E2E suites):
 
 - **Stable** (`latest`): publish a **GitHub Release** with tag `vX.Y.Z` (`make release V=X.Y.Z`). The tag *is* the version - CI stamps it into the packages before building them and nothing is committed. It ships once the commit's push-to-`main` run is green; a red one blocks it and the publish is retried automatically when main turns green. GitHub Packages rejects re-publishing an existing version, so a failed release needs a new tag.
 - **Prerelease** (`next`): every push to `main` (or a manual `ci.yml` dispatch) ships `<next patch after the latest tag>-pre.<run>.<sha>`. Install with `npm i @blinkbitcoin/kyc-react-native@next`.

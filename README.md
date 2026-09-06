@@ -5,7 +5,7 @@
 [![Coverage](https://github.com/blinkbitcoin/kyc/raw/gh-pages/badges/main/coverage.svg)](https://github.com/blinkbitcoin/kyc/actions/workflows/ci.yml?query=branch%3Amain)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
-<sub>Badges render once the first `main` run publishes them to `gh-pages`. E2E covers backend, web and Android; the iOS simulator suite is opt-in (macOS runners), see [CI/CD](docs/development-guide.md#ios-e2e-is-opt-in).</sub>
+<sub>Badges render once the first `main` run publishes them to `gh-pages`. E2E covers backend, web, Android and the iOS simulator suite, see [CI/CD](docs/development-guide.md#ios-e2e-and-the-macos-runner).</sub>
 
 <p align="center">
   <img src="docs/assets/readme-hero.svg" alt="Your React Native or React web app renders one Verification component. A VerificationSource picks one of three modes: the native provider SDK in-process, a hosted page embedded in a hardened WebView or origin-pinned iframe, or a proxy session on the reference backend. The two backend-backed modes go through the optional apps/api service, and every mode ends at Sumsub." width="960">

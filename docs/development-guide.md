@@ -425,7 +425,7 @@ mermaid-cli rejects it even where GitHub's renderer is lenient.
 | `ci.yml` | Push to main, PRs, GitHub Release, manual | The one pipeline every branch runs, staged so a failure never spends the next stage's minutes: `Checks` (calls `checks.yml`) → `Unit` (calls `test.yml`) → `E2E` (calls `e2e.yml`; its `Build Packages` job is the one build of the packages), then `Badges` (coverage + Unit / E2E pass-fail badges for the branch to `gh-pages/badges/<branch>/`, after E2E so it never delays it), and on main pushes / releases / dispatch `Publish` (ships the tarballs `Build Packages` made and `Web` tested to GitHub Packages, nothing is rebuilt: release → stable `latest`, version = the tag; main → prerelease `next`) + `Verify` (installs the published packages from GitHub Packages into a clean project and asserts the consumer contract). Workflow badge, if needed: `ci.yml/badge.svg?branch=<branch>` |
 | `checks.yml` | `workflow_call` only | First stage, all static: `Changes` (classifies the PR: when every changed file is docs/, `*.md`, `LICENSE` or a template, Unit and E2E are skipped; main pushes get the same via `paths-ignore`), `Code` (audit-ci, actionlint, diagram freshness, `make check-code` = lint + typecheck + format), `Commits` (Conventional Commits on the PR's commits and title; PRs only), `Docs` (warns when architecture-relevant files change without a docs/ update; fails for a diagram source without its SVG) |
 | `test.yml` | `workflow_call` only | Unit tests + coverage thresholds; uploads the coverage badge (1 day, consumed by `Badges`) and the combined HTML coverage report (`coverage-report` artifact, 30 days) |
-| `e2e.yml` | `workflow_call` only | `build-packages` (version stamp, build, publint + arethetypeswrong, pack smoke; uploads the dist for `web` and the tarballs for `Publish`) plus the E2E suites as jobs: `backend`, `web` (Playwright, bundles the demo against that dist - what a web consumer installs), `build-android` → `android` (emulator), and `build-ios` → `ios` (simulator) **only when opted in** (see below). Outputs the stamped `version` / `disttag` for `Publish` |
+| `e2e.yml` | `workflow_call` only | `build-packages` (version stamp, build, publint + arethetypeswrong, pack smoke; uploads the dist for `web` and the tarballs for `Publish`) plus the E2E suites as jobs: `backend`, `web` (Playwright, bundles the demo against that dist - what a web consumer installs), `build-android` → `android` (emulator), and `build-ios` → `ios` (simulator) **on by default** (see below). Outputs the stamped `version` / `disttag` for `Publish` |
 | `release-retry.yml` | CI completed on main | When the main run is green, re-runs the failed Publish of any release tagged on that commit (releases wait for / refuse a red main run) |
 | `cancel-closed.yml` | PR closed/merged | Cancels the PR's still-running runs (the push-to-main run is unaffected) and removes its `gh-pages` badge directory |
 | `codeql.yml` | Push to main, PRs (both ignore docs-only changes), weekly schedule | CodeQL static analysis (JavaScript/TypeScript); alerts land under Security → Code scanning |
@@ -435,23 +435,20 @@ Badges are per branch by construction: `gh-pages/badges/X/{unit,e2e,coverage}.sv
 (and a workflow badge filtered with `?branch=X`) all describe branch `X`
 and nothing else. The README shows `main`.
 
-### iOS E2E is opt-in
+### iOS E2E and the macOS runner
 
-The iOS job needs a macOS runner, and GitHub-hosted macOS is billed at 10x
-Linux (one ~15 min run is ~150 Linux minutes; on every push it exhausted the
-org's shared Actions budget). `ci.yml` therefore passes `ios: false` to
-`e2e.yml` unless one of these says otherwise; a skipped job costs nothing and
-the `E2E` badge describes what actually ran (backend, web, Android).
+The iOS job runs on every run. It needs a macOS runner, which GitHub hosts for
+free on a public repo; on a private repo macOS bills at 10x Linux (one ~15 min
+run is ~150 Linux minutes), which is why the job was opt-in before the repo
+went public. `ci.yml` passes `ios: true` to `e2e.yml` unless one of these says
+otherwise; a skipped job costs nothing and the `E2E` badge describes what
+actually ran.
 
 | Switch | Effect |
 |--------|--------|
-| Repo variable `E2E_IOS=true` | iOS runs on every run. Flip once self-hosted Apple silicon runners are registered. |
-| PR label `e2e:ios` | iOS runs for that PR only (labeling triggers a run). |
-| Repo variable `E2E_IOS_RUNNER` | `runs-on` for the iOS job, default `macos-latest`. Set to the self-hosted label(s), e.g. `["self-hosted","macOS","arm64"]`, and GitHub-hosted macOS is never used. |
-
-Re-enable recipe, no workflow edit: register the runners, set `E2E_IOS_RUNNER`
-to their label, try one PR with the `e2e:ios` label, then set `E2E_IOS=true`
-(`gh variable set E2E_IOS --body true`).
+| Repo variable `E2E_IOS=false` | Pauses iOS on every run (`gh variable set E2E_IOS --body false`; delete the variable to resume). |
+| PR label `e2e:ios` | Forces iOS for that PR while paused (labeling triggers a run). |
+| Repo variable `E2E_IOS_RUNNER` | `runs-on` for the iOS job, default `macos-latest`. Set to self-hosted label(s), e.g. `["self-hosted","macOS","arm64"]`, and GitHub-hosted macOS is never used. |
 
 All workflows run with `permissions: contents: read` (the publish job adds
 `packages: write`; the Badges and closed-PR cleanup jobs get
