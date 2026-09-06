@@ -12,9 +12,19 @@ done
 
 cd "$SMOKE"
 npm init -y >/dev/null
-# Install core first so the platform packages resolve it from the local tarball
-npm install --no-save ./blinkbitcoin-kyc-core-*.tgz >/dev/null
-npm install --no-save ./blinkbitcoin-kyc-sumsub-*.tgz ./blinkbitcoin-kyc-react-native-*.tgz ./blinkbitcoin-kyc-react-*.tgz >/dev/null 2>&1 || true
+CORE_TGZ="$(ls "$SMOKE"/blinkbitcoin-kyc-core-*.tgz)"
+SUMSUB_TGZ="$(ls "$SMOKE"/blinkbitcoin-kyc-sumsub-*.tgz)"
+# kyc-sumsub depends on kyc-core@0.0.0-development, a version that exists only
+# in this workspace: the override points that spec at the packed core tarball
+# so the pair installs from disk, with no registry lookup. Declaring both as
+# package.json dependencies (rather than passing the tarballs as `npm
+# install` CLI targets) avoids npm's EOVERRIDE check, which rejects an
+# override that textually matches a *direct install target*'s spec.
+npm pkg set "overrides.@blinkbitcoin/kyc-core=file:$CORE_TGZ" >/dev/null
+npm pkg set "dependencies.@blinkbitcoin/kyc-core=file:$CORE_TGZ" >/dev/null
+npm pkg set "dependencies.@blinkbitcoin/kyc-sumsub=file:$SUMSUB_TGZ" >/dev/null
+npm install >/dev/null
+npm install --no-save ./blinkbitcoin-kyc-react-native-*.tgz ./blinkbitcoin-kyc-react-*.tgz >/dev/null 2>&1 || true
 
 node - <<'NODE'
 const assert = require('node:assert');
@@ -37,7 +47,14 @@ assert.deepEqual(loaded, [], '/hosted and /testing must not load Apollo or graph
 let fullLoaded = false;
 try { require('@blinkbitcoin/kyc-core'); fullLoaded = true; } catch {}
 assert.equal(fullLoaded, false, 'full entry must require the Apollo peers');
-console.log('pack smoke: /hosted + /testing resolve Apollo-free; full entry correctly needs Apollo');
+const sumsub = require('@blinkbitcoin/kyc-sumsub');
+assert.equal(typeof sumsub.mapSumsubStatus, 'function');
+assert.equal(typeof sumsub.mapSumsubWebhookStatus, 'function');
+assert.equal(typeof sumsub.interpretSumsubWebMessage, 'function');
+assert.equal(sumsub.mapSumsubStatus('completed', { reviewAnswer: 'GREEN' }), 'approved');
+const afterSumsub = Object.keys(require.cache).filter((f) => /node_modules[\\/](@apollo|graphql)/.test(f));
+assert.deepEqual(afterSumsub, [], 'the sumsub root entry must not load Apollo or graphql');
+console.log('pack smoke: /hosted + /testing + kyc-sumsub resolve Apollo-free; full entry correctly needs Apollo');
 NODE
 NODE_OPTIONS="" node --input-type=module -e "
 import { createHostedSource } from '@blinkbitcoin/kyc-core/hosted';
