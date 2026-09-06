@@ -1,22 +1,22 @@
-// The verification state machine as two pure functions.
+// The verification state machine as two pure functions, shared by every
+// platform package.
 //
 // machineReducer is a plain (state, action) => state reducer. planEvent turns
 // a normalized VerificationEvent into (a) the state action it implies and
-// (b) a *description* of the host callback it implies. The hook executes the
-// effects; nothing here imports React or React Native, so the whole flow is
-// unit-testable as data.
+// (b) a *description* of the host callback it implies. The platform hook
+// executes the effects; nothing here imports React, React Native, the DOM or
+// Apollo, so the whole flow is unit-testable as data and both the React and
+// the React Native packages behave identically.
 
-import {
-  ClientErrorCodes,
-  getErrorMessage,
-} from '@blinkbitcoin/kyc-core/hosted';
+import { ClientErrorCodes } from '../errors';
+import { getErrorMessage } from './messages';
 
 import type {
   VerificationEvent,
   VerificationResult,
   VerificationSession,
   VerificationStatus,
-} from '@blinkbitcoin/kyc-core/hosted';
+} from './types';
 
 /** What the UI is showing. The spec's eight states, no more. */
 export type VerificationState =

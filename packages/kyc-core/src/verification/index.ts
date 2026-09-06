@@ -38,3 +38,23 @@ export type {
   HostedSessionProvider,
   HostedSourceOptions,
 } from './hostedSource';
+
+export {
+  describeFailure,
+  describeOutcome,
+  initialMachineState,
+  isRestartableError,
+  machineReducer,
+  planEvent,
+  toVerificationError,
+  UNKNOWN_ERROR_CODE,
+} from './machine';
+export type {
+  MachineAction,
+  MachineState,
+  PermissionReason,
+  VerificationEffect,
+  VerificationError,
+  VerificationPlan,
+  VerificationState,
+} from './machine';

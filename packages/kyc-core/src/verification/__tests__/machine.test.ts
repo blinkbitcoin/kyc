@@ -1,7 +1,5 @@
-import {
-  ClientErrorCodes,
-  getErrorMessage,
-} from '@blinkbitcoin/kyc-core/hosted';
+import { ClientErrorCodes } from '../../errors';
+import { getErrorMessage } from '../messages';
 
 import {
   describeFailure,
@@ -12,10 +10,10 @@ import {
   planEvent,
   toVerificationError,
   UNKNOWN_ERROR_CODE,
-} from '../verificationMachine';
+} from '../machine';
 
-import type { VerificationSession } from '@blinkbitcoin/kyc-core/hosted';
-import type { MachineState } from '../verificationMachine';
+import type { VerificationSession } from '../types';
+import type { MachineState } from '../machine';
 
 const session: VerificationSession = {
   provider: 'mock',
