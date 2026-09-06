@@ -11,10 +11,19 @@ const fromRoot = (relative: string): string => fileURLToPath(new URL(relative, i
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@blinkbitcoin/kyc-sumsub': fromRoot('../../packages/kyc-sumsub/src/index.ts'),
-      '@blinkbitcoin/kyc-core/hosted': fromRoot('../../packages/kyc-core/src/hosted.ts'),
-    },
+    // Exact matches only: a bare-string alias is a prefix match in Vite, so
+    // '@blinkbitcoin/kyc-sumsub' would also swallow '.../react-native' and
+    // '.../package.json' and point them at the root source file.
+    alias: [
+      {
+        find: /^@blinkbitcoin\/kyc-sumsub$/,
+        replacement: fromRoot('../../packages/kyc-sumsub/src/index.ts'),
+      },
+      {
+        find: /^@blinkbitcoin\/kyc-core\/hosted$/,
+        replacement: fromRoot('../../packages/kyc-core/src/hosted.ts'),
+      },
+    ],
   },
   test: {
     environment: 'node',

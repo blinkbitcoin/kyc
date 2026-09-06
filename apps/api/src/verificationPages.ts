@@ -17,6 +17,7 @@
 import type { SumsubReviewResult } from '@blinkbitcoin/kyc-sumsub';
 import {
   mapSumsubStatus,
+  SUMSUB_ERROR_CODE,
   SUMSUB_REJECT_TYPES,
   SUMSUB_REVIEW_ANSWERS,
   SUMSUB_REVIEW_STATUSES,
@@ -266,7 +267,8 @@ export const renderSumsubPage = ({
         if (applicantId) { post('applicantLoaded', { applicantId: applicantId }); }
         return;
       }
-      if (type === 'idCheck.onApplicantSubmitted') { post('submitted'); return; }
+      if (type === 'idCheck.onApplicantSubmitted' ||
+          type === 'idCheck.onApplicantResubmitted') { post('submitted'); return; }
       if (type === 'idCheck.onApplicantStatusChanged') {
         var status = mapStatus(payload.reviewStatus, payload.reviewResult);
         post('statusChanged', { status: status });
@@ -275,9 +277,9 @@ export const renderSumsubPage = ({
         }
         return;
       }
-      if (type === 'idCheck.onError') {
-        post('error', { code: payload.code || 'PROVIDER_ERROR', message: payload.reason });
-      }
+      // idCheck.onError is NOT handled here: the dedicated .on() registration
+      // below carries it, and handling it in both places posts the same
+      // provider error twice.
     }
 
     snsWebSdk
@@ -287,7 +289,7 @@ export const renderSumsubPage = ({
       .onMessage(onMessage)
       .on('idCheck.onError', function (error) {
         post('error', {
-          code: (error && error.code) || 'PROVIDER_ERROR',
+          code: (error && error.code) || ${jsonForScript(SUMSUB_ERROR_CODE)},
           message: error && error.reason
         });
       })

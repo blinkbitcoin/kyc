@@ -1,5 +1,7 @@
 import {
   mapSumsubStatus,
+  SUMSUB_ERROR_CODE,
+  SUMSUB_EVENT_NAMES,
   SUMSUB_REJECT_TYPES,
   SUMSUB_REVIEW_ANSWERS,
   SUMSUB_REVIEW_STATUSES,
@@ -111,15 +113,31 @@ describe('renderSumsubPage', () => {
     expect(html).toContain('id="sumsub-websdk-container"');
   });
 
-  it('translates every idCheck event this version knows', () => {
-    for (const type of [
-      'idCheck.onApplicantLoaded',
-      'idCheck.onApplicantSubmitted',
-      'idCheck.onApplicantStatusChanged',
-      'idCheck.onError',
-    ]) {
+  it('translates every idCheck event the shared vocabulary declares', () => {
+    // SUMSUB_EVENT_NAMES is the one list; the page must not silently know a
+    // smaller set than the mapping the RN/web sources read.
+    for (const type of SUMSUB_EVENT_NAMES) {
       expect(html).toContain(type);
     }
+  });
+
+  it('treats a resubmission as a submission', () => {
+    expect(html).toContain("type === 'idCheck.onApplicantResubmitted'");
+    expect(html).toContain("post('submitted')");
+  });
+
+  it('reports a provider error exactly once, under the shared fallback code', () => {
+    // One Sumsub error must produce one bridge event: the .on() registration
+    // is the single handler, and onMessage no longer duplicates it.
+    expect(html.match(/post\('error'/g)).toHaveLength(1);
+    expect(html).toContain("idCheck.onError', function (error)");
+    expect(html).not.toContain("if (type === 'idCheck.onError')");
+  });
+
+  it('embeds the fallback error code from the shared mapping, not a literal', () => {
+    expect(SUMSUB_ERROR_CODE).toBe('SUMSUB_ERROR');
+    expect(html).toContain(`|| ${JSON.stringify(SUMSUB_ERROR_CODE)}`);
+    expect(html).not.toContain('PROVIDER_ERROR');
   });
 
   it('emits versioned kyc-bridge envelopes over both transports', () => {
