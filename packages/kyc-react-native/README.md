@@ -86,7 +86,12 @@ const source = createProxySource({
 
 The WebView is configured with `mediaCapturePermissionGrantType="grant"`, so
 the *page* is granted capture without a second prompt — but the OS-level
-permission is still the app's job. Declare it:
+permission is still the app's job.
+
+That prop is **iOS/macOS only**. Android has no equivalent: there,
+react-native-webview answers the page's `onPermissionRequest` for any origin
+it hosts as long as the app itself holds the OS permission, which is one more
+reason the origin pin above matters. Declare the OS permissions either way:
 
 `ios/<App>/Info.plist`
 ```xml
@@ -176,10 +181,26 @@ is the single place the WebView is hardened, exported so it can be reviewed
 and reused: `javaScriptEnabled`, `domStorageEnabled`,
 `allowsInlineMediaPlayback`, `mediaPlaybackRequiresUserAction: false`,
 `mediaCapturePermissionGrantType: 'grant'`, `originWhitelist` pinned to the
-session origin, an `onShouldStartLoadWithRequest` guard that blocks
-off-origin top-level navigation, `setSupportMultipleWindows: false`,
-`cacheEnabled: false`, `allowFileAccess: false`, and the
-`injectedJavaScriptBeforeContentLoaded` bridge stub.
+session origin **plus the declared `allowedNavigationOrigins`**, an
+`onShouldStartLoadWithRequest` guard that blocks every other origin,
+`setSupportMultipleWindows: false`, `cacheEnabled: false`,
+`allowFileAccess: false`, and the `injectedJavaScriptBeforeContentLoaded`
+bridge stub.
+
+What the pin does and does not buy you:
+
+- The guard runs for **every navigation the platform reports, subframes
+  included** — not just the top-level document.
+- `originWhitelist` is checked **first**. A URL that misses it never reaches
+  the guard: react-native-webview escalates it to the system browser
+  (`Linking.openURL`) instead of dropping it. That is why the provider
+  origins have to be in the whitelist as well as in the guard.
+- On Android an unanswered `shouldOverrideUrlLoading` is **allowed** after
+  250 ms, so a busy device can let a navigation through before the guard
+  answers.
+
+Treat the pin as defence in depth, not as a sandbox: the page you load is
+still trusted code.
 
 ## v1 limitation
 

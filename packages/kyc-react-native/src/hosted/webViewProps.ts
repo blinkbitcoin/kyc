@@ -4,9 +4,13 @@
 // tested as a plain object and reviewed in one place:
 //   - camera/microphone are granted to the pinned origin (that is the whole
 //     point: issue #4246 was a WebView that never granted capture),
-//   - originWhitelist pins the top-level document to the session origin,
-//   - onShouldStartLoadWithRequest additionally allows the provider frame
-//     origins the host declares, and blocks everything else,
+//   - originWhitelist carries the session origin AND the provider origins
+//     the host declares: react-native-webview checks it FIRST and, on a
+//     miss, hands the URL to the system browser (Linking.openURL) instead
+//     of consulting our guard - so an origin missing from it is escalated
+//     out of the app, not blocked,
+//   - onShouldStartLoadWithRequest re-checks the same list for every
+//     navigation (main frame and subframes) and blocks everything else,
 //   - no multiple windows, no disk cache, no file access,
 //   - a __kycBridge stub is installed BEFORE the page's own script, so a
 //     token refresh that arrives during page load is queued, not lost.
@@ -113,8 +117,15 @@ export const matchesOrigin = (pattern: string, origin: string): boolean => {
 };
 
 /**
- * Top-level navigation gate. An empty allow-list means "nothing to pin" and
- * defers to originWhitelist, so a non-http(s) session url still loads.
+ * Navigation gate. react-native-webview runs it for every navigation action
+ * the platform reports - main frame and subframes alike - after
+ * originWhitelist has already accepted the URL. An empty allow-list means
+ * "nothing to pin" and defers to originWhitelist, so a non-http(s) session
+ * url still loads.
+ *
+ * Defence in depth, not a sandbox: on Android an unanswered
+ * shouldOverrideUrlLoading is ALLOWED after 250ms, so a loaded device can
+ * let a navigation through before this returns.
  */
 export const createNavigationGuard =
   (allowed: readonly string[]) =>
@@ -139,10 +150,18 @@ export const createHostedWebViewProps = ({
     domStorageEnabled: true,
     allowsInlineMediaPlayback: true,
     mediaPlaybackRequiresUserAction: false,
-    // Grants WKWebView capture and answers Android's onPermissionRequest.
-    // The OS-level prompt is still the host's job (checkPermissions).
+    // iOS/macOS only: it grants WKWebView capture without a second, in-page
+    // prompt. Android has no equivalent - react-native-webview's
+    // onPermissionRequest grants camera/mic to whatever origin asks, as long
+    // as the app itself holds the OS permission. Either way the OS-level
+    // prompt is the host's job (checkPermissions).
     mediaCapturePermissionGrantType: 'grant',
-    originWhitelist: origin ? [origin] : [...FALLBACK_ORIGIN_WHITELIST],
+    // The provider origins belong here too: a URL that misses this list is
+    // never offered to onShouldStartLoadWithRequest - react-native-webview
+    // opens it in the system browser instead.
+    originWhitelist: origin
+      ? [origin, ...allowedNavigationOrigins]
+      : [...FALLBACK_ORIGIN_WHITELIST],
     onShouldStartLoadWithRequest: createNavigationGuard(
       origin ? [origin, ...allowedNavigationOrigins] : [],
     ),

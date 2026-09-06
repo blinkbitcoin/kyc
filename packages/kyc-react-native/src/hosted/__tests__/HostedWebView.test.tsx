@@ -64,7 +64,10 @@ describe('HostedWebView', () => {
 
     const props = getWebViewProps();
     expect(props.testID).toBe('custom-webview');
-    expect(props.originWhitelist).toEqual(['https://pinned.example']);
+    expect(props.originWhitelist).toEqual([
+      'https://pinned.example',
+      'https://*.sumsub.com',
+    ]);
     const guard = props.onShouldStartLoadWithRequest as (r: {
       url: string;
     }) => boolean;

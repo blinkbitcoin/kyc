@@ -122,12 +122,18 @@ describe('createHostedWebViewProps', () => {
     ).toBe(true);
   });
 
-  it('lets provider frames load without widening originWhitelist', () => {
+  it('puts provider frames in originWhitelist so the guard ever sees them', () => {
+    // react-native-webview checks originWhitelist first and escalates a miss
+    // to the system browser, so a frame origin left out of it would leave the
+    // app entirely instead of reaching onShouldStartLoadWithRequest.
     const withFrames = createHostedWebViewProps({
       url: URL,
       allowedNavigationOrigins: ['https://*.sumsub.com'],
     });
-    expect(withFrames.originWhitelist).toEqual(['https://kyc.example.com']);
+    expect(withFrames.originWhitelist).toEqual([
+      'https://kyc.example.com',
+      'https://*.sumsub.com',
+    ]);
     expect(
       withFrames.onShouldStartLoadWithRequest({
         url: 'https://api.sumsub.com/frame',
