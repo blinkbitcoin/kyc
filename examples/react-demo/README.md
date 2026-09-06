@@ -1,6 +1,31 @@
 # kyc-react-example
 
 Vite + React 19 host for `@blinkbitcoin/kyc-react`: manual testing and the
-Playwright E2E target. `VITE_KYC_MODE` (hosted | proxy) selects the mode.
-Bootstrap status: renders the package name; the verification flow lands with
-the web phase. Run from the repo root: `make web`; E2E: `make e2e-web`.
+Playwright E2E target. `VITE_KYC_MODE` selects the mode at build time.
+
+| `VITE_KYC_MODE` | Source | Needs |
+|---|---|---|
+| `hosted` (default) | `createHostedSource` whose `getSession`/`refreshToken` delegate to the backend proxy | backend + database |
+| `proxy` | `createProxySource({ client, platform: 'WEB' })` | backend + database |
+
+```bash
+make web                          # repo root, hosted mode on :5173
+VITE_KYC_MODE=proxy npm run dev   # here, proxy mode
+```
+
+The screen mirrors the React Native demo: `mode-label`, `reset-button`,
+`outcome`, around the library's `<Verification />`. The verification page is
+embedded in a genuinely cross-origin iframe (app `:5173` / `:5174`, page
+`:4000`), so the E2E suites exercise the real `postMessage` path and the
+origin pin.
+
+## E2E
+
+```bash
+make e2e-web         # hosted, :5173 - what CI runs
+make e2e-web-proxy   # proxy, :5174
+```
+
+Both targets bring up the dockerized test Postgres, migrate it, and let
+Playwright start the backend and Vite. Both demo ports are already in
+`apps/api/.env.test`'s `CORS_ALLOWED_ORIGINS`.

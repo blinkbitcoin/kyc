@@ -1,17 +1,22 @@
 # examples/
 
 Integration reference apps — hosts for the packages, not products. Each shows
-the minimal wiring a real host app needs per mode (`KYC_MODE` /
-`VITE_KYC_MODE`: native, hosted, or proxy - source building, callbacks,
-platform URL/token handling).
+the minimal wiring a real host app needs per mode: `config.ts` (endpoint +
+mode literal) → `apollo.ts` (client + auth token) → `source.ts` (one
+`VerificationSource` per mode) → one screen with `<Verification />`.
 
-| Example | Hosts |
-|---------|-------|
-| [`react-native-demo/`](react-native-demo/README.md) | 📱 `@blinkbitcoin/kyc-react-native` (React Native; Maestro end-to-end target) |
-| [`react-demo/`](react-demo/README.md) | 🌐 `@blinkbitcoin/kyc-react` (Vite) |
+| Example | Hosts | Modes | E2E |
+|---------|-------|-------|-----|
+| [`react-native-demo/`](react-native-demo/README.md) | 📱 `@blinkbitcoin/kyc-react-native` | `KYC_MODE` = native \| hosted \| proxy \| fake-native | Maestro (`make e2e-android`, `make e2e-ios`, `make e2e-fake-native`) |
+| [`react-demo/`](react-demo/README.md) | 🌐 `@blinkbitcoin/kyc-react` (Vite) | `VITE_KYC_MODE` = hosted \| proxy | Playwright (`make e2e-web`, `make e2e-web-proxy`) |
 
-Hosted and proxy modes need the backend running (`make db-up migrate
-backend` from the repo root); native mode needs only a backend that can mint
-Sumsub access tokens. `make help` here fans common targets (`test`,
-`coverage`, `typecheck`) out to every example; examples with a `Makefile` are
-discovered automatically.
+`hosted` and `proxy` need the backend running (`make db-up migrate backend`
+from the repo root, or `make e2e-backend-up` for the E2E stack). `native`
+needs a backend that can mint provider access tokens **and** the provider SDK
+peer installed — it is the manual Sumsub-sandbox mode, never CI.
+`fake-native` needs nothing: it swaps the provider SDK for
+`createFakeLaunchableSource()` from `@blinkbitcoin/kyc-core/testing` and an
+in-app fake SDK screen, so the native-launch branch is testable offline.
+
+`make help` here fans common targets (`test`, `coverage`, `typecheck`) out to
+every example; examples with a `Makefile` are discovered automatically.

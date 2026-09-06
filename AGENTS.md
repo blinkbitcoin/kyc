@@ -32,8 +32,8 @@ lands phase by phase (see [the design](docs/superpowers/specs/2026-09-05-kyc-des
 │   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (Verification + useVerification + hardened HostedWebView; entries . and /hosted)
 │   └── kyc-react/               # 📦 THE PRODUCT - web (Verification + useVerification + origin-pinned HostedFrame; single entry)
 ├── examples/
-│   ├── react-native-demo/       # 📱 RN integration demo (Maestro E2E)
-│   └── react-demo/              # 🌐 Web integration demo (Vite, Playwright E2E)
+│   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native; Maestro suite (.maestro/)
+│   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy; Playwright suites (e2e/)
 ├── docs/                        # Current-state documentation (hand-maintained)
 ├── scripts/                     # ci/, e2e/, release/ shell + node used by the Makefile and CI
 ├── Makefile                     # Root flows; apps/, packages/, examples/ and each workspace have their own

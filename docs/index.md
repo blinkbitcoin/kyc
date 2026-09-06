@@ -22,6 +22,8 @@
 | [../packages/kyc-core/README.md](../packages/kyc-core/README.md) | The core package's three entries (`.`, `/hosted`, `/testing`), the bridge protocol and the error-code split |
 | [../packages/kyc-react-native/README.md](../packages/kyc-react-native/README.md) | The React Native package: three modes, permission setup, `Verification` props, the `useVerification` hook |
 | [../packages/kyc-react/README.md](../packages/kyc-react/README.md) | The React web package: hosted + proxy modes, the iframe/CSP/Permissions-Policy requirements, origin pinning, `Verification` props |
+| [../examples/react-native-demo/README.md](../examples/react-native-demo/README.md) | The React Native demo: the four `KYC_MODE` modes, the screen/testID contract, permissions, the Maestro suite |
+| [../examples/react-demo/README.md](../examples/react-demo/README.md) | The web demo: hosted + proxy modes and the Playwright suites |
 
 The rest of `integration/` (consumer docs) and `architecture/` (internals)
 are written with the phases that introduce them.
@@ -32,7 +34,7 @@ are written with the phases that introduce them.
 npm ci                         # install all workspaces (single root lockfile)
 make db-up migrate backend     # dev Postgres + migrations + backend
 make start && make ios         # RN demo (or: make android); make web for the web demo
-npm test                       # everything; make e2e-backend / e2e-web / e2e-android for E2E
+npm test                       # everything; make e2e-backend / e2e-web / e2e-web-proxy / e2e-android for E2E
 ```
 
 Documentation is maintained by hand alongside code changes — update the

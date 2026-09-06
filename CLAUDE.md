@@ -7,9 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Identity verification (KYC) integration monorepo (npm workspaces). The
 **backend service** is the main deliverable together with the **publishable
 React Native and React web libraries**; the demo apps exist for manual and
-E2E testing. **Status:** core, the backend, the Sumsub adapters and both
-platform packages are implemented; the demos and the E2E flows land phase by
-phase (see
+E2E testing. **Status:** feature-complete for v1 — core, the backend, the
+Sumsub adapters, both platform packages, both demos and the full E2E suite
+(backend, Playwright, Maestro) are implemented; docs and the first release
+are the remaining phase (see
 [the design](docs/superpowers/specs/2026-09-05-kyc-design.md)).
 
 | Workspace | Path | Role |
@@ -45,10 +46,11 @@ children), and each workspace (thin delegates to its npm scripts). So
 runs the service. `make help` lists every root target with a description.
 The ones that matter most: `make test` (unit + check-code), `make coverage`,
 `make check-ci` (actionlint + shellcheck of `scripts/**`), `make codegen`,
-`make diagrams` / `make docs-check`, `make e2e-backend` (DB up → migrate →
-E2E → teardown), `make e2e-web` (Playwright), `make e2e-android` / `make
-e2e-ios` (Maestro, needs a running stack; `make e2e-backend-up` starts the
-mock-provider backend), `make db-up/migrate/backend`, `make ios/android/start/web`,
+`make diagrams` / `make docs-check`, `make e2e-backend` (backend suite),
+`make e2e-web` / `make e2e-web-proxy` (Playwright, hosted / proxy),
+`make e2e-backend-up && make e2e-android` (Maestro, Android; iOS via `make
+e2e-ios` or the `e2e:ios` label), `make e2e-fake-native` (native-launch
+branch, needs a `KYC_MODE=fake-native` Metro), `make db-up/migrate/backend`, `make ios/android/start/web`,
 `make pods`, `make build`, `make release V=X.Y.Z`, `make clean/reset`. The
 underlying npm scripts:
 
@@ -123,6 +125,9 @@ npm run migrate:test         # Same against the .env.test database
   Sumsub, RN and web packages. Codegen runs in core
   (`packages/kyc-core/src/generated/`); never hand-edit or duplicate the
   generated types in another package.
+- The demos are the executable integration docs: `examples/*/src/{config,apollo,source}.ts`
+  is the whole wiring a host app writes, and the E2E suites drive it through
+  the real mock provider page.
 
 ## iOS Setup (first time or after native dep changes)
 
