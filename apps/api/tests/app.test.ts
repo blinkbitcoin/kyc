@@ -67,6 +67,10 @@ describe('createApp', () => {
 });
 
 describe('GET /hosted/:sessionId', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('renders the mock page with a nonce CSP and camera permissions', async () => {
     const session = await import('../src/session');
     const { clearApplicants } = await import('../src/providers/mock');
@@ -173,6 +177,10 @@ describe('GET /hosted/:sessionId', () => {
 });
 
 describe('POST /webhook/kyc/:provider', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   const body = JSON.stringify({ applicantId: 'mock-applicant-1', status: 'approved' });
 
   const send = async (path: string, signature?: string) =>
