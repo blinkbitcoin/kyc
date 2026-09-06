@@ -61,9 +61,10 @@ export const emitSumsubStatus = (
   sumsubMockState.handlers.onStatusChanged?.({ prevStatus, newStatus });
 };
 
+/** Omit `payload` to reproduce the SDK events that carry no data. */
 export const emitSumsubEvent = (
   eventType: string,
-  payload: Record<string, unknown> = {},
+  payload?: Record<string, unknown>,
 ): void => {
   sumsubMockState.handlers.onEvent?.({ eventType, payload });
 };

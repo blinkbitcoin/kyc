@@ -79,6 +79,16 @@ launch rejects with `SUMSUB_LAUNCH_FAILED`, and a provider error keeps its
 identity (`SUMSUB_<ERRORTYPE>`, except `Unauthorized` → `TOKEN_EXPIRED` and
 `NetworkError` → `NETWORK_ERROR`).
 
+Closing the SDK without finishing is **not** an error and not a completion:
+a launch that comes back `Initial` or `Incomplete` emits `{ type: 'cancel' }`
+and still resolves, with that status as an advisory value (`onCancel` fires,
+`onComplete` does not). Only a launch that reached a verdict — `Pending`,
+`Approved`, `TemporarilyDeclined`, `FinallyRejected` — emits `complete`.
+Two other guardrails: a session with no `accessToken` rejects with
+`SUMSUB_LAUNCH_FAILED` before the SDK is built, and a second `launch()` while
+one is still running rejects with `SDK_UNAVAILABLE` rather than racing the
+first over the same screen.
+
 ### Testing without the native module
 
 `__mocks__/@sumsub/react-native-mobilesdk-module.ts` in this package is a

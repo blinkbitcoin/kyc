@@ -16,7 +16,8 @@ export interface SumsubLogEvent {
 
 export interface SumsubSdkEvent {
   eventType: string;
-  payload: Record<string, unknown>;
+  /** Absent for the events that carry no data (the SDK omits the key). */
+  payload?: Record<string, unknown>;
 }
 
 export interface SumsubHandlers {

@@ -107,9 +107,31 @@ describe('createSumsubNativeSource - launch wiring', () => {
     expect(getAccessToken).toHaveBeenCalledTimes(1);
   });
 
-  it('falls back to an empty token when the session carries none', async () => {
-    await makeSource().launch({ provider: 'sumsub' }, jest.fn());
-    expect(sumsubMockState.accessToken).toBe('');
+  it('refuses to launch a session that carries no access token', async () => {
+    await expect(
+      makeSource().launch({ provider: 'sumsub' }, jest.fn()),
+    ).rejects.toEqual({
+      code: SUMSUB_LAUNCH_FAILED,
+      message: 'session carries no access token',
+    });
+    // Rejected before the SDK was touched at all.
+    expect(sumsubMockState.accessToken).toBeUndefined();
+    expect(sumsubMockState.built).toBe(0);
+  });
+
+  it('rejects a second launch while one is still in progress', async () => {
+    const source = makeSource();
+    const first = source.launch(session, jest.fn());
+
+    await expect(source.launch(session, jest.fn())).rejects.toEqual({
+      code: ClientErrorCodes.SDK_UNAVAILABLE,
+      message: 'launch already in progress',
+    });
+    // The first launch is untouched, and the flag clears when it settles.
+    await expect(first).resolves.toEqual({ status: 'approved' });
+    await expect(source.launch(session, jest.fn())).resolves.toEqual({
+      status: 'approved',
+    });
   });
 
   it('passes the locale only when one is given, and debug defaults to false', async () => {
@@ -167,6 +189,15 @@ describe('createSumsubNativeSource - events during the flow', () => {
     ]);
   });
 
+  it('ignores an SDK event that carries no payload', async () => {
+    const { events, onEvent } = collect();
+    const pending = makeSource().launch(session, onEvent);
+    emitSumsubEvent('ApplicantLoaded');
+
+    await expect(pending).resolves.toEqual({ status: 'approved' });
+    expect(events).toEqual([{ type: 'complete', status: 'approved' }]);
+  });
+
   it('resolves without an applicant id when the SDK never reported one', async () => {
     const { events, onEvent } = collect();
     setSumsubMockResult({ success: true, status: 'Pending' });
@@ -176,6 +207,55 @@ describe('createSumsubNativeSource - events during the flow', () => {
     });
     expect(events).toEqual([{ type: 'complete', status: 'pending' }]);
   });
+});
+
+describe('createSumsubNativeSource - the user closed the SDK', () => {
+  // A successful launch that reports no verdict means the applicant left the
+  // flow: core's LaunchableSource contract says that is a cancel event plus
+  // an advisory resolution, never a `complete`.
+  it.each([
+    ['Initial', 'initial'],
+    ['Incomplete', 'incomplete'],
+  ])('turns a %s result into a cancellation', async (sdkStatus, status) => {
+    const { events, onEvent } = collect();
+    setSumsubMockResult({ success: true, status: sdkStatus as 'Initial' });
+
+    await expect(makeSource().launch(session, onEvent)).resolves.toEqual({
+      status,
+    });
+    expect(events).toEqual([{ type: 'cancel' }]);
+    expect(events).not.toContainEqual(
+      expect.objectContaining({ type: 'complete' }),
+    );
+  });
+
+  it('still reports the applicant it learned about before the cancel', async () => {
+    const { events, onEvent } = collect();
+    setSumsubMockResult({ success: true, status: 'Incomplete' });
+    const pending = makeSource().launch(session, onEvent);
+    emitSumsubEvent('ApplicantLoaded', { applicantId: 'a-2' });
+
+    await expect(pending).resolves.toEqual({
+      status: 'incomplete',
+      applicantId: 'a-2',
+    });
+    expect(events).toEqual([
+      { type: 'applicantLoaded', applicantId: 'a-2' },
+      { type: 'cancel' },
+    ]);
+  });
+
+  it.each(['Pending', 'Approved', 'TemporarilyDeclined', 'FinallyRejected'])(
+    'still completes on a %s result',
+    async sdkStatus => {
+      const { events, onEvent } = collect();
+      setSumsubMockResult({ success: true, status: sdkStatus as 'Pending' });
+
+      await makeSource().launch(session, onEvent);
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({ type: 'complete' });
+    },
+  );
 });
 
 describe('createSumsubNativeSource - failures', () => {

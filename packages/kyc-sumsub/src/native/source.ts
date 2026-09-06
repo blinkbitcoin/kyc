@@ -38,6 +38,13 @@ export interface SumsubNativeSourceOptions {
 /** The flow never reached a provider verdict (init, build or launch threw). */
 export const SUMSUB_LAUNCH_FAILED = 'SUMSUB_LAUNCH_FAILED';
 
+/**
+ * Statuses a successful launch reports when the applicant closed the SDK
+ * before finishing: no verdict was reached, so the flow is a cancellation
+ * and the resolved status is advisory (see core's `LaunchableSource.launch`).
+ */
+const CANCELLED_STATUSES = new Set(['initial', 'incomplete']);
+
 const sourceError = (
   code: string,
   message?: string,
@@ -76,6 +83,10 @@ export const createSumsubNativeSource = ({
     return resolved;
   };
 
+  // The native SDK owns the screen: a second launch would race the first one
+  // over the same UI, so it is refused (parity with kyc-core's fake source).
+  let launching = false;
+
   return {
     async start(): Promise<VerificationSession> {
       // Fail before the UI shows a spinner rather than at launch time.
@@ -90,62 +101,94 @@ export const createSumsubNativeSource = ({
       session: VerificationSession,
       onEvent: (event: VerificationEvent) => void,
     ): Promise<VerificationResult> {
-      let applicantId: string | undefined;
-      let result: SNSMobileSDKResult;
-
-      try {
-        let builder = resolveSdk()
-          .init(session.accessToken ?? '', getAccessToken)
-          .withHandlers({
-            onStatusChanged: ({ newStatus }) => {
-              const status = mapSumsubMobileStatus(newStatus);
-              if (status) {
-                onEvent({ type: 'statusChanged', status });
-              }
-            },
-            onEvent: ({ eventType, payload }) => {
-              if (eventType !== 'ApplicantLoaded') return;
-              const loaded = payload.applicantId;
-              if (typeof loaded === 'string') {
-                applicantId = loaded;
-                onEvent({ type: 'applicantLoaded', applicantId: loaded });
-              }
-            },
-            onLog: ({ message }) => {
-              if (debug) {
-                console.log(`[kyc-sumsub] ${message}`);
-              }
-            },
-          })
-          .withDebug(debug);
-
-        if (locale) {
-          builder = builder.withLocale(locale);
-        }
-
-        result = await builder.build().launch();
-      } catch (error) {
-        throw toSourceError(error, SUMSUB_LAUNCH_FAILED);
-      }
-
-      const event = mapSumsubMobileResult(result);
-      const enriched: VerificationEvent =
-        event.type === 'complete' && applicantId
-          ? { ...event, applicantId }
-          : event;
-      onEvent(enriched);
-
-      if (enriched.type !== 'complete') {
+      if (launching) {
         throw sourceError(
-          (enriched as { code: string }).code,
-          (enriched as { message?: string }).message,
+          ClientErrorCodes.SDK_UNAVAILABLE,
+          'launch already in progress',
         );
       }
+      launching = true;
 
-      return {
-        status: enriched.status,
-        ...(applicantId ? { applicantId } : {}),
-      };
+      try {
+        let applicantId: string | undefined;
+        let result: SNSMobileSDKResult;
+
+        try {
+          // The SDK cannot start without a token, and an empty string only
+          // surfaces as an opaque provider error much later.
+          if (!session.accessToken) {
+            throw sourceError(
+              SUMSUB_LAUNCH_FAILED,
+              'session carries no access token',
+            );
+          }
+
+          let builder = resolveSdk()
+            .init(session.accessToken, getAccessToken)
+            .withHandlers({
+              onStatusChanged: ({ newStatus }) => {
+                const status = mapSumsubMobileStatus(newStatus);
+                if (status) {
+                  onEvent({ type: 'statusChanged', status });
+                }
+              },
+              onEvent: ({ eventType, payload }) => {
+                if (eventType !== 'ApplicantLoaded') return;
+                const loaded = (payload ?? {}).applicantId;
+                if (typeof loaded === 'string') {
+                  applicantId = loaded;
+                  onEvent({ type: 'applicantLoaded', applicantId: loaded });
+                }
+              },
+              onLog: ({ message }) => {
+                if (debug) {
+                  console.log(`[kyc-sumsub] ${message}`);
+                }
+              },
+            })
+            .withDebug(debug);
+
+          if (locale) {
+            builder = builder.withLocale(locale);
+          }
+
+          result = await builder.build().launch();
+        } catch (error) {
+          throw toSourceError(error, SUMSUB_LAUNCH_FAILED);
+        }
+
+        const event = mapSumsubMobileResult(result);
+
+        // No verdict was reached: the applicant closed the SDK. The contract
+        // is a cancel event plus an advisory resolution, never a `complete`.
+        if (event.type === 'complete' && CANCELLED_STATUSES.has(event.status)) {
+          onEvent({ type: 'cancel' });
+          return {
+            status: event.status,
+            ...(applicantId ? { applicantId } : {}),
+          };
+        }
+
+        const enriched: VerificationEvent =
+          event.type === 'complete' && applicantId
+            ? { ...event, applicantId }
+            : event;
+        onEvent(enriched);
+
+        if (enriched.type !== 'complete') {
+          throw sourceError(
+            (enriched as { code: string }).code,
+            (enriched as { message?: string }).message,
+          );
+        }
+
+        return {
+          status: enriched.status,
+          ...(applicantId ? { applicantId } : {}),
+        };
+      } finally {
+        launching = false;
+      }
     },
   };
 };

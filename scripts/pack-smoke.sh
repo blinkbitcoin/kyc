@@ -61,4 +61,13 @@ import { createHostedSource } from '@blinkbitcoin/kyc-core/hosted';
 if (typeof createHostedSource !== 'function') process.exit(1);
 console.log('pack smoke: ESM import of /hosted works');
 "
+# The native source reaches the optional peer through require(), which does
+# not exist in an ESM module scope: without tsup's `shims` this import throws
+# ReferenceError instead of reporting the peer as absent.
+NODE_OPTIONS="" node --input-type=module -e "
+import { createSumsubNativeSource, loadSumsubSdk } from '@blinkbitcoin/kyc-sumsub/react-native';
+if (typeof createSumsubNativeSource !== 'function') process.exit(1);
+if (loadSumsubSdk() !== null) process.exit(1);
+console.log('pack smoke: ESM import of /react-native works with no optional peer installed');
+"
 echo "PACK SMOKE PASSED"
