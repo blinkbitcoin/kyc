@@ -133,6 +133,10 @@ describe('renderSumsubPage', () => {
     expect(hostile).toContain('\\u003c/script');
   });
 
+  it('passes the session locale to the SDK', () => {
+    expect(renderSumsubPage({ ...sumsubParams, locale: 'fr-FR' })).toContain('lang: "fr-FR"');
+  });
+
   it('defaults the SDK language to en when no locale is given', () => {
     const { locale, ...withoutLocale } = sumsubParams;
     void locale;

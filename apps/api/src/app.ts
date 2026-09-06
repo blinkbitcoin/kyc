@@ -141,6 +141,7 @@ export const createApp = async (): Promise<express.Express> => {
           sessionId: session.id,
           provider: session.provider,
           accessToken,
+          locale: session.locale ?? undefined,
           applicantId: session.providerApplicantId ?? undefined,
           nonce,
           ...(session.provider === 'mock' && {

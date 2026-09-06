@@ -57,7 +57,7 @@ describe('verification session (E2E)', () => {
   it('creates a session, persists it and audits it', async () => {
     const res = await call(
       START,
-      { input: { platform: 'IOS', levelName: 'basic-kyc-level', locale: 'en' } },
+      { input: { platform: 'IOS', levelName: 'basic-kyc-level', locale: 'en-US' } },
       'user-1'
     );
 
@@ -75,10 +75,17 @@ describe('verification session (E2E)', () => {
       provider: 'mock',
       platform: 'IOS',
       levelName: 'basic-kyc-level',
+      locale: 'en-US',
       status: 'initial',
       providerApplicantId: session.applicantId,
     });
     expect(await auditActions(session.sessionId)).toEqual(['session_created']);
+  });
+
+  it('rejects a locale that is not a language or language-region tag', async () => {
+    const res = await call(START, { input: { platform: 'WEB', locale: 'english' } }, 'user-1');
+    expect(res.body.errors[0].extensions.code).toBe('VALIDATION_ERROR');
+    expect(await knex('VerificationSession').count({ count: '*' })).toEqual([{ count: '0' }]);
   });
 
   it('refreshes the access token and audits it', async () => {

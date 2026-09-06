@@ -23,6 +23,7 @@ export interface VerificationSessionRow {
   provider: string;
   providerApplicantId: string | null;
   levelName: string | null;
+  locale: string | null;
   platform: string;
   status: VerificationStatus;
   createdAt: Date;
@@ -34,6 +35,7 @@ export interface CreateSessionData {
   provider: string;
   platform: VerificationPlatform;
   levelName?: string;
+  locale?: string;
   providerApplicantId?: string;
 }
 
@@ -48,6 +50,7 @@ export const createSession = async (
       provider: data.provider,
       platform: data.platform,
       levelName: data.levelName ?? null,
+      locale: data.locale ?? null,
       providerApplicantId: data.providerApplicantId ?? null,
       status: 'initial',
     })

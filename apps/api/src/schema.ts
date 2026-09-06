@@ -24,6 +24,14 @@ export { typeDefs } from './typeDefs';
 export const MAX_LEVEL_NAME_LENGTH = 100;
 export const MAX_LOCALE_LENGTH = 35; // RFC 5646 language tags stay well under this
 
+/**
+ * The locale shapes we accept and hand to a provider SDK: a two-letter
+ * language, optionally with a two-letter region ("en", "en-US"). Deliberately
+ * narrower than RFC 5646 - it goes into the hosted page's SDK config, so the
+ * accepted set is bounded rather than "whatever the client sent".
+ */
+export const LOCALE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
+
 const requireUserId = (context: GraphQLContext): string => {
   if (!context.userId) {
     throw Errors.unauthorized();
@@ -87,26 +95,36 @@ export const resolvers = {
 
       let status: VerificationStatus = session.status;
 
-      // A session can exist before the provider knows an applicant (Sumsub
-      // mints tokens per external user id). Until the first webhook binds an
-      // applicant id, ask a provider that supports user lookup - webhooks
-      // remain the source of truth for everything else.
-      if (
-        !session.providerApplicantId &&
-        !TERMINAL_STATUSES.has(status) &&
-        supportsUserStatusLookup(provider)
-      ) {
+      // Self-heal a non-terminal session against the provider. Once an
+      // applicant id is bound we ask about that applicant directly; before
+      // that (a Sumsub session mints tokens per external user id, so the
+      // applicant does not exist yet) we fall back to the optional
+      // user-id lookup. Webhooks remain the source of truth - this only
+      // repairs a session whose webhook was lost or is still in flight.
+      const lookupProviderStatus = async (): Promise<VerificationStatus | null> => {
+        if (session.providerApplicantId) {
+          return provider.getStatus(session.providerApplicantId);
+        }
+        return supportsUserStatusLookup(provider)
+          ? provider.getStatusByUserId(session.userId)
+          : null;
+      };
+
+      if (!TERMINAL_STATUSES.has(status)) {
         try {
-          const providerStatus = await provider.getStatusByUserId(session.userId);
+          const providerStatus = await lookupProviderStatus();
           // Applied through the SAME conditional write the webhook path uses:
           // the terminal guard is part of the UPDATE and the audit row shares
           // its transaction, so a lookup racing an in-flight webhook can
           // never bypass the state machine.
-          const transition = await applyStatusTransition(session.id, providerStatus, 'api');
-          status = transition.session.status;
+          if (providerStatus) {
+            const transition = await applyStatusTransition(session.id, providerStatus, 'api');
+            status = transition.session.status;
+          }
         } catch (error) {
-          // Reconciliation is best effort: report what we have.
-          console.error(
+          // Reconciliation is best effort: keep the stored status and answer
+          // the client with it rather than failing the query.
+          console.warn(
             'Verification status reconciliation failed:',
             errorCodeOf(error) ?? 'UNKNOWN_ERROR'
           );
@@ -135,6 +153,9 @@ export const resolvers = {
       }
       const levelName = optionalText(input.levelName, 'levelName', MAX_LEVEL_NAME_LENGTH);
       const locale = optionalText(input.locale, 'locale', MAX_LOCALE_LENGTH);
+      if (locale !== undefined && !LOCALE_PATTERN.test(locale)) {
+        throw Errors.validationError('locale must look like "en" or "en-US"');
+      }
       const providerName = getProviderName();
 
       // Persist first: a session row is what makes a provider failure
@@ -143,7 +164,7 @@ export const resolvers = {
       try {
         session = await knex.transaction(async (trx) => {
           const created = await createSession(
-            { userId, provider: providerName, platform: input.platform, levelName },
+            { userId, provider: providerName, platform: input.platform, levelName, locale },
             trx
           );
           await logAuditEvent(

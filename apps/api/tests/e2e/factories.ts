@@ -10,6 +10,7 @@ export const createTestSession = async (
     provider: string;
     providerApplicantId: string | null;
     levelName: string | null;
+    locale: string | null;
     platform: string;
     status: string;
     createdAt: Date;
@@ -25,6 +26,7 @@ export const createTestSession = async (
           ? `mock-applicant-${randomUUID()}`
           : overrides.providerApplicantId,
       levelName: overrides.levelName ?? null,
+      locale: overrides.locale ?? null,
       platform: overrides.platform ?? 'WEB',
       status: overrides.status ?? 'initial',
       ...(overrides.createdAt && { createdAt: overrides.createdAt }),

@@ -11,6 +11,7 @@ export async function up(knex: Knex): Promise<void> {
       table.text('provider').notNullable();
       table.text('providerApplicantId').nullable().unique();
       table.text('levelName').nullable();
+      table.text('locale').nullable();
       table.text('platform').notNullable();
       table.text('status').notNullable();
       table.timestamp('createdAt', { precision: 3 }).notNullable().defaultTo(knex.fn.now());

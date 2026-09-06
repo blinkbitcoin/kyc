@@ -23,6 +23,7 @@ const row = {
   provider: 'mock',
   providerApplicantId: null,
   levelName: null,
+  locale: null,
   platform: 'WEB',
   status: 'initial',
   createdAt: new Date('2026-09-06T00:00:00.000Z'),
@@ -47,20 +48,29 @@ describe('VerificationSession repository', () => {
         provider: 'mock',
         platform: 'WEB',
         levelName: 'basic',
+        locale: 'en-US',
         providerApplicantId: 'mock-applicant-1',
       });
 
       expect(created).toEqual(row);
       const [insert] = tracker.history.insert;
       expect(insert.bindings).toEqual(
-        expect.arrayContaining(['user-1', 'mock', 'WEB', 'basic', 'mock-applicant-1', 'initial'])
+        expect.arrayContaining([
+          'user-1',
+          'mock',
+          'WEB',
+          'basic',
+          'en-US',
+          'mock-applicant-1',
+          'initial',
+        ])
       );
       expect(insert.bindings[0]).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
       );
     });
 
-    it('accepts a session with no level name and no applicant id yet', async () => {
+    it('accepts a session with no level name, locale or applicant id yet', async () => {
       tracker.on.insert('VerificationSession').response([row]);
       await createSession({ userId: 'user-1', provider: 'sumsub', platform: 'IOS' });
       expect(tracker.history.insert[0].bindings).toEqual(expect.arrayContaining([null]));

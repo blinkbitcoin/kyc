@@ -41,6 +41,14 @@ Knex/Postgres).
   `VALIDATION_ERROR`.
 - The audit log (`src/audit.ts`) passes metadata through a key allow-list;
   applicant data never reaches it, nor the tracing spans.
+- `locale` from `verificationSessionStart` is persisted on the session and
+  drives the hosted page's SDK language; accepted shapes are `en` and
+  `en-US`.
+- A non-terminal session self-heals on `verificationSession`: bound sessions
+  ask the provider about their applicant, unbound ones use the optional
+  user-id lookup, and the answer is applied through the same conditional
+  write the webhook path uses. A provider failure leaves the stored status
+  untouched.
 - The hosted page's session id is a bearer capability: it is handed to one
   client, the page is `no-store`, and its token is minted per render.
 

@@ -44,6 +44,7 @@ const row = (over: Record<string, unknown> = {}) => ({
   provider: 'mock',
   providerApplicantId: 'mock-applicant-1',
   levelName: null,
+  locale: null,
   platform: 'WEB',
   status: 'initial',
   createdAt: new Date(),
@@ -97,6 +98,9 @@ describe('Mutation.verificationSessionStart', () => {
     [{ platform: 'WEB', levelName: '   ' }, /levelName/],
     [{ platform: 'WEB', levelName: 'x'.repeat(101) }, /levelName/],
     [{ platform: 'WEB', locale: 'x'.repeat(36) }, /locale/],
+    [{ platform: 'WEB', locale: 'EN' }, /locale/],
+    [{ platform: 'WEB', locale: 'en_US' }, /locale/],
+    [{ platform: 'WEB', locale: 'english' }, /locale/],
   ])('rejects invalid input %j', async (input, message) => {
     await expect(start(input)).rejects.toMatchObject({
       extensions: { code: 'VALIDATION_ERROR' },
@@ -116,7 +120,7 @@ describe('Mutation.verificationSessionStart', () => {
     });
 
     expect(session.createSession).toHaveBeenCalledWith(
-      { userId: 'user-1', provider: 'mock', platform: 'IOS', levelName: 'basic' },
+      { userId: 'user-1', provider: 'mock', platform: 'IOS', levelName: 'basic', locale: 'en' },
       knex
     );
     expect(audit.logAuditEvent).toHaveBeenCalledWith(
@@ -131,6 +135,14 @@ describe('Mutation.verificationSessionStart', () => {
       locale: 'en',
     });
     expect(session.bindApplicantId).toHaveBeenCalledWith('session-1', 'mock-applicant-1');
+  });
+
+  it('accepts a language-region locale and persists it', async () => {
+    await start({ platform: 'WEB', locale: 'en-US' });
+    expect(session.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: 'en-US' }),
+      knex
+    );
   });
 
   it('omits the applicant id when the provider does not know one yet', async () => {
@@ -301,6 +313,29 @@ describe('Query.verificationSession', () => {
     delete (provider as { getStatusByUserId?: unknown }).getStatusByUserId;
   });
 
+  it('reconciles a bound session through getStatus(applicantId)', async () => {
+    vi.mocked(session.getSessionByIdForUser).mockResolvedValue(row({ status: 'pending' }) as never);
+    vi.mocked(session.applyStatusTransition).mockResolvedValue(transition('approved'));
+    vi.mocked(provider.getStatus).mockResolvedValue('approved');
+
+    await expect(query('session-1')).resolves.toMatchObject({ status: 'approved' });
+    expect(provider.getStatus).toHaveBeenCalledWith('mock-applicant-1');
+    expect(session.applyStatusTransition).toHaveBeenCalledWith('session-1', 'approved', 'api');
+  });
+
+  it('keeps the stored status when the bound lookup fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.mocked(session.getSessionByIdForUser).mockResolvedValue(row({ status: 'pending' }) as never);
+    vi.mocked(provider.getStatus).mockRejectedValue(new Error('provider down'));
+
+    await expect(query('session-1')).resolves.toMatchObject({ status: 'pending' });
+    expect(session.applyStatusTransition).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(
+      'Verification status reconciliation failed:',
+      'UNKNOWN_ERROR'
+    );
+  });
+
   it('reconciles by user id while no applicant is bound and the provider can look up by user', async () => {
     vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
       row({ providerApplicantId: null, status: 'initial' }) as never
@@ -343,6 +378,7 @@ describe('Query.verificationSession', () => {
     vi.mocked(session.getSessionByIdForUser).mockResolvedValue(
       row({ providerApplicantId: null, status: 'initial' }) as never
     );
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     (provider as { getStatusByUserId?: unknown }).getStatusByUserId = vi.fn(async () => {
       throw new Error('provider down');
     });
