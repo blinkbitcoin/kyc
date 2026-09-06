@@ -6,7 +6,7 @@ describe('demo App', () => {
     render(<App />);
     expect(screen.getByTestId('app-ready').textContent).toBe('KYC demo');
     expect(screen.getByTestId('package-name').textContent).toBe(
-      '@blinkbitcoin/kyc-react (bootstrap)',
+      '@blinkbitcoin/kyc-react',
     );
     expect(screen.getByTestId('kyc-mode').textContent).toBe('mode: hosted');
   });
