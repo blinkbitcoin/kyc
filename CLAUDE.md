@@ -7,18 +7,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Identity verification (KYC) integration monorepo (npm workspaces). The
 **backend service** is the main deliverable together with the **publishable
 React Native and React web libraries**; the demo apps exist for manual and
-E2E testing. **Status:** core, backend, the Sumsub adapters and the React
-Native package are implemented; the React web package, the demos and the
-E2E flows land phase by phase (see
+E2E testing. **Status:** core, the backend, the Sumsub adapters and both
+platform packages are implemented; the demos and the E2E flows land phase by
+phase (see
 [the design](docs/superpowers/specs/2026-09-05-kyc-design.md)).
 
 | Workspace | Path | Role |
 |-----------|------|------|
 | `backend` | `apps/api/` | Express 5 + Apollo Server 5 GraphQL API, Knex/PostgreSQL; verification session/token issuance, provider port (mock + Sumsub), signed webhooks and the hosted verification page |
-| `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: `VerificationSource` + capability guards, `kyc-bridge` protocol, hosted + proxy sources, Apollo client factory, GraphQL operations, `ErrorCode` contract (no React/DOM). Entries: `.`, `/hosted` (Apollo-free), `/testing` (fake source) |
+| `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: the shared verification state machine, `VerificationSource` + capability guards, `kyc-bridge` protocol, hosted + proxy sources, Apollo client factory, GraphQL operations, `ErrorCode` contract (no React/DOM). Entries: `.`, `/hosted` (Apollo-free), `/testing` (fake source) |
 | `@blinkbitcoin/kyc-sumsub` | `packages/kyc-sumsub/` | Sumsub adapters. Root entry = the only Sumsub↔normalized mapping (used by `apps/api` too); `/react-native` = `createSumsubNativeSource` over the Mobile SDK; `/web` = reserved placeholder (no web-SDK adapter in v1) |
 | `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `Verification` component + `useVerification` hook + `HostedWebView` (hardened WebView, camera capture granted, origin-pinned). Entries: `.`, `/hosted` (Apollo-free) |
-| `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Publishable React **web** library: `Verification` component + `useVerification` (iframe for hosted mode) over core |
+| `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Publishable React **web** library: `Verification` component + `useVerification` hook + `HostedFrame` (origin-pinned iframe, camera/microphone delegated) and the `MountableSource` seam. Single entry. |
 | `kyc-react-native-example` | `examples/react-native-demo/` | RN demo app hosting the RN library (Maestro E2E target) |
 | `kyc-react-example` | `examples/react-demo/` | Vite web demo hosting the web library (`make web`) |
 
@@ -70,7 +70,7 @@ npm run test:e2e:backend     # Backend E2E (needs: docker compose -f docker-comp
 npm run test:e2e             # Maestro mobile E2E (needs backend + simulator/emulator)
 ```
 
-Single test file: `npm test -w @blinkbitcoin/kyc-react-native -- useVerification` or
+Single test file: `npm test -w @blinkbitcoin/kyc-react -- useVerification` or
 `npm test -w apps/api -- tests/schema.test.ts`.
 
 ## Backend specifics
@@ -103,9 +103,12 @@ npm run migrate:test         # Same against the .env.test database
 
 ## Library specifics
 
-- Public API is `src/index.ts`. Each platform library re-exports
-  `@blinkbitcoin/kyc-core` today; the `Verification` component +
-  `useVerification` land with the RN/web phases.
+- Public API is `src/index.ts`. Each platform library ships `Verification` +
+  `useVerification` over its own embedding primitive (hardened WebView on RN,
+  origin-pinned iframe on the web) and re-exports `@blinkbitcoin/kyc-core`.
+  The state machine those hooks run is in core (`src/verification/machine.ts`)
+  so the two platforms cannot drift; `HTMLElement` stays out of core, which
+  is why `MountableSource` lives in `packages/kyc-react`.
 - No URLs, tokens, or platform detection in the library - that's host-app
   (demo) wiring.
 - **Provider-agnostic**: `Verification` takes a `VerificationSource` (not

@@ -21,6 +21,7 @@
 | [superpowers/specs/2026-09-05-kyc-design.md](./superpowers/specs/2026-09-05-kyc-design.md) | The approved design this repo implements, phase by phase |
 | [../packages/kyc-core/README.md](../packages/kyc-core/README.md) | The core package's three entries (`.`, `/hosted`, `/testing`), the bridge protocol and the error-code split |
 | [../packages/kyc-react-native/README.md](../packages/kyc-react-native/README.md) | The React Native package: three modes, permission setup, `Verification` props, the `useVerification` hook |
+| [../packages/kyc-react/README.md](../packages/kyc-react/README.md) | The React web package: hosted + proxy modes, the iframe/CSP/Permissions-Policy requirements, origin pinning, `Verification` props |
 
 The rest of `integration/` (consumer docs) and `architecture/` (internals)
 are written with the phases that introduce them.
