@@ -152,8 +152,7 @@ Step-by-step: [docs/releasing.md](docs/releasing.md).
   A release ships only once the commit's push-to-`main` run is green: the
   release run waits for an in-flight main run and refuses a red one, and
   the `Release` workflow's retry job re-runs the blocked Publish automatically
-  when main
-  turns green (re-run a flaky job with `gh run rerun <id> --failed`).
+  when main turns green (re-run a flaky job with `gh run rerun <id> --failed`).
   So merging the release PR is fire-and-forget.
 - **Release candidate**: `make release-rc V=X.Y.Z-rc.1` hand-cuts a
   prerelease-suffixed tag that ships under `next`.

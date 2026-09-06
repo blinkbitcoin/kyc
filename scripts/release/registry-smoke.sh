@@ -5,7 +5,7 @@
 # its tree from, so npm installs the optional Apollo peer as if required.
 # Nothing in the tarball can change that (pack-smoke.sh proves the tarball is
 # right), so the contract asserted is the one the registry can deliver:
-#   1. a default install never LOADS Apollo through /webform
+#   1. a default install never LOADS Apollo through /hosted
 #   2. `--omit=peer` yields the documented Apollo-free install
 # Usage: registry-smoke.sh <version>. Needs npm configured for the
 # @blinkbitcoin scope (setup-node registry-url in CI; ~/.npmrc locally).

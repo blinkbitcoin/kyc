@@ -86,4 +86,4 @@ The real Sumsub sandbox is deliberately **not** in CI: it is a manual checklist,
 
 ## Shared dependencies
 
-`@blinkbitcoin/kyc-core` (all three packages), `graphql` pinned to 16.x, `@apollo/client` 4 as an optional peer, TypeScript 6, and a single root `package-lock.json` for every workspace.
+`@blinkbitcoin/kyc-core` (the other three packages), `graphql` pinned to 16.x, `@apollo/client` 4 as an optional peer, TypeScript 6, and a single root `package-lock.json` for every workspace.
