@@ -116,7 +116,9 @@ kyc/
 │
 └── 🔧 TOOLING
     ├── Makefile , packages/Makefile , apps/Makefile , examples/Makefile
-    ├── scripts/{ci,e2e,release}/ , scripts/assemble-diagrams.mjs
+    ├── scripts/                     # the `tooling` npm workspace; pure logic in scripts/lib/*.mjs, Vitest-covered at 100% ⭐
+    │   ├── {ci,e2e,release}/ , assemble-diagrams.mjs , coverage-badge.mjs
+    │   └── lib/*.mjs                # extracted, unit-tested logic behind the CLI entry scripts
     ├── .github/workflows/           # ci → checks / test / e2e, then badges, publish, verify
     └── flake.nix , .envrc , lefthook.yml , biome.json , eslint.config.js
 ```

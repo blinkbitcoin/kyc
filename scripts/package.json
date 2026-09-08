@@ -1,0 +1,9 @@
+{
+  "name": "tooling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  }
+}
