@@ -33,6 +33,12 @@ const SHA =
 const OUT = process.env.GITHUB_OUTPUT;
 const DRY_RUN = process.env.DRY_RUN;
 
+function shortSha(sha) {
+  return execFileSync('git', ['rev-parse', '--short', sha], {
+    encoding: 'utf8',
+  }).trim();
+}
+
 function isOnMain(sha) {
   try {
     execFileSync('git', ['merge-base', '--is-ancestor', sha, 'origin/main'], {
@@ -63,6 +69,7 @@ try {
     tag: TAG,
     run: RUN,
     sha: SHA,
+    shortSha: EVENT === 'release' ? undefined : shortSha(SHA),
     latestTag: EVENT === 'release' ? undefined : latestTag(),
     onMain:
       EVENT === 'release' && parseVersionTag(TAG) ? isOnMain(SHA) : undefined,

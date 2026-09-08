@@ -163,7 +163,9 @@ describe('aggregate', () => {
         },
       ]),
     ).toThrowError(
-      new BadgeError('coverage-badge: no lines measured at all - refusing to render'),
+      new BadgeError(
+        'coverage-badge: no lines measured at all - refusing to render',
+      ),
     );
   });
 });

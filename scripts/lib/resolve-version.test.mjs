@@ -48,7 +48,7 @@ describe('resolveVersion', () => {
         }),
       ).toThrowError(
         new ResolveVersionError(
-          "::error::release commit abcdef1 is not on main - use `gh release create --target main`",
+          '::error::release commit abcdef1 is not on main - use `gh release create --target main`',
         ),
       );
     });
@@ -86,6 +86,18 @@ describe('resolveVersion', () => {
           latestTag: 'v1.2.3-rc.1',
         }),
       ).toEqual({ version: '1.2.4-pre.7.0011223', disttag: 'next' });
+    });
+
+    it('uses an explicit shortSha instead of slicing the sha', () => {
+      expect(
+        resolveVersion({
+          event: 'push',
+          run: '12',
+          sha: '0123456789abcdef0123456789abcdef01234567',
+          shortSha: '0123456789',
+          latestTag: 'v1.2.3',
+        }),
+      ).toEqual({ version: '1.2.4-pre.12.0123456789', disttag: 'next' });
     });
 
     it('substitutes run and the first 7 sha characters', () => {

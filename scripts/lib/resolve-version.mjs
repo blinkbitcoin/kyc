@@ -17,13 +17,24 @@ export class ResolveVersionError extends Error {}
  *   defaults a missing env var to '' the way the shell's `${TAG:-}` did
  * @param {string | number} params.run - CI run number (push event only)
  * @param {string} params.sha - commit SHA (full or short)
+ * @param {string} [params.shortSha] - abbreviated SHA for the prerelease
+ *   suffix (the CLI passes `git rev-parse --short`); defaults to the first 7
+ *   characters of `sha`
  * @param {string | null | undefined} params.latestTag - latest `v*` tag, or
  *   null/undefined when there is none yet (defaults to 'v0.0.0')
  * @param {boolean} params.onMain - whether `sha` is an ancestor of
  *   origin/main (release event only)
  * @returns {{ version: string, disttag: 'latest' | 'next' }}
  */
-export function resolveVersion({ event, tag, run, sha, latestTag, onMain }) {
+export function resolveVersion({
+  event,
+  tag,
+  run,
+  sha,
+  shortSha,
+  latestTag,
+  onMain,
+}) {
   if (event === 'release') {
     const parsed = parseVersionTag(tag);
     if (!parsed) {
@@ -44,6 +55,6 @@ export function resolveVersion({ event, tag, run, sha, latestTag, onMain }) {
 
   const latest = (latestTag ?? 'v0.0.0').replace(/^v/, '').replace(/-.*$/, '');
   const [major, minor, patch] = latest.split('.');
-  const version = `${major}.${minor}.${Number(patch) + 1}-pre.${run}.${sha.slice(0, 7)}`;
+  const version = `${major}.${minor}.${Number(patch) + 1}-pre.${run}.${shortSha ?? sha.slice(0, 7)}`;
   return { version, disttag: 'next' };
 }
