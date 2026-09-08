@@ -85,7 +85,8 @@ kyc/
 │       │   │   └── sumsub/{index,client,config}.ts
 │       │   ├── session.ts / audit.ts
 │       │   ├── webhook.ts           # applyStatusTransition's caller; the terminal guard itself lives in session.ts ⭐
-│       │   ├── verificationPages.ts # Hosted HTML + CSP + bridge script ⭐
+│       │   ├── verificationPages.ts # Hosted HTML + CSP; consumes the bridge ⭐
+│       │   ├── hosted/bridgeScript.ts # The kyc-bridge page script, behaviour-tested ⭐
 │       │   ├── config.ts / signature.ts / auth.ts
 │       │   └── tracing.ts / instrumentation.ts
 │       ├── migrations/              # Knex, TypeScript

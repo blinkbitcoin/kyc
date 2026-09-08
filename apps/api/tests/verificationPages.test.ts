@@ -7,6 +7,7 @@ import {
   SUMSUB_REVIEW_STATUSES,
 } from '@blinkbitcoin/kyc-sumsub';
 
+import { BRIDGE_SCRIPT } from '../src/hosted/bridgeScript';
 import {
   BRIDGE_PROTOCOL_VERSION,
   BRIDGE_SOURCE,
@@ -140,14 +141,10 @@ describe('renderSumsubPage', () => {
     expect(html).not.toContain('PROVIDER_ERROR');
   });
 
-  it('emits versioned kyc-bridge envelopes over both transports', () => {
-    // The envelope is built from the declared constants, not from literals,
-    // so the pin test above is what keeps the page and kyc-core in step.
-    expect(html).toContain(`var BRIDGE_SOURCE = '${BRIDGE_SOURCE}';`);
-    expect(html).toContain(`var BRIDGE_VERSION = ${BRIDGE_PROTOCOL_VERSION};`);
-    expect(html).toContain('{ source: BRIDGE_SOURCE, v: BRIDGE_VERSION, type: type }');
-    expect(html).toContain('window.ReactNativeWebView.postMessage');
-    expect(html).toContain('window.parent.postMessage');
+  it('inlines the shared bridge inside the nonced script block', () => {
+    // What the bridge then DOES is bridgeScript.test.ts's job; here the page
+    // only has to carry it, unmodified, under its own nonce.
+    expect(html).toContain(`<script nonce="${NONCE}">${BRIDGE_SCRIPT}`);
   });
 
   it('escapes the line terminators that are legal in JSON but not in a script', () => {
@@ -160,10 +157,12 @@ describe('renderSumsubPage', () => {
     expect(hostile).toContain('\\u2029');
   });
 
-  it('installs window.__kycBridge.setToken and a setToken message listener', () => {
-    expect(html).toContain('window.__kycBridge');
-    expect(html).toContain('setToken');
-    expect(html).toContain("addEventListener('message'");
+  it('resolves the SDK token-expiration promise from a refreshed token', () => {
+    // The page's own consumer of the bridge: the SDK asks for a token, the
+    // page posts tokenExpired, and the host's answer lands here.
+    expect(html).toContain('window.__kycBridge.setToken = function (value) {');
+    expect(html).toContain('window.__kycBridge.readToken(value)');
+    expect(html).toContain("window.__kycBridge.post('tokenExpired')");
   });
 
   it('escapes a hostile token instead of breaking out of the script', () => {
@@ -255,12 +254,11 @@ describe('renderMockPage', () => {
     expect(html).toContain('X-Mock-Signature');
   });
 
-  it('emits the same bridge envelopes as the Sumsub page', () => {
-    expect(html).toContain('{ source: BRIDGE_SOURCE, v: BRIDGE_VERSION, type: type }');
-    expect(html).toContain("post('cancel')");
-    expect(html).toContain("post('tokenExpired')");
-    expect(html).toContain("post('error'");
-    expect(html).toContain('window.__kycBridge');
+  it('drives the same bridge as the Sumsub page, over the mock controls', () => {
+    expect(html).toContain(`<script nonce="${NONCE}">${BRIDGE_SCRIPT}`);
+    expect(html).toContain("window.__kycBridge.post('cancel')");
+    expect(html).toContain("window.__kycBridge.post('tokenExpired')");
+    expect(html).toContain("window.__kycBridge.post('error'");
   });
 
   it('acknowledges a refreshed token in the DOM and stays interactive', () => {
@@ -269,7 +267,10 @@ describe('renderMockPage', () => {
     // would end the flow instead of resuming it. The E2E flows read the
     // dataset flag / the visible paragraph and then press Approve or Decline.
     const setToken = html
-      .slice(html.indexOf('window.__kycBridge.setToken'), html.indexOf('function notify('))
+      .slice(
+        html.indexOf('window.__kycBridge.setToken = function'),
+        html.indexOf('function notify(')
+      )
       // The handler's own comments explain what it must NOT do, so the
       // negative assertions below judge the code alone.
       .split('\n')
@@ -306,7 +307,7 @@ describe('renderMockPage', () => {
       expect(page).not.toContain('unknown');
       expect(page).not.toContain('Applicant');
       expect(page).toContain('var applicantId = null;');
-      expect(page).toContain("if (applicantId) { post('applicantLoaded'");
+      expect(page).toContain("if (applicantId) { window.__kycBridge.post('applicantLoaded'");
     }
   );
 
@@ -335,7 +336,7 @@ describe('renderVerificationPage', () => {
 describe('renderNotFoundPage', () => {
   it('emits a sessionExpired envelope so a waiting host stops spinning', () => {
     const html = renderNotFoundPage(NONCE);
-    expect(html).toContain("post('sessionExpired')");
-    expect(html).toContain(`nonce="${NONCE}"`);
+    expect(html).toContain(`<script nonce="${NONCE}">${BRIDGE_SCRIPT}`);
+    expect(html).toContain("window.__kycBridge.post('sessionExpired')");
   });
 });

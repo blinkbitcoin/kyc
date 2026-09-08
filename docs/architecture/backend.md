@@ -46,7 +46,8 @@ VerificationProvider (mock | sumsub)  ──►  Sumsub REST
 | `src/providers/index.ts` | `KYC_PROVIDER` selection, fail-closed for `sumsub` |
 | `src/session.ts` / `src/audit.ts` | Repositories, including `applyStatusTransition`/`canTransition` and the metadata allow-list |
 | `src/webhook.ts` | `handleWebhookEvent` and the terminal-state guard |
-| `src/verificationPages.ts` | The hosted HTML: CSP, the bridge script, the Sumsub page, the mock page, the not-found page |
+| `src/verificationPages.ts` | The hosted HTML: CSP, the Sumsub page, the mock page, the not-found page - each a consumer of `window.__kycBridge` |
+| `src/hosted/bridgeScript.ts` | The `kyc-bridge` page script itself (`post`, `readToken`, the inbound `setToken` listener), run against fake windows in `tests/bridgeScript.test.ts` |
 | `src/config.ts` | `validateSecurityConfig`, CORS origins, `PUBLIC_BASE_URL` helpers |
 | `src/signature.ts` | Hex HMAC helpers and fail-closed `verifyHexDigest` |
 | `src/tracing.ts` / `src/instrumentation.ts` | `withSpan`, `withSpanSync`, `instrumentProvider`, OTel bootstrap |

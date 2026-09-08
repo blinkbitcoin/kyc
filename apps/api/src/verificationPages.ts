@@ -3,9 +3,9 @@
 // apps/api/src/signingPages.ts; the protocol is the one
 // @blinkbitcoin/kyc-core's interpretBridgeMessage reads.
 //
-// apps/api does not depend on kyc-core, so BRIDGE_SOURCE and
-// BRIDGE_PROTOCOL_VERSION are duplicated here and pinned by
-// tests/verificationPages.test.ts.
+// The bridge itself is src/hosted/bridgeScript.ts: this module renders the
+// pages that consume it and re-exports its two protocol constants, which
+// tests/verificationPages.test.ts pins against kyc-core's.
 //
 // The Sumsub status rules are NOT duplicated: mapSumsubStatus comes from
 // @blinkbitcoin/kyc-sumsub, and the page gets a JSON table generated from it
@@ -23,8 +23,9 @@ import {
   SUMSUB_REVIEW_STATUSES,
 } from '@blinkbitcoin/kyc-sumsub';
 
-export const BRIDGE_SOURCE = 'kyc-bridge';
-export const BRIDGE_PROTOCOL_VERSION = 1;
+import { BRIDGE_SCRIPT } from './hosted/bridgeScript';
+
+export { BRIDGE_PROTOCOL_VERSION, BRIDGE_SOURCE } from './hosted/bridgeScript';
 
 export const SUMSUB_SDK_URL = 'https://static.sumsub.com/idensic/static/sns-websdk-builder.js';
 
@@ -88,44 +89,6 @@ const jsonForScript = (value: unknown): string =>
     .replace(/</g, '\\u003c')
     .replace(/\u2028/g, '\\u2028')
     .replace(/\u2029/g, '\\u2029');
-
-/**
- * Shared bridge emitter. Outbound: React Native first, then the iframe
- * parent. Inbound: window.__kycBridge.setToken(tokenOrEnvelope) for
- * react-native-webview's injectJavaScript, plus a postMessage listener for
- * the web host - both accept the { source, v, type: 'setToken', token }
- * envelope that kyc-core's createSetTokenMessage builds, or a bare string.
- */
-const BRIDGE_SCRIPT = `
-    var BRIDGE_SOURCE = '${BRIDGE_SOURCE}';
-    var BRIDGE_VERSION = ${BRIDGE_PROTOCOL_VERSION};
-    function post(type, payload) {
-      var message = { source: BRIDGE_SOURCE, v: BRIDGE_VERSION, type: type };
-      if (payload) { message.payload = payload; }
-      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-        window.ReactNativeWebView.postMessage(JSON.stringify(message));
-      } else if (window.parent && window.parent !== window) {
-        window.parent.postMessage(message, '*');
-      }
-    }
-    function readToken(value) {
-      if (typeof value === 'string') { return value; }
-      if (value && typeof value === 'object' && typeof value.token === 'string') {
-        return value.token;
-      }
-      return null;
-    }
-    window.__kycBridge = window.__kycBridge || {};
-    window.addEventListener('message', function (event) {
-      var data = event.data;
-      if (typeof data === 'string') {
-        try { data = JSON.parse(data); } catch (e) { return; }
-      }
-      if (!data || data.source !== BRIDGE_SOURCE || data.v !== BRIDGE_VERSION) { return; }
-      if (data.type === 'setToken' && window.__kycBridge.setToken) {
-        window.__kycBridge.setToken(data);
-      }
-    });`;
 
 /** What mapSumsubStatus returns for a review status it does not know. */
 export const SUMSUB_STATUS_FALLBACK = 'initial';
@@ -245,7 +208,7 @@ export const renderSumsubPage = ({
     var awaitingToken = null;
 
     window.__kycBridge.setToken = function (value) {
-      var token = readToken(value);
+      var token = window.__kycBridge.readToken(value);
       if (token && awaitingToken) {
         var resolve = awaitingToken;
         awaitingToken = null;
@@ -256,7 +219,7 @@ export const renderSumsubPage = ({
     // The SDK asks for a fresh token when the current one expires; the host
     // app answers by calling window.__kycBridge.setToken.
     function expirationHandler() {
-      post('tokenExpired');
+      window.__kycBridge.post('tokenExpired');
       return new Promise(function (resolve) { awaitingToken = resolve; });
     }
 
@@ -264,16 +227,16 @@ export const renderSumsubPage = ({
       payload = payload || {};
       if (type === 'idCheck.onApplicantLoaded') {
         applicantId = payload.applicantId || applicantId;
-        if (applicantId) { post('applicantLoaded', { applicantId: applicantId }); }
+        if (applicantId) { window.__kycBridge.post('applicantLoaded', { applicantId: applicantId }); }
         return;
       }
       if (type === 'idCheck.onApplicantSubmitted' ||
-          type === 'idCheck.onApplicantResubmitted') { post('submitted'); return; }
+          type === 'idCheck.onApplicantResubmitted') { window.__kycBridge.post('submitted'); return; }
       if (type === 'idCheck.onApplicantStatusChanged') {
         var status = mapStatus(payload.reviewStatus, payload.reviewResult);
-        post('statusChanged', { status: status });
+        window.__kycBridge.post('statusChanged', { status: status });
         if (TERMINAL[status]) {
-          post('complete', applicantId ? { status: status, applicantId: applicantId } : { status: status });
+          window.__kycBridge.post('complete', applicantId ? { status: status, applicantId: applicantId } : { status: status });
         }
         return;
       }
@@ -288,7 +251,7 @@ export const renderSumsubPage = ({
       .withOptions({ addViewportTag: false, adaptIframeHeight: true })
       .onMessage(onMessage)
       .on('idCheck.onError', function (error) {
-        post('error', {
+        window.__kycBridge.post('error', {
           code: (error && error.code) || ${jsonForScript(SUMSUB_ERROR_CODE)},
           message: error && error.reason
         });
@@ -296,7 +259,7 @@ export const renderSumsubPage = ({
       .build()
       .launch('#sumsub-websdk-container');
 
-    post('statusChanged', { status: 'incomplete' });
+    window.__kycBridge.post('statusChanged', { status: 'incomplete' });
   </script>
 </body>
 </html>
@@ -350,7 +313,7 @@ export const renderMockPage = ({
       // resuming it. Both inbound shapes land here - the bare token React
       // Native injects and the envelope the web host posts - because
       // readToken normalizes them.
-      if (!readToken(value)) { return; }
+      if (!window.__kycBridge.readToken(value)) { return; }
       document.body.dataset.tokenRefreshed = 'true';
       if (!document.getElementById('mock-token-refreshed')) {
         var ack = document.createElement('p');
@@ -374,8 +337,8 @@ export const renderMockPage = ({
 
     function finish(which, status) {
       notify(which).then(function () {
-        post('statusChanged', { status: status });
-        post('complete', applicantId ? { status: status, applicantId: applicantId } : { status: status });
+        window.__kycBridge.post('statusChanged', { status: status });
+        window.__kycBridge.post('complete', applicantId ? { status: status, applicantId: applicantId } : { status: status });
       });
     }
 
@@ -386,16 +349,16 @@ export const renderMockPage = ({
       finish('decline', 'declined');
     });
     document.getElementById('mock-cancel').addEventListener('click', function () {
-      post('cancel');
+      window.__kycBridge.post('cancel');
     });
     document.getElementById('mock-expire').addEventListener('click', function () {
-      post('tokenExpired');
+      window.__kycBridge.post('tokenExpired');
     });
     document.getElementById('mock-error').addEventListener('click', function () {
-      post('error', { code: 'MOCK_ERROR', message: 'Simulated provider error' });
+      window.__kycBridge.post('error', { code: 'MOCK_ERROR', message: 'Simulated provider error' });
     });
 
-    if (applicantId) { post('applicantLoaded', { applicantId: applicantId }); }
+    if (applicantId) { window.__kycBridge.post('applicantLoaded', { applicantId: applicantId }); }
   </script>
 </body>
 </html>
@@ -416,7 +379,7 @@ export const renderNotFoundPage = (nonce: string): string => `<!doctype html>
     <p class="meta">Return to the app and start again.</p>
   </div>
   <script nonce="${nonce}">${BRIDGE_SCRIPT}
-    post('sessionExpired');
+    window.__kycBridge.post('sessionExpired');
   </script>
 </body>
 </html>
