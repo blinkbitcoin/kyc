@@ -98,6 +98,37 @@ describe('the bridge script installs window.__kycBridge', () => {
     expect(typeof bridge.post).toBe('function');
   });
 
+  it('merges into a bridge whose setToken is an accessor, without disturbing it', () => {
+    // Mirrors packages/kyc-react-native/src/hosted/webViewProps.ts's
+    // BRIDGE_STUB_SCRIPT: setToken is a get/set pair (a queue that flushes
+    // once the page installs its real handler), not a plain function
+    // property. `kycBridge.post = post` etc. must not replace the object or
+    // redefine that property.
+    const getter = vi.fn();
+    const setter = vi.fn();
+    const existing: Record<string, unknown> = {};
+    Object.defineProperty(existing, 'setToken', {
+      configurable: true,
+      enumerable: true,
+      get: getter,
+      set: setter,
+    });
+    const stubFn = () => {};
+    getter.mockReturnValue(stubFn);
+
+    const { window, bridge } = install({ __kycBridge: existing as Partial<BridgeApi> });
+
+    expect(window.__kycBridge).toBe(existing);
+    expect(bridge.setToken).toBe(stubFn);
+    expect(getter).toHaveBeenCalled();
+    expect(typeof bridge.post).toBe('function');
+    expect(typeof bridge.readToken).toBe('function');
+
+    const descriptor = Object.getOwnPropertyDescriptor(existing, 'setToken');
+    expect(descriptor?.get).toBe(getter);
+    expect(descriptor?.set).toBe(setter);
+  });
+
   it('listens for exactly one thing: message', () => {
     expect(install().listenedFor).toEqual(['message']);
   });

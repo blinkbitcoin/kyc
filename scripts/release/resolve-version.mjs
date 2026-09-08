@@ -15,6 +15,7 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseVersionTag } from '../lib/semver.mjs';
 import {
   ResolveVersionError,
   resolveVersion,
@@ -63,7 +64,8 @@ try {
     run: RUN,
     sha: SHA,
     latestTag: EVENT === 'release' ? undefined : latestTag(),
-    onMain: EVENT === 'release' ? isOnMain(SHA) : undefined,
+    onMain:
+      EVENT === 'release' && parseVersionTag(TAG) ? isOnMain(SHA) : undefined,
   });
 } catch (err) {
   if (err instanceof ResolveVersionError) {
