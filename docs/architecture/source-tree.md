@@ -103,6 +103,7 @@ kyc/
 │   └── examples/react-demo/         # VITE_KYC_MODE hosted|proxy
 │       ├── src/{config,apollo,source}.ts
 │       ├── vite.config.ts           # libs from source when serving, dist when building
+│       ├── vite/libraries.ts        # requireBuiltLibraries + sourceAliases, unit-tested ⭐
 │       └── e2e/                     # Playwright: launch, hosted, proxy
 │
 ├── 📚 DOCS
@@ -118,8 +119,10 @@ kyc/
 └── 🔧 TOOLING
     ├── Makefile , packages/Makefile , apps/Makefile , examples/Makefile
     ├── scripts/                     # the `tooling` npm workspace; pure logic in scripts/lib/*.mjs, Vitest-covered at 100% ⭐
-    │   ├── {ci,e2e,release}/ , assemble-diagrams.mjs , coverage-badge.mjs
-    │   └── lib/*.mjs                # extracted, unit-tested logic behind the CLI entry scripts
+    │   ├── {ci,e2e,release}/ , assemble-diagrams.mjs , coverage-badge.mjs , status-badge.mjs
+    │   │   └── release/resolve-version.mjs  # thin CLI over scripts/lib/resolve-version.mjs
+    │   ├── lib/*.mjs                # extracted, unit-tested logic behind the CLI entry scripts (semver, resolve-version, badge)
+    │   └── __tests__/*.test.mjs     # shell-script tests (changed-class.sh, docs-freshness.sh) - shell out, not V8-covered
     ├── .github/workflows/           # ci → checks / test / e2e, then badges, publish, verify
     └── flake.nix , .envrc , lefthook.yml , biome.json , eslint.config.js
 ```

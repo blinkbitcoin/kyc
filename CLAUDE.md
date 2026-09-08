@@ -56,8 +56,8 @@ underlying npm scripts:
 
 ```bash
 npm ci                       # Install all workspaces
-npm test                     # All test suites: core + sumsub + RN + web libraries, both demos (Jest), backend (Vitest)
-npm run test:coverage        # Coverage runs - 100% is the enforced baseline on packages + backend
+npm test                     # All test suites: core + sumsub + RN + web libraries, both demos (Jest), backend + scripts (Vitest)
+npm run test:coverage        # Coverage runs - 100% is the enforced baseline on packages + backend + scripts/lib
 npm run typecheck            # tsc across all workspaces
 npm run lint                 # ESLint (mobile code) + Biome lint (backend)
 npm run format               # Biome format (all workspaces)

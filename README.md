@@ -179,7 +179,7 @@ direnv allow . && direnv allow apps/api  # once per machine (loads env + the nix
 
 ```sh
 make test                                # unit suites + lint + typecheck + format check
-make coverage                            # 100% on the four packages and apps/api
+make coverage                            # 100% on the four packages, apps/api, and scripts/lib
 npm test -w @blinkbitcoin/kyc-react -- useVerification    # one suite
 ```
 
@@ -209,8 +209,9 @@ in [docs/integration/sumsub.md](docs/integration/sumsub.md).
 | `make e2e-android`<br>`make e2e-ios`<br>`make e2e-fake-native` | Maestro suites (see `make help` for the prerequisites) |
 | `make version`<br>`make release` | What CI would publish / merge the release PR release-please maintains ([docs/releasing.md](docs/releasing.md)) |
 
-Coverage is enforced at 100% on all four packages and `apps/api`, with an 80%
-floor on the demos. See [docs/development-guide.md](docs/development-guide.md)
+Coverage is enforced at 100% on all four packages, `apps/api`, and
+`scripts/lib`, with an 80% floor on the demos. See
+[docs/development-guide.md](docs/development-guide.md)
 for the full workflow and [CONTRIBUTING.md](CONTRIBUTING.md) for commit and PR
 conventions.
 

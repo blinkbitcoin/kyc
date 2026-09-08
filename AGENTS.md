@@ -37,7 +37,7 @@ the current state is [docs/index.md](docs/index.md).
 │   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native; Maestro suite (.maestro/)
 │   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy; Playwright suites (e2e/)
 ├── docs/                        # Current-state documentation (hand-maintained): architecture/, integration/, diagrams/ (sources in src/*.mmd), index.md is the map
-├── scripts/                     # ci/, e2e/, release/ shell + node used by the Makefile and CI
+├── scripts/                     # the `tooling` npm workspace: ci/, e2e/, release/ shell + node used by the Makefile and CI; lib/*.mjs is Vitest-covered at 100%, __tests__/ covers the shell scripts
 ├── Makefile                     # Root flows; apps/, packages/, examples/ and each workspace have their own
 └── package.json                 # Workspace root (orchestration scripts, single lockfile)
 ```
@@ -51,7 +51,7 @@ one-line description. The ones you will reach for:
 |--------|-------------|
 | `make install` | `npm ci` across all workspaces (also installs the git hooks) |
 | `make test` | Unit suites + `check-code` (lint, typecheck, format check) |
-| `make coverage` | Coverage - 100% enforced on the packages and backend |
+| `make coverage` | Coverage - 100% enforced on the packages, backend, and scripts/lib |
 | `make check-ci` | actionlint on the workflows + shellcheck on `scripts/**` |
 | `make codegen` | Regenerate `schema.graphql` + client types after editing `apps/api/src/typeDefs.ts` |
 | `make diagrams` | Re-render `docs/diagrams/dist/*.svg` from `src/*.mmd` (CI fails on drift) |
