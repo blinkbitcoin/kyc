@@ -180,6 +180,6 @@ GitHub Pages is off by design: the README badges are read from the
 - `.release-please-manifest.json`: the last released version per component.
 - `.github/workflows/release.yml`: the workflow described above (release
   PR / tag job on push, retry job on a completed CI run).
-- `scripts/release/resolve-version.sh`: a release run is
+- `scripts/release/resolve-version.mjs`: a release run is
   `EVENT=release TAG=vX.Y.Z`, whether it came from a `release` event or a
   `release_tag` dispatch.

@@ -517,7 +517,7 @@ pull request is the release. Full walkthrough: [releasing.md](releasing.md).
 4. **Check what the release would produce**, without touching anything:
 
 ```bash
-DRY_RUN=1 bash scripts/release/resolve-version.sh          # the prerelease CI publishes today
+DRY_RUN=1 node scripts/release/resolve-version.mjs         # the prerelease CI publishes today
 #   -> version=0.0.1-pre.<run>.<sha>   disttag=next
 make version                                                # the same thing, through make
 make version TAG=v0.1.0                                     # what the tag would publish
