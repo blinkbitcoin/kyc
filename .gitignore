@@ -97,6 +97,9 @@ docs/.archive/
 packages/*/lib/
 packages/*/dist/
 examples/*/dist/
+# Declarations are emitted into dist/, never next to the sources
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
 
 # lefthook personal overrides (see lefthook.yml)
 lefthook-local.yml
