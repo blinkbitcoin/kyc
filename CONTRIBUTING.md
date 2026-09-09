@@ -66,6 +66,7 @@ area names (`commitlint.config.mjs` is the source of truth):
 | Scope | Covers |
 |-------|--------|
 | `core` | `packages/kyc-core` |
+| `server` | `packages/kyc-server` |
 | `sumsub` | `packages/kyc-sumsub` |
 | `rn` | `packages/kyc-react-native` |
 | `react` | `packages/kyc-react` |

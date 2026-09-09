@@ -6,6 +6,7 @@ export default {
       'always',
       [
         'core', // packages/kyc-core
+        'server', // packages/kyc-server
         'rn', // packages/kyc-react-native
         'react', // packages/kyc-react
         'sumsub', // packages/kyc-sumsub
