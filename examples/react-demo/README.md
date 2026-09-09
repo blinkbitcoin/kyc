@@ -5,7 +5,7 @@ Playwright E2E target. `VITE_KYC_MODE` selects the mode at build time.
 
 | `VITE_KYC_MODE` | Source | Needs |
 |---|---|---|
-| `hosted` (default) | `createHostedSource` whose `getSession`/`refreshToken` delegate to the backend proxy | backend + database |
+| `hosted` (default) | `createHostedSource` whose `getSession`/`refreshToken` delegate to<br>the backend proxy | backend + database |
 | `proxy` | `createProxySource({ client, platform: 'WEB' })` | backend + database |
 
 ```bash

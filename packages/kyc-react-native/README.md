@@ -139,10 +139,10 @@ not called for them, exactly like the offline state.
 | `label` | `string` | `'Verify identity'` | Idle-screen title and button. |
 | `successDelayMs` | `number` | `1500` | Success screen before `onComplete` (approvals only). |
 | `checkPermissions` | `() => Promise<'granted' \| 'denied' \| 'blocked'>` | — | Camera preflight. |
-| `onOpenSettings` | `() => void` | — | Adds an "Open settings" button to the permission screen — shown only when the preflight reported `'blocked'`. |
-| `allowedNavigationOrigins` | `string[]` | `[]` | Extra origins the page may navigate to (whitelist **and** guard); `'https://*.sumsub.com'` style wildcards allowed. |
+| `onOpenSettings` | `() => void` | — | Adds an "Open settings" button to the permission screen —<br>shown only when the preflight reported `'blocked'`. |
+| `allowedNavigationOrigins` | `string[]` | `[]` | Extra origins the page may navigate to (whitelist **and** guard);<br>`'https://*.sumsub.com'` style wildcards allowed. |
 | `renderLoading` | `() => ReactElement` | — | Custom loading view inside the WebView. |
-| `style` | `StyleProp<ViewStyle>` | — | Applied to the root view the component renders (the page and every screen live inside it). |
+| `style` | `StyleProp<ViewStyle>` | — | Applied to the root view the component renders<br>(the page and every screen live inside it). |
 
 ## `useVerification(source, options)`
 

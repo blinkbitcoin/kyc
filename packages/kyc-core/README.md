@@ -8,9 +8,9 @@ no DOM, no native modules.
 
 | Import | Contents | Needs Apollo? |
 |--------|----------|---------------|
-| `@blinkbitcoin/kyc-core` | Everything below plus `createProxySource`, `createKycApolloClient`, `getApolloErrorCode`, the GraphQL operations and their generated types | Yes — `@apollo/client` + `graphql` (optional peers) |
-| `@blinkbitcoin/kyc-core/hosted` | Contract types + capability guards, the `kyc-bridge` protocol (`interpretBridgeMessage`, `createSetTokenMessage`, `createSetTokenScript`), `createHostedSource`, the verification state machine (`machineReducer`, `planEvent`, `describeOutcome`, `describeFailure`, `isRestartableError`), `getErrorMessage`, `ErrorCodes` / `ClientErrorCodes` | **No — Apollo-free by construction** (guard-tested) |
-| `@blinkbitcoin/kyc-core/testing` | `createFakeLaunchableSource` — a UI-free `LaunchableSource` you script (`outcome`) or drive from buttons (`controller`) | **No** (guard-tested) |
+| `@blinkbitcoin/kyc-core` | Everything below plus `createProxySource`, `createKycApolloClient`,<br>`getApolloErrorCode`, the GraphQL operations and their generated types | Yes — `@apollo/client` + `graphql` (optional peers) |
+| `@blinkbitcoin/kyc-core/hosted` | Contract types + capability guards, the `kyc-bridge` protocol<br>(`interpretBridgeMessage`, `createSetTokenMessage`, `createSetTokenScript`),<br>`createHostedSource`, the verification state machine (`machineReducer`,<br>`planEvent`, `describeOutcome`, `describeFailure`, `isRestartableError`),<br>`getErrorMessage`, `ErrorCodes` / `ClientErrorCodes` | **No — Apollo-free by construction** (guard-tested) |
+| `@blinkbitcoin/kyc-core/testing` | `createFakeLaunchableSource` — a UI-free `LaunchableSource` you script<br>(`outcome`) or drive from buttons (`controller`) | **No** (guard-tested) |
 
 ## The `kyc-bridge` protocol
 

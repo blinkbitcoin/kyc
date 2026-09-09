@@ -9,10 +9,10 @@ Metro — not rebuilding the app.
 
 | `KYC_MODE` | Source | Needs |
 |---|---|---|
-| `native` (default) | `createSumsubNativeSource` fed by the backend's access token | Sumsub credentials **and** the `@sumsub/react-native-mobilesdk-module` peer, which this demo deliberately does not install — see "Sumsub sandbox" below |
-| `hosted` | `createHostedSource` whose `getSession` is the backend proxy's `start()` and whose `refreshToken` is its `refreshToken()` — how a real app gets a hosted url | backend + database |
-| `proxy` | `createProxySource` — the backend owns session, refresh and webhook-driven status | backend + database |
-| `fake-native` | `createFakeLaunchableSource({ outcome: 'manual' })` plus the in-app fake SDK screen | nothing |
+| `native` (default) | `createSumsubNativeSource` fed by the backend's access token | Sumsub credentials **and** the `@sumsub/react-native-mobilesdk-module`<br>peer, which this demo deliberately does not install —<br>see "Sumsub sandbox" below |
+| `hosted` | `createHostedSource` whose `getSession` is the backend proxy's `start()`<br>and whose `refreshToken` is its `refreshToken()` —<br>how a real app gets a hosted url | backend + database |
+| `proxy` | `createProxySource` — the backend owns session, refresh and<br>webhook-driven status | backend + database |
+| `fake-native` | `createFakeLaunchableSource({ outcome: 'manual' })` plus the in-app<br>fake SDK screen | nothing |
 
 ```bash
 make start                       # KYC_MODE=native

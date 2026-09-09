@@ -60,8 +60,9 @@ codegen: ## Regenerate schema.graphql + client types from the backend SDL
 diagrams-check: ## Fail if docs/diagrams/README.md is stale relative to src/*.mmd (what CI runs)
 	bash scripts/ci/diagrams-check.sh
 
-docs-check: ## Warn when architecture-relevant changes (vs origin/main) ship without a docs/ update; fail on stale diagram SVGs
+docs-check: ## Warn when architecture-relevant changes (vs origin/main) ship without a docs/ update; fail on stale diagram SVGs or over-wide README table cells
 	bash scripts/ci/docs-freshness.sh
+	node scripts/ci/docs-tables.mjs
 
 release: ## Merge the open release PR (release-please opens it after a feat/fix lands on main); needs one approval first
 	@pr=$$(gh pr list --state open --label 'autorelease: pending' --json number,title -q '.[0] // empty | "\(.number) \(.title)"'); \

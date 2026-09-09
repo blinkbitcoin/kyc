@@ -8,8 +8,8 @@ Knex/Postgres).
 | Route | Purpose |
 |-------|---------|
 | `GET /health` | Liveness |
-| `POST /graphql` | `verificationSessionStart`, `verificationSessionRefresh`, `verificationSession`, `health` |
-| `GET /hosted/:sessionId` | The hosted verification page (provider web SDK wrapped in the `kyc-bridge` protocol) |
+| `POST /graphql` | `verificationSessionStart`, `verificationSessionRefresh`,<br>`verificationSession`, `health` |
+| `GET /hosted/:sessionId` | The hosted verification page (provider web SDK wrapped in the<br>`kyc-bridge` protocol) |
 | `POST /webhook/kyc/:provider` | Signed provider callbacks; only the configured provider is accepted |
 
 ## Providers
