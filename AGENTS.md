@@ -51,11 +51,11 @@ one-line description. The ones you will reach for:
 |--------|-------------|
 | `make install` | `npm ci` across all workspaces (also installs the git hooks) |
 | `make test` | Unit suites + `check-code` (lint, typecheck, format check) |
-| `make coverage` | Coverage - 100% enforced on the packages, backend, and scripts/lib |
+| `make coverage` | Coverage - 100% enforced on the packages, backend, and scripts/lib;<br>fails on a coverage row with nothing to cover (re-export / type-only<br>modules go in the workspace's exclude list) |
 | `make check-ci` | actionlint on the workflows + shellcheck on `scripts/**` |
 | `make codegen` | Regenerate `schema.graphql` + client types after editing `apps/api/src/typeDefs.ts` |
 | `make diagrams` | Re-render `docs/diagrams/dist/*.svg` from `src/*.mmd` (CI fails on drift) |
-| `make docs-check` | Warn when architecture-relevant changes ship without a `docs/` update |
+| `make docs-check` | Warn when architecture-relevant changes ship without a `docs/` update;<br>fail on a README table cell line wider than 72 characters (break with `<br>`) |
 | `make db-up migrate backend` | Dev Postgres, migrations, backend dev server |
 | `make e2e-backend` / `make e2e-web` | Backend E2E against real Postgres / Playwright browser E2E (`e2e-web` builds the libraries first and bundles the demo against their dist) |
 | `make start` / `make ios` / `make android` / `make web` | Demo apps |
@@ -76,6 +76,8 @@ Underlying npm scripts (`npm test`, `npm run typecheck`, `npm run lint`,
   Squash merges take the PR title, so name the PR like a commit
 - Change code **and the relevant doc in the same change**; `docs/` is
   hand-maintained and CI's Docs check flags architecture changes without one
+  (a `package.json` counts only when the change is structural - exports,
+  scripts, workspaces - not a dependency bump; Dependabot PRs are exempt)
 - Shell that CI or the Makefile runs lives in `scripts/{ci,e2e,release}/`,
   not inline in workflows; it is shellcheck'd by `make check-ci`
 - The provider boundary is `VerificationSource` (`packages/kyc-core/src/verification/types.ts`)
@@ -120,6 +122,9 @@ cannot see changes.
   `examples/react-demo/src/__tests__/`; browser E2E in `examples/react-demo/e2e/` (Playwright)
 - Backend unit tests: `apps/api/tests/` (DB mocked); E2E: `apps/api/tests/e2e/`
   (real Postgres via `docker-compose.test.yml`)
+- Tooling scripts: `scripts/lib/*.test.mjs` (100% Vitest coverage) for the
+  extracted logic; `scripts/__tests__/*.test.mjs` shells out to the shell
+  scripts themselves; CLI entry points are excluded from coverage by design
 - Mobile E2E: Maestro flows in `examples/react-native-demo/.maestro/`, driven by `scripts/e2e/*`
 
 ## Troubleshooting
