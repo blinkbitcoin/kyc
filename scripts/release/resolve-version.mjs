@@ -4,8 +4,9 @@
 //                   vX.Y.Z-<pre> -> dist-tag next). The commit must be on main.
 //   anything else : prerelease <next-patch-after-latest-v*-tag>-pre.<run>.<sha>
 //                   under dist-tag next.
-// Core is pinned exactly by the platform packages (a caret range never matches
-// a prerelease, and an exact pin is right for stable too).
+// Every workspace that depends on a published package by version is pinned
+// exactly to it (scripts/lib/workspaces.mjs): a caret range never matches a
+// prerelease, and an exact pin is right for stable too.
 // Env: EVENT (github.event_name), TAG (release tag), RUN (run number),
 //      GITHUB_SHA. DRY_RUN=1 prints without touching package.json.
 // Outputs version= and disttag= to $GITHUB_OUTPUT (stdout when unset).
@@ -15,11 +16,12 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseVersionTag } from '../lib/semver.mjs';
 import {
   ResolveVersionError,
   resolveVersion,
 } from '../lib/resolve-version.mjs';
+import { parseVersionTag } from '../lib/semver.mjs';
+import { dependencyStamps, PUBLISHED_PACKAGES } from '../lib/workspaces.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 process.chdir(root);
@@ -85,27 +87,18 @@ try {
 const { version: VERSION, disttag: DISTTAG } = result;
 
 if (!DRY_RUN) {
-  for (const p of [
-    'packages/kyc-core',
-    'packages/kyc-sumsub',
-    'packages/kyc-react-native',
-    'packages/kyc-react',
-  ]) {
+  for (const p of PUBLISHED_PACKAGES) {
     execFileSync('npm', ['pkg', 'set', `version=${VERSION}`], {
       cwd: p,
       stdio: 'inherit',
     });
   }
-  for (const p of [
-    'packages/kyc-sumsub',
-    'packages/kyc-react-native',
-    'packages/kyc-react',
-  ]) {
-    execFileSync(
-      'npm',
-      ['pkg', 'set', `dependencies.@blinkbitcoin/kyc-core=${VERSION}`],
-      { cwd: p, stdio: 'inherit' },
-    );
+  // Every workspace that depends on a published package by version follows
+  // it (the platform packages and the backend on core / sumsub, the demos on
+  // their platform package), or a clean `npm ci` of that workspace asks the
+  // registry for the stamped version
+  for (const { dir, args } of dependencyStamps(VERSION)) {
+    execFileSync('npm', args, { cwd: dir, stdio: 'inherit' });
   }
 }
 
