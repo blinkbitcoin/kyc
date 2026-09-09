@@ -82,10 +82,10 @@ These keep the set readable as a progression, not a pile of unrelated pictures:
 ## Verification before finishing
 
 1. Run `make diagrams`; it renders every SVG without a parse error, the
-   generated page's image count matches the table above (currently 8), and
+   generated page's image count matches the table above (currently 9), and
    `git status` shows regenerated SVGs only for diagrams you touched.
 2. `grep` the sources for stale identifiers: old package names, any route
    not present in `apps/api/src/app.ts`.
-3. ERD (once one exists) matches the latest migration exactly.
+3. The ERD matches the latest migration exactly.
 4. `docs/index.md` still links the file with an accurate description.
 5. Run `npm run format` and `make check-code`.
