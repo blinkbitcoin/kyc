@@ -13,6 +13,8 @@ export {
   BRIDGE_SOURCE,
 } from './bridge/script';
 export type { ErrorCode } from './errors';
+export type { GraphQLContext, KycGraphQLOptions } from './graphql';
+export { createKycGraphQL, typeDefs } from './graphql';
 export {
   createError,
   ErrorCodes,
@@ -52,6 +54,29 @@ export {
   timingSafeEqualString,
   verifyHexDigest,
 } from './signature';
+export type {
+  ApplyStatusTransitionOptions,
+  HostedPageDecision,
+  RefreshResult,
+  SessionView,
+  StartResult,
+  StatusSource,
+  StatusTransition,
+  StatusTransitionOutcome,
+  VerificationService,
+  VerificationServiceDeps,
+  WebhookOutcome,
+} from './sessions';
+export { createVerificationService, publicOrigin } from './sessions';
+export type {
+  NewAuditEntry,
+  NewSession,
+  SessionRecord,
+  SessionStore,
+  StatusWrite,
+  StatusWriteOutcome,
+} from './store';
+export { createMemorySessionStore } from './store';
 export type { SpanAttributes, SpanLike, Tracing } from './tracing';
 export { noopTracing } from './tracing';
 export type {
