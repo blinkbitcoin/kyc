@@ -18,6 +18,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const CHANGED_CLASS_SH = join(REPO_ROOT, 'scripts/ci/changed-class.sh');
 const DOCS_FRESHNESS_SH = join(REPO_ROOT, 'scripts/ci/docs-freshness.sh');
+// docs-freshness.sh shells out to the manifest classifier at this path
+const MANIFEST_HELPERS = [
+  'scripts/ci/manifest-structural.mjs',
+  'scripts/lib/manifest-structural.mjs',
+];
 
 const tempDirs = [];
 
@@ -163,7 +168,13 @@ describe('docs-freshness.sh', () => {
   // The script `cd`s to its own repo root via dirname "$0", so it must live
   // inside the fixture repo at its real relative path for that resolution to
   // land on the fixture instead of the real repo.
+  // The manifest classifier it shells out to comes along, at its real path.
   function installScript(dir) {
+    for (const rel of MANIFEST_HELPERS) {
+      const helper = join(dir, rel);
+      mkdirSync(dirname(helper), { recursive: true });
+      writeFileSync(helper, readFileSync(join(REPO_ROOT, rel)));
+    }
     const dest = join(dir, 'scripts/ci/docs-freshness.sh');
     mkdirSync(dirname(dest), { recursive: true });
     writeFileSync(dest, readFileSync(DOCS_FRESHNESS_SH));
@@ -237,6 +248,74 @@ describe('docs-freshness.sh', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Docs check OK');
+    expect(result.summary).toBe('');
+  });
+
+  const manifest = deps =>
+    `${JSON.stringify({ name: 'x', scripts: { test: 'vitest' }, dependencies: deps }, null, 2)}\n`;
+
+  function fixtureWithManifest() {
+    const fixture = createFixtureRepo();
+    writeFile(
+      fixture.dir,
+      'examples/react-demo/package.json',
+      manifest({ vite: '^8.2.2' }),
+    );
+    commit(fixture.dir, 'chore: add manifest');
+    return fixture;
+  }
+
+  it('does not count a package.json dependency bump as architecture-relevant', () => {
+    const { dir } = fixtureWithManifest();
+    writeFile(
+      dir,
+      'examples/react-demo/package.json',
+      manifest({ vite: '^8.2.3' }),
+    );
+    commit(dir, 'chore(deps): bump vite');
+
+    const result = runDocsFreshness(dir, { EVENT_NAME: 'push' });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Docs check OK');
+    expect(result.summary).toBe('');
+  });
+
+  it('warns on a structural package.json change (an export, a script) without docs', () => {
+    const { dir } = fixtureWithManifest();
+    writeFile(
+      dir,
+      'examples/react-demo/package.json',
+      manifest({ vite: '^8.2.2' }).replace(
+        '"test": "vitest"',
+        '"test": "vitest", "build": "vite build"',
+      ),
+    );
+    commit(dir, 'feat(demo): build script');
+
+    const result = runDocsFreshness(dir, { EVENT_NAME: 'push' });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(
+      'Architecture-relevant files changed but docs were not updated:',
+    );
+    expect(result.summary).toContain('examples/react-demo/package.json');
+  });
+
+  it('skips the warning entirely for a Dependabot-authored PR', () => {
+    const { dir } = createFixtureRepo();
+    writeFile(dir, 'packages/kyc-core/src/index.ts', 'export const x = 2;\n');
+    commit(dir, 'chore(deps): bump something');
+
+    const result = runDocsFreshness(dir, {
+      EVENT_NAME: 'push',
+      PR_AUTHOR: 'dependabot[bot]',
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(
+      'Docs check OK (dependency update by Dependabot - no docs expected)',
+    );
     expect(result.summary).toBe('');
   });
 
