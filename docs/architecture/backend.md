@@ -76,7 +76,7 @@ export interface VerificationProvider {
 | `mock` | `KYC_PROVIDER=mock` (default, and any unknown value, with a warning) | Deterministic ids (`mock-applicant-<uuid>`, `mock-token-<uuid>`), an in-memory applicant map, and a hosted page whose buttons POST **signed** webhooks back to this service. Refuses to boot without `ALLOW_INSECURE_DEV=true` - it signs its own webhooks with a key that defaults to `"mock"` and is therefore forgeable |
 | `sumsub` | `KYC_PROVIDER=sumsub` | Refuses to boot without `SUMSUB_APP_TOKEN`, `SUMSUB_SECRET_KEY` and `SUMSUB_WEBHOOK_SECRET` |
 
-The Sumsub adapter owns no mapping of its own: `mapSumsubStatus` and `mapSumsubWebhookStatus` come from `@blinkbitcoin/kyc-sumsub`, so the backend, the native SDK source and the hosted page can never disagree about what `completed` + `RED` + `FINAL` means.
+The Sumsub adapter owns no mapping of its own: `mapSumsubStatus` and `mapSumsubWebhookStatus` come from `@blinkbitcoin/kyc-core/sumsub`, so the backend, the native SDK source and the hosted page can never disagree about what `completed` + `RED` + `FINAL` means.
 
 ## GraphQL API
 

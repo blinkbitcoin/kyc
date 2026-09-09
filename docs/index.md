@@ -18,10 +18,9 @@
 
 #### Packages - the product
 
-- **`packages/kyc-core`** - platform-agnostic: `VerificationSource` + capability guards, the `kyc-bridge` protocol, the shared state machine, the error-code contract, the hosted and proxy sources. Entries: `.`, `./hosted` (Apollo-free), `./testing`.
-- **`packages/kyc-react-native`** - `Verification` + `useVerification` over a hardened `react-native-webview`. Entries: `.`, `./hosted`.
-- **`packages/kyc-react`** - the same pair over an origin-pinned iframe, plus the `MountableSource` seam. Single entry.
-- **`packages/kyc-sumsub`** - the only Sumsub-aware code: shared mapping (`.`), the native SDK source (`./react-native`), a reserved `./web`.
+- **`packages/kyc-core`** - platform-agnostic: `VerificationSource` + capability guards, the `kyc-bridge` protocol, the shared state machine, the error-code contract, the hosted and proxy sources. Entries: `.`, `./hosted` (Apollo-free), `./testing`, `./sumsub` (Apollo-free; the one Sumsub mapping, in `providers/sumsub/`).
+- **`packages/kyc-react-native`** - `Verification` + `useVerification` over a hardened `react-native-webview`, and the Sumsub native-SDK source in `providers/sumsub/`. Entries: `.`, `./hosted`, `./sumsub`.
+- **`packages/kyc-react`** - the same pair over an origin-pinned iframe, plus the `MountableSource` seam; `providers/sumsub/` is reserved for the web-SDK adapter. Entries: `.`, `./sumsub`.
 
 #### Backend (`apps/api/`)
 
@@ -69,10 +68,9 @@ Organized by namespace - pick by what you are doing:
 
 | Doc | Covers |
 |-----|--------|
-| [../packages/kyc-core/README.md](../packages/kyc-core/README.md) | The three entries, the bridge protocol, the error-code split, the state machine |
-| [../packages/kyc-react-native/README.md](../packages/kyc-react-native/README.md) | The React Native package: modes, permission setup, `Verification` props, the hook |
+| [../packages/kyc-core/README.md](../packages/kyc-core/README.md) | The four entries, the bridge protocol, the error-code split, the state machine, the Sumsub mapping |
+| [../packages/kyc-react-native/README.md](../packages/kyc-react-native/README.md) | The React Native package: modes, permission setup, `Verification` props, the hook, the native-SDK source and its test double |
 | [../packages/kyc-react/README.md](../packages/kyc-react/README.md) | The web package: iframe/CSP requirements, origin pinning, `Verification` props |
-| [../packages/kyc-sumsub/README.md](../packages/kyc-sumsub/README.md) | The three entries, the status mapping table, the optional peers |
 | [../apps/api/README.md](../apps/api/README.md) | Running and configuring the reference backend |
 | [../examples/react-native-demo/README.md](../examples/react-native-demo/README.md) | The four `KYC_MODE` modes, the screen/testID contract, the Maestro suite |
 | [../examples/react-demo/README.md](../examples/react-demo/README.md) | The two web modes and the Playwright suites |

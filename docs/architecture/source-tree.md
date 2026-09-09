@@ -23,6 +23,12 @@ kyc/
 │       │   │   ├── hostedSource.ts  # createHostedSource (mode 2)
 │       │   │   ├── proxySource.ts   # createProxySource (mode 3, Apollo)
 │       │   │   └── fakeSource.ts    # Test double for the launch branch
+│       │   ├── providers/sumsub/    # 🪪 The only Sumsub-aware code in core (entry ./sumsub)
+│       │   │   ├── mapping.ts       # mapSumsubStatus, interpretSumsubWebMessage ⭐
+│       │   │   ├── types.ts         # Sumsub's own vocabulary, nothing normalized
+│       │   │   ├── session.ts       # sumsubSession helper shared by the native source
+│       │   │   └── entry.ts         # The ./sumsub surface: index + the hosted layer
+│       │   ├── sumsub.ts            # `./sumsub` - one-line re-export of providers/sumsub/entry
 │       │   ├── errors.ts            # ErrorCodes + ClientErrorCodes
 │       │   ├── client.ts            # createKycApolloClient
 │       │   ├── operations.ts        # The three GraphQL documents
@@ -30,38 +36,30 @@ kyc/
 │       ├── codegen.ts
 │       └── dist/                    # tsup output (gitignored)
 │
-├── 🪪 PROVIDER ADAPTERS - the only place Sumsub is named
-│   │
-│   └── packages/kyc-sumsub/
-│       ├── src/
-│       │   ├── index.ts             # `.` - pure mapping, no DOM, no native
-│       │   ├── mapping.ts           # mapSumsubStatus, interpretSumsubWebMessage ⭐
-│       │   ├── types.ts             # Sumsub's own vocabulary, nothing normalized
-│       │   ├── provider.ts          # sumsubSession helper shared by the native source
-│       │   ├── react-native.ts      # ./react-native entry
-│       │   ├── web.ts               # ./web entry - reserved, no adapter in v1
-│       │   └── native/
-│       │       ├── sdk.ts           # SumsubSdkLike + the lazy require
-│       │       └── source.ts        # createSumsubNativeSource ⭐
-│       └── __mocks__/@sumsub/react-native-mobilesdk-module.ts
-│
 ├── 📦 PLATFORM PACKAGES - THE PRODUCT
 │   │
 │   ├── packages/kyc-react-native/
 │   │   ├── src/
 │   │   │   ├── index.ts / hosted.ts # `.` and the Apollo-free ./hosted ⭐
+│   │   │   ├── sumsub.ts            # `./sumsub` - one-line re-export of providers/sumsub/entry
 │   │   │   ├── Verification.tsx     # One screen per state ⭐
 │   │   │   ├── useVerification.ts   # The headless flow ⭐
 │   │   │   ├── useTokenRefresh.ts
 │   │   │   └── hosted/
 │   │   │       ├── webViewProps.ts  # The hardening, as data ⭐
 │   │   │       └── HostedWebView.tsx
-│   │   ├── __mocks__/               # react-native-webview, netinfo
+│   │   │   └── providers/sumsub/    # 🪪 The native-SDK source (entry ./sumsub)
+│   │   │       ├── sdk.ts           # SumsubSdkLike + the lazy require of the optional peer
+│   │   │       ├── source.ts        # createSumsubNativeSource ⭐
+│   │   │       └── entry.ts         # The ./sumsub surface: core /sumsub + the component + the source
+│   │   ├── __mocks__/               # react-native-webview, netinfo, @sumsub/react-native-mobilesdk-module (shipped)
 │   │   └── lib/                     # bob output (gitignored)
 │   │
 │   └── packages/kyc-react/
 │       ├── src/
-│       │   ├── index.ts             # Single entry ⭐
+│       │   ├── index.ts             # The root entry ⭐
+│       │   ├── sumsub.ts            # `./sumsub` - reserved seat of the web-SDK adapter
+│       │   ├── providers/sumsub/entry.ts
 │       │   ├── Verification.tsx
 │       │   ├── useVerification.ts
 │       │   ├── useTokenRefresh.ts

@@ -1,4 +1,4 @@
-import { ClientErrorCodes } from '@blinkbitcoin/kyc-core/hosted';
+import { ClientErrorCodes } from '../../../hosted';
 
 import {
   mapSumsubMobileErrorCode,

@@ -10,7 +10,7 @@
 // The signature covers the path AND the query string, so every URL here is
 // built once and passed through unchanged.
 
-import type { SumsubReviewPayload } from '@blinkbitcoin/kyc-sumsub';
+import type { SumsubReviewPayload } from '@blinkbitcoin/kyc-core/sumsub';
 import crypto from 'crypto';
 
 import { getConfig } from './config';

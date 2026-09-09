@@ -29,8 +29,9 @@ separator - mermaid-cli rejects it even where GitHub's renderer is lenient).
 - **Never invent components.** If a doc and the code disagree, fix the doc
   first (or flag it), then diagram the corrected state.
 - The current package names are `@blinkbitcoin/kyc-core`,
-  `@blinkbitcoin/kyc-sumsub`, `@blinkbitcoin/kyc-react-native`,
-  `@blinkbitcoin/kyc-react` under `packages/`; the backend is `apps/api`. If
+  `@blinkbitcoin/kyc-react-native` and `@blinkbitcoin/kyc-react` under
+  `packages/` (Sumsub code lives in their `providers/sumsub/` directories,
+  reached through `/sumsub` entries); the backend is `apps/api`. If
   these have changed, trust `packages/*/package.json` over any doc.
 
 ## The nine diagrams: provenance and embeds

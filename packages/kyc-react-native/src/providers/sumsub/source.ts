@@ -17,12 +17,15 @@ import type {
   VerificationSourceError,
 } from '@blinkbitcoin/kyc-core/hosted';
 
-import { mapSumsubMobileResult, mapSumsubMobileStatus } from '../mapping';
-import { sumsubSession } from '../provider';
+import {
+  mapSumsubMobileResult,
+  mapSumsubMobileStatus,
+  sumsubSession,
+} from '@blinkbitcoin/kyc-core/sumsub';
 import { loadSumsubSdk } from './sdk';
 
+import type { SNSMobileSDKResult } from '@blinkbitcoin/kyc-core/sumsub';
 import type { SumsubSdkLike } from './sdk';
-import type { SNSMobileSDKResult } from '../types';
 
 export interface SumsubNativeSourceOptions {
   /** Mints a Sumsub access token; also the SDK's own expiration handler. */

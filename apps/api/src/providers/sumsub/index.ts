@@ -4,8 +4,8 @@
 // webhook arrives, which is why createSession returns no
 // providerApplicantId and getStatusByUserId exists as a capability.
 
-import type { SumsubWebhookPayload } from '@blinkbitcoin/kyc-sumsub';
-import { mapSumsubStatus, mapSumsubWebhookStatus } from '@blinkbitcoin/kyc-sumsub';
+import type { SumsubWebhookPayload } from '@blinkbitcoin/kyc-core/sumsub';
+import { mapSumsubStatus, mapSumsubWebhookStatus } from '@blinkbitcoin/kyc-core/sumsub';
 
 import { Errors } from '../../errors';
 import { verifyHexDigest } from '../../signature';
@@ -129,6 +129,6 @@ export const SumsubProvider: VerificationProvider = {
   },
 };
 
-export type { SumsubWebhookPayload } from '@blinkbitcoin/kyc-sumsub';
+export type { SumsubWebhookPayload } from '@blinkbitcoin/kyc-core/sumsub';
 export { HttpError, withRetry } from './client';
 export { getConfig, validateConfig } from './config';

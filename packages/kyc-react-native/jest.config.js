@@ -6,6 +6,7 @@ module.exports = {
   modulePathIgnorePatterns: ['<rootDir>/lib/'],
   moduleNameMapper: {
     '^@blinkbitcoin/kyc-core/hosted$': '<rootDir>/../kyc-core/src/hosted.ts',
+    '^@blinkbitcoin/kyc-core/sumsub$': '<rootDir>/../kyc-core/src/sumsub.ts',
     '^@blinkbitcoin/kyc-core$': '<rootDir>/../kyc-core/src/index.ts',
     '^react-native-webview$': '<rootDir>/__mocks__/react-native-webview.tsx',
     '^@react-native-community/netinfo$':
@@ -21,6 +22,8 @@ module.exports = {
     'src/types\\.ts$',
     'src/index\\.ts$',
     'src/hosted\\.ts$',
+    'src/sumsub\\.ts$',
+    'src/providers/sumsub/entry\\.ts$',
   ],
   coverageReporters: ['text', 'lcov', 'json-summary'],
   coverageThreshold: {

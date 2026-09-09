@@ -107,4 +107,4 @@ same backend on the host machine:
 `docs/integration/sumsub.md`. Without the peer installed, `start()` fails
 closed with `SDK_UNAVAILABLE` — which is the intended behaviour, and what
 Jest exercises through the shared mock in
-`packages/kyc-sumsub/__mocks__/`.
+`packages/kyc-react-native/__mocks__/`.

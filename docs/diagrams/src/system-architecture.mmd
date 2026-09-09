@@ -11,10 +11,10 @@ flowchart TB
         PROXY[createProxySource<br/>Apollo - proxy mode only]
     end
 
-    subgraph Sumsub["@blinkbitcoin/kyc-sumsub"]
-        MAP[mapSumsubStatus<br/>mapSumsubWebhookStatus]
-        NATIVEMAP[mapSumsubMobileResult<br/>mapSumsubMobileStatus]
-        NATIVE[createSumsubNativeSource<br/>entry /react-native]
+    subgraph Sumsub["providers/sumsub - the only Sumsub-aware code"]
+        MAP[mapSumsubStatus<br/>mapSumsubWebhookStatus<br/>kyc-core /sumsub]
+        NATIVEMAP[mapSumsubMobileResult<br/>mapSumsubMobileStatus<br/>kyc-core /sumsub]
+        NATIVE[createSumsubNativeSource<br/>kyc-react-native /sumsub]
     end
 
     subgraph Backend["apps/api - hosted and proxy modes"]

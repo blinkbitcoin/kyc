@@ -1,4 +1,4 @@
-import { SUMSUB_PROVIDER, sumsubSession } from '../provider';
+import { SUMSUB_PROVIDER, sumsubSession } from '../session';
 
 describe('sumsubSession', () => {
   it('tags a session with the sumsub provider id', () => {

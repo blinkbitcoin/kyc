@@ -2,14 +2,13 @@
 
 **Updated:** 2026-09-06
 
-The four packages publish to **GitHub Packages** under the `blinkbitcoin` org:
+The three packages publish to **GitHub Packages** under the `blinkbitcoin` org:
 
 | Package | For |
 |---------|-----|
 | `@blinkbitcoin/kyc-react-native` | React Native apps |
 | `@blinkbitcoin/kyc-react` | React web apps |
-| `@blinkbitcoin/kyc-sumsub` | The Sumsub adapters (mode 1, and the shared mapping) |
-| `@blinkbitcoin/kyc-core` | Transitive dependency of the other three; also usable standalone |
+| `@blinkbitcoin/kyc-core` | Transitive dependency of the other two; also usable standalone (`/sumsub` carries the Sumsub mapping) |
 
 Publishing has two channels, both gated on the full fleet (unit coverage thresholds plus the backend, web, Android and iOS E2E suites):
 
@@ -77,8 +76,7 @@ Same props, same callbacks. Read [hosted.md](hosted.md) for the three things you
 | `react-native-webview` | `kyc-react-native` | ≥14 | hosted mode (the `mediaCapturePermissionGrantType` prop is what needs this floor) |
 | `@react-native-community/netinfo` | `kyc-react-native` | ≥11 | connectivity handling |
 | `@apollo/client` + `graphql` | both, optional | ^4 / ^16 ‖ ^17 | **proxy mode only** |
-| `@sumsub/react-native-mobilesdk-module` | `kyc-sumsub`, optional | ≥1.40 | **native SDK mode only** |
-| `@sumsub/websdk` | `kyc-sumsub`, optional | ≥2.5 | reserved - no adapter ships in v1 |
+| `@sumsub/react-native-mobilesdk-module` | `kyc-react-native`, optional | ≥1.40 | **native SDK mode only** (the `/sumsub` entry) |
 
 Optional peers are never installed by npm on your behalf. Without the Sumsub mobile module, `createSumsubNativeSource().start()` rejects with `SDK_UNAVAILABLE` - which is the intended, testable behaviour rather than a crash.
 
@@ -89,7 +87,7 @@ If you use the native SDK source, map the module to the mock this repo ships so 
 ```js
 moduleNameMapper: {
   '^@sumsub/react-native-mobilesdk-module$':
-    '<rootDir>/node_modules/@blinkbitcoin/kyc-sumsub/__mocks__/@sumsub/react-native-mobilesdk-module.ts',
+    '<rootDir>/node_modules/@blinkbitcoin/kyc-react-native/__mocks__/@sumsub/react-native-mobilesdk-module.ts',
 }
 ```
 

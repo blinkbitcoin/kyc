@@ -29,10 +29,9 @@ the current state is [docs/index.md](docs/index.md).
 │       ├── webhook.ts           # Signed webhook handling
 │       └── verificationPages.ts # The hosted page (kyc-bridge protocol)
 ├── packages/
-│   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode
-│   ├── kyc-sumsub/          # Sumsub adapters: the shared mapping (root), /react-native (Mobile SDK), /web (reserved)
-│   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (Verification + useVerification + hardened HostedWebView; entries . and /hosted)
-│   └── kyc-react/               # 📦 THE PRODUCT - web (Verification + useVerification + origin-pinned HostedFrame; single entry)
+│   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode; providers/sumsub/ = the one Sumsub mapping (entry /sumsub)
+│   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (Verification + useVerification + hardened HostedWebView; entries ., /hosted and /sumsub = the native-SDK source in providers/sumsub/)
+│   └── kyc-react/               # 📦 THE PRODUCT - web (Verification + useVerification + origin-pinned HostedFrame; entries . and /sumsub, the reserved web-SDK seat)
 ├── examples/
 │   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native; Maestro suite (.maestro/)
 │   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy; Playwright suites (e2e/)
@@ -82,9 +81,14 @@ Underlying npm scripts (`npm test`, `npm run typecheck`, `npm run lint`,
   not inline in workflows; it is shellcheck'd by `make check-ci`
 - The provider boundary is `VerificationSource` (`packages/kyc-core/src/verification/types.ts`)
   on the client side and `VerificationProvider` (`apps/api/src/providers/port.ts`) on the
-  backend - nothing Sumsub-specific outside `packages/kyc-sumsub/` and, on the
-  server, outside `apps/api/src/providers/sumsub/`, which itself imports the
-  shared mapping from `@blinkbitcoin/kyc-sumsub` rather than restating it
+  backend - nothing Sumsub-specific outside a `providers/sumsub/` directory:
+  `packages/kyc-core/src/providers/sumsub/` (the one mapping),
+  `packages/kyc-react-native/src/providers/sumsub/` (the native-SDK source),
+  `packages/kyc-react/src/providers/sumsub/` (reserved) and
+  `apps/api/src/providers/sumsub/`, which imports the mapping from
+  `@blinkbitcoin/kyc-core/sumsub` rather than restating it; a package's
+  `src/sumsub.ts` is a one-line re-export of its `providers/sumsub/` surface
+  (guard tests), and generic layers never import a provider (guard tests)
 - GraphQL error codes are a wire contract: the `ErrorCode` enum in
   `apps/api/schema.graphql` (emitted from `src/typeDefs.ts`) and the generated
   client types in `packages/kyc-core/src/generated/` - run `make codegen`
@@ -92,12 +96,13 @@ Underlying npm scripts (`npm test`, `npm run typecheck`, `npm run lint`,
   (`NETWORK_ERROR`, `PERMISSION_DENIED`, `SDK_UNAVAILABLE`, `TOKEN_EXPIRED`,
   `TOKEN_REFRESH_FAILED`, `BRIDGE_PROTOCOL`) live in `ClientErrorCodes` in
   `packages/kyc-core/src/errors.ts` and must never enter the schema enum
-- `@blinkbitcoin/kyc-core` has three entries: `.` (needs the Apollo peers),
-  `/hosted` and `/testing` (both Apollo-free, enforced by import-graph tests
-  and by `scripts/pack-smoke.sh`)
+- `@blinkbitcoin/kyc-core` has four entries: `.` (needs the Apollo peers),
+  `/hosted`, `/testing` and `/sumsub` (all Apollo-free, enforced by
+  import-graph tests and by `scripts/pack-smoke.sh`)
 - The libraries take no URLs/tokens/platform detection - host apps inject via
-  a `VerificationSource` from `@blinkbitcoin/kyc-core` (Sumsub sources come
-  from `@blinkbitcoin/kyc-sumsub`); demo wiring lives in `examples/*/src/`.
+  a `VerificationSource` from `@blinkbitcoin/kyc-core` (the Sumsub native
+  source comes from `@blinkbitcoin/kyc-react-native/sumsub`); demo wiring
+  lives in `examples/*/src/`.
   `Verification` is provider-agnostic - adding a provider is a new
   `VerificationSource`, the component never changes
 - `graphql` stays on 16.x repo-wide (Apollo Server 5 peer range)

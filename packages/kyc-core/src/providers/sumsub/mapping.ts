@@ -1,14 +1,16 @@
 // Sumsub <-> normalized vocabulary: the single source of truth for Sumsub
-// semantics. apps/api (webhook + hosted page), the ./react-native source and
-// any host mounting the web SDK itself all read this module, so a rule is
-// written once. Pure TypeScript: no DOM, no React Native, no @sumsub import.
+// semantics. The backend (webhook + hosted page), the React Native native
+// source and any host mounting the web SDK itself all read this module
+// through @blinkbitcoin/kyc-core/sumsub, so a rule is written once. Pure
+// TypeScript: no DOM, no React Native, no @sumsub import - and nothing from
+// the package root (the ./sumsub entry stays Apollo-free, guard-tested).
 
-import { ClientErrorCodes } from '@blinkbitcoin/kyc-core/hosted';
+import { ClientErrorCodes } from '../../errors';
 
 import type {
   VerificationEvent,
   VerificationStatus,
-} from '@blinkbitcoin/kyc-core/hosted';
+} from '../../verification/types';
 
 import type {
   SNSMobileSDKErrorType,

@@ -1,6 +1,7 @@
 module.exports = {
   testEnvironment: 'jsdom',
   moduleNameMapper: {
+    '^@blinkbitcoin/kyc-core/sumsub$': '<rootDir>/../kyc-core/src/sumsub.ts',
     '^@blinkbitcoin/kyc-core$': '<rootDir>/../kyc-core/src/index.ts',
   },
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
@@ -10,6 +11,8 @@ module.exports = {
     'src/generated/',
     'src/types\\.ts$',
     'src/index\\.ts$',
+    'src/sumsub\\.ts$',
+    'src/providers/sumsub/entry\\.ts$',
   ],
   coverageReporters: ['text', 'lcov', 'json-summary'],
   coverageThreshold: {

@@ -7,9 +7,8 @@
 
 | Part | Root | Type | Role |
 |------|------|------|------|
-| `core` | `packages/kyc-core/` | Publishable TS package | The vocabulary: `VerificationSource`, the capability guards, the `kyc-bridge` protocol, the shared state machine, the error-code contract, the proxy source |
-| `sumsub` | `packages/kyc-sumsub/` | Publishable TS package | The only place that knows Sumsub: status/event mapping plus the React Native native-SDK source |
-| `react-native` | `packages/kyc-react-native/` | Publishable RN library | The product on mobile: `Verification` + `useVerification` over a hardened WebView |
+| `core` | `packages/kyc-core/` | Publishable TS package | The vocabulary: `VerificationSource`, the capability guards, the `kyc-bridge` protocol, the shared state machine, the error-code contract, the proxy source; `providers/sumsub/` is the one Sumsub status/event mapping (`/sumsub` entry) |
+| `react-native` | `packages/kyc-react-native/` | Publishable RN library | The product on mobile: `Verification` + `useVerification` over a hardened WebView; `providers/sumsub/` is the Sumsub native-SDK source (`/sumsub` entry) |
 | `react` | `packages/kyc-react/` | Publishable web library | The product on the web: the same pair over an origin-pinned iframe |
 | `backend` | `apps/api/` | Express 5 + Apollo Server 5 | The reference service: session issuance, token refresh, provider webhooks, the hosted page |
 | `demos` | `examples/react-native-demo/`, `examples/react-demo/` | Host apps | Executable integration docs and the Maestro / Playwright E2E targets |
@@ -28,7 +27,7 @@
 
 ### 2. Package → package: `@blinkbitcoin/kyc-core` is the only shared vocabulary
 
-- **From:** `kyc-react-native`, `kyc-react`, `kyc-sumsub`
+- **From:** `kyc-react-native`, `kyc-react` (and the backend, for the Sumsub mapping on `/sumsub`)
 - **To:** `@blinkbitcoin/kyc-core` (a hard `dependency` of all three, pinned to the exact same version when E2E / Build Packages builds them)
 - **Shared:** `VerificationStatus`, `VerificationEvent`, `VerificationSession`, `VerificationResult`, `VerificationSource` and its two capability sub-interfaces, `isTokenRefreshable` / `isLaunchable`, the bridge module, `ErrorCodes` / `ClientErrorCodes` / `getErrorMessage`, and the state machine (`machineReducer`, `planEvent`, `describeOutcome`, `isRestartableError`).
 - **Why the machine lives in core:** it is pure TypeScript over core's own vocabulary - no React, no React Native, no DOM, no Apollo - and both platform packages need byte-identical semantics for the eight states, the outcome copy and the Restart affordance. A copy per platform would create two sources of truth for the one thing they must never disagree about.

@@ -1,4 +1,4 @@
-import type { VerificationSession } from '@blinkbitcoin/kyc-core/hosted';
+import type { VerificationSession } from '../../verification/types';
 
 export const SUMSUB_PROVIDER = 'sumsub' as const;
 

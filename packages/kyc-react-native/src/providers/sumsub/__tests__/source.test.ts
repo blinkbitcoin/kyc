@@ -8,7 +8,7 @@ import SNSMobileSDK, {
   setSumsubMockLaunchError,
   setSumsubMockResult,
   sumsubMockState,
-} from '../../../__mocks__/@sumsub/react-native-mobilesdk-module';
+} from '../../../../__mocks__/@sumsub/react-native-mobilesdk-module';
 import { createSumsubNativeSource, SUMSUB_LAUNCH_FAILED } from '../source';
 import { SUMSUB_NATIVE_MODULE } from '../sdk';
 

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "build:deps": "cd ../.. && npm run build -w packages/kyc-core -w packages/kyc-sumsub",
+    "build:deps": "cd ../.. && npm run build -w packages/kyc-core",
     "predev": "npm run build:deps",
     "dev": "tsx watch src/index.ts",
     "prebuild": "npm run build:deps",
@@ -30,7 +30,7 @@
   "dependencies": {
     "@apollo/server": "^5.5.1",
     "@as-integrations/express5": "^1.1.2",
-    "@blinkbitcoin/kyc-sumsub": "0.0.0-development",
+    "@blinkbitcoin/kyc-core": "0.0.0-development",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/instrumentation-express": "^0.69.0",
     "@opentelemetry/instrumentation-graphql": "^0.69.0",

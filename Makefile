@@ -163,7 +163,7 @@ e2e-fake-native: ## Maestro E2E, fake native SDK (MANUAL, Android emulator only:
 # ---------- Housekeeping ----------
 
 clean: ## Remove build output and caches (library lib/, coverage)
-	npm run clean -w packages/kyc-core -w packages/kyc-sumsub -w packages/kyc-react-native -w packages/kyc-react
+	npm run clean -w packages/kyc-core -w packages/kyc-react-native -w packages/kyc-react
 	rm -rf coverage packages/*/coverage examples/*/coverage apps/api/coverage
 
 reset: ## Full dependency reinstall (root lockfile only)

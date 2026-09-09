@@ -3,14 +3,53 @@
 Platform-agnostic core shared by `@blinkbitcoin/kyc-react-native` and
 `@blinkbitcoin/kyc-react`: the `VerificationSource` abstraction and its
 capability interfaces, the normalized event/status vocabulary, and the
-`ErrorCode` wire contract generated from `apps/api/schema.graphql`. No React,
-no DOM, no native modules.
+`ErrorCode` wire contract generated from `apps/api/schema.graphql`, and the
+one Sumsub mapping on `/sumsub`. No React, no DOM, no native modules.
 
 | Import | Contents | Needs Apollo? |
 |--------|----------|---------------|
 | `@blinkbitcoin/kyc-core` | Everything below plus `createProxySource`, `createKycApolloClient`,<br>`getApolloErrorCode`, the GraphQL operations and their generated types | Yes — `@apollo/client` + `graphql` (optional peers) |
 | `@blinkbitcoin/kyc-core/hosted` | Contract types + capability guards, the `kyc-bridge` protocol<br>(`interpretBridgeMessage`, `createSetTokenMessage`, `createSetTokenScript`),<br>`createHostedSource`, the verification state machine (`machineReducer`,<br>`planEvent`, `describeOutcome`, `describeFailure`, `isRestartableError`),<br>`getErrorMessage`, `ErrorCodes` / `ClientErrorCodes` | **No — Apollo-free by construction** (guard-tested) |
 | `@blinkbitcoin/kyc-core/testing` | `createFakeLaunchableSource` — a UI-free `LaunchableSource` you script<br>(`outcome`) or drive from buttons (`controller`) | **No** (guard-tested) |
+| `@blinkbitcoin/kyc-core/sumsub` | Everything on `/hosted` plus the Sumsub mapping (`mapSumsubStatus`,<br>`mapSumsubWebhookStatus`, `mapSumsubMobileResult`,<br>`interpretSumsubWebMessage`, `sumsubSession`, the Sumsub vocabulary) -<br>the surface of `src/providers/sumsub/`, read by the backend too | **No** (guard-tested) |
+
+## The Sumsub mapping (`/sumsub`)
+
+`src/providers/sumsub/mapping.ts` is the single source of truth for Sumsub
+semantics: the backend's webhook handler, the hosted page's status table and
+the React Native native source (`@blinkbitcoin/kyc-react-native/sumsub`) all
+read the same functions, so a rule is written once. Nothing else in the
+package names Sumsub, and nothing under `verification/` imports the provider -
+both guard-tested.
+
+```ts
+import {
+  mapSumsubStatus,            // (reviewStatus?, reviewResult?) -> VerificationStatus
+  mapSumsubWebhookType,       // (type, reviewStatus?, reviewResult?) -> VerificationStatus | null
+  mapSumsubWebhookStatus,     // (webhookPayload) -> VerificationStatus | null
+  mapSumsubMobileStatus,      // ('Approved' | ...) -> VerificationStatus | null
+  mapSumsubMobileResult,      // (SNSMobileSDKResult) -> VerificationEvent
+  interpretSumsubWebMessage,  // (type, payload) -> VerificationEvent | null
+  SUMSUB_EVENT_NAMES,
+  SUMSUB_PROVIDER,
+  sumsubSession,
+} from '@blinkbitcoin/kyc-core/sumsub';
+```
+
+| Sumsub review | Normalized status |
+|---|---|
+| `completed` + `GREEN` | `approved` |
+| `completed` + `RED` + `FINAL` | `finallyRejected` |
+| `completed` + `RED` + `RETRY` (or no reject type) | `declined` |
+| `completed` with no verdict | `pending` |
+| `pending`, `queued`, `prechecked`, `onHold` | `pending` |
+| `init` | `incomplete` |
+| anything else / absent | `initial` |
+
+`interpretSumsubWebMessage` normalizes the five `idCheck.*` messages for a
+host that mounts the Sumsub web SDK itself; no web-SDK adapter ships in v1
+(the hosted page already covers the browser), and `@blinkbitcoin/kyc-react/sumsub`
+is the reserved seat for it.
 
 ## The `kyc-bridge` protocol
 

@@ -13,16 +13,21 @@ if (mode === 'default') {
   assert.equal(typeof hosted.interpretBridgeMessage, 'function');
   const testing = consumer('@blinkbitcoin/kyc-core/testing');
   assert.equal(typeof testing.createFakeLaunchableSource, 'function');
+  const sumsub = consumer('@blinkbitcoin/kyc-core/sumsub');
+  assert.equal(
+    sumsub.mapSumsubStatus('completed', { reviewAnswer: 'GREEN' }),
+    'approved',
+  );
   const loaded = Object.keys(require.cache).filter(f =>
     /node_modules[\\/](@apollo|graphql)/.test(f),
   );
   assert.deepEqual(
     loaded,
     [],
-    '/hosted and /testing must not load Apollo or graphql',
+    '/hosted, /testing and /sumsub must not load Apollo or graphql',
   );
   console.log(
-    'verify: /hosted + /testing load Apollo-free for',
+    'verify: /hosted + /testing + /sumsub load Apollo-free for',
     process.env.VERSION,
   );
 } else if (mode === 'lean') {

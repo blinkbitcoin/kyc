@@ -8,20 +8,20 @@
 // tests/verificationPages.test.ts pins against kyc-core's.
 //
 // The Sumsub status rules are NOT duplicated: mapSumsubStatus comes from
-// @blinkbitcoin/kyc-sumsub, and the page gets a JSON table generated from it
+// @blinkbitcoin/kyc-core/sumsub, and the page gets a JSON table generated from it
 // over the finite reviewStatus x reviewAnswer x rejectType vocabulary. The
 // browser only does a lookup with a fallback chain (drop the reject type,
 // then the answer, then default) - the fallbacks mirror the shape of
 // mapSumsubStatus's switch, never its verdicts.
 
-import type { SumsubReviewResult } from '@blinkbitcoin/kyc-sumsub';
+import type { SumsubReviewResult } from '@blinkbitcoin/kyc-core/sumsub';
 import {
   mapSumsubStatus,
   SUMSUB_ERROR_CODE,
   SUMSUB_REJECT_TYPES,
   SUMSUB_REVIEW_ANSWERS,
   SUMSUB_REVIEW_STATUSES,
-} from '@blinkbitcoin/kyc-sumsub';
+} from '@blinkbitcoin/kyc-core/sumsub';
 
 import { BRIDGE_SCRIPT } from './hosted/bridgeScript';
 

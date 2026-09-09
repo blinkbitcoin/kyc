@@ -1,7 +1,7 @@
 {
   "name": "@blinkbitcoin/kyc-core",
   "version": "0.0.0-development",
-  "description": "Platform-agnostic core (VerificationSource abstraction, capability guards, bridge protocol, error-code contract) shared by the KYC React and React Native packages",
+  "description": "Platform-agnostic core (VerificationSource abstraction, capability guards, bridge protocol, error-code contract, the Sumsub mapping on ./sumsub) shared by the KYC React and React Native packages",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -36,6 +36,17 @@
       "require": {
         "types": "./dist/testing.d.ts",
         "default": "./dist/testing.cjs"
+      }
+    },
+    "./sumsub": {
+      "react-native": "./src/sumsub.ts",
+      "import": {
+        "types": "./dist/sumsub.d.mts",
+        "default": "./dist/sumsub.mjs"
+      },
+      "require": {
+        "types": "./dist/sumsub.d.ts",
+        "default": "./dist/sumsub.cjs"
       }
     },
     "./package.json": "./package.json"

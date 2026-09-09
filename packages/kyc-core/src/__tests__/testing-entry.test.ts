@@ -5,7 +5,7 @@
 
 import * as path from 'path';
 
-import { collectImportGraph } from './hosted-entry.test';
+import { collectImportGraph } from './support/importGraph';
 import { createFakeLaunchableSource } from '../testing';
 
 const SRC = path.resolve(__dirname, '..');

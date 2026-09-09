@@ -5,7 +5,7 @@ import {
   SUMSUB_REJECT_TYPES,
   SUMSUB_REVIEW_ANSWERS,
   SUMSUB_REVIEW_STATUSES,
-} from '@blinkbitcoin/kyc-sumsub';
+} from '@blinkbitcoin/kyc-core/sumsub';
 
 import { BRIDGE_SCRIPT } from '../src/hosted/bridgeScript';
 import {

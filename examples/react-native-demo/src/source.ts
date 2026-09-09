@@ -7,7 +7,7 @@ import { createProxySource } from '@blinkbitcoin/kyc-react-native';
 // the minimal entry a hosted-only consumer would install.
 import { createHostedSource } from '@blinkbitcoin/kyc-react-native/hosted';
 import { createFakeLaunchableSource } from '@blinkbitcoin/kyc-core/testing';
-import { createSumsubNativeSource } from '@blinkbitcoin/kyc-sumsub/react-native';
+import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
 import { Platform } from 'react-native';
 
 import { apolloClient } from './apollo';

@@ -7,7 +7,7 @@
 //
 // v1 ships NO implementation: Sumsub's web SDK is itself an iframe, so the
 // hosted mode already covers the browser (see the design's YAGNI cuts). This
-// is the seam the deferred @blinkbitcoin/kyc-sumsub/web adapter will fill.
+// is the seam the deferred Sumsub web-SDK adapter (providers/sumsub/) will fill.
 
 import type {
   VerificationEvent,

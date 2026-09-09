@@ -11,7 +11,7 @@ reproduction steps and the affected package/version.
 
 ## Scope
 
-- The published packages: `@blinkbitcoin/kyc-core`, `@blinkbitcoin/kyc-sumsub`,
+- The published packages: `@blinkbitcoin/kyc-core`,
   `@blinkbitcoin/kyc-react-native`, `@blinkbitcoin/kyc-react`
 - The backend service in `apps/api`
 

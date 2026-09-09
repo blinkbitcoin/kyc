@@ -24,7 +24,7 @@ webhook-backed status that a replayed callback cannot downgrade.
 
 | Mode | What it is | What your app installs | Backend required |
 |------|-----------|------------------------|------------------|
-| **1. Native SDK** | The provider SDK runs in-process<br>(a React Native native module);<br>your app supplies an<br>access-token callback | `kyc-react-native` +<br>`kyc-sumsub` + the<br>Sumsub SDK peer | Any backend that<br>mints provider<br>access tokens |
+| **1. Native SDK** | The provider SDK runs in-process<br>(a React Native native module);<br>your app supplies an<br>access-token callback | `kyc-react-native`<br>(its `/sumsub` entry) +<br>the Sumsub SDK peer | Any backend that<br>mints provider<br>access tokens |
 | **2. Hosted page** | A page speaking the<br>`kyc-bridge` protocol, embedded<br>in a hardened WebView or an<br>origin-pinned iframe | One package via the<br>Apollo-free `/hosted`<br>entry - **no Apollo,<br>no GraphQL** | The page (this<br>repo's `apps/api`,<br>or your own) |
 | **3. Proxy session** | Full orchestration: session<br>creation, token refresh,<br>webhook status sync,<br>status query | The package +<br>`@apollo/client` +<br>`graphql` | This repo's backend<br>service (`apps/api`) |
 
@@ -87,13 +87,13 @@ sit in a mobile bundle - so this mode needs one authenticated endpoint on
 your backend.
 
 ```sh
-npm i @blinkbitcoin/kyc-react-native @blinkbitcoin/kyc-sumsub @sumsub/react-native-mobilesdk-module
+npm i @blinkbitcoin/kyc-react-native @sumsub/react-native-mobilesdk-module
 cd ios && bundle exec pod install
 ```
 
 ```tsx
 import { Verification } from '@blinkbitcoin/kyc-react-native';
-import { createSumsubNativeSource } from '@blinkbitcoin/kyc-sumsub/react-native';
+import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
 
 const source = createSumsubNativeSource({
   getAccessToken: async () => (await yourApi.startVerification()).accessToken,
@@ -157,10 +157,9 @@ Ordered by how likely you are to need each part:
 
 | Path | What lives there |
 |------|------------------|
-| [`packages/kyc-react-native/`](packages/kyc-react-native/README.md) | The React Native library you install:<br>`Verification`, `useVerification`, and the<br>hardened hosted WebView. |
+| [`packages/kyc-react-native/`](packages/kyc-react-native/README.md) | The React Native library you install:<br>`Verification`, `useVerification`, the<br>hardened hosted WebView, and the Sumsub<br>native-SDK source on its `/sumsub` entry. |
 | [`packages/kyc-react/`](packages/kyc-react/README.md) | The same pair for React web, over an<br>origin-pinned iframe. |
-| [`packages/kyc-sumsub/`](packages/kyc-sumsub/README.md) | The only place Sumsub is named: the shared<br>status/event mapping and the native-SDK<br>source. Not needed for modes 2 and 3. |
-| [`packages/kyc-core/`](packages/kyc-core/README.md) | The shared core both libraries build on:<br>`VerificationSource`, the capability guards,<br>the bridge protocol, the state machine and<br>the error-code contract. It arrives as a<br>dependency - you never install it directly. |
+| [`packages/kyc-core/`](packages/kyc-core/README.md) | The shared core both libraries build on:<br>`VerificationSource`, the capability guards,<br>the bridge protocol, the state machine, the<br>error-code contract, and the Sumsub mapping<br>on `/sumsub`. It arrives as a dependency -<br>you never install it directly. |
 | [`apps/api/`](apps/api/README.md) | The reference backend: provider port, mock<br>and Sumsub adapters, webhooks, the hosted<br>page. Needed for mode 3 only. |
 | [`examples/`](examples/README.md) | Two demo hosts - the executable integration<br>docs, and the Maestro / Playwright targets. |
 | `docs/` | Documentation of how everything currently<br>works - start at [docs/index.md](docs/index.md). |

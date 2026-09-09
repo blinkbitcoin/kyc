@@ -11,20 +11,20 @@ module.exports = {
       '<rootDir>/../../packages/kyc-core/src/hosted.ts',
     '^@blinkbitcoin/kyc-core/testing$':
       '<rootDir>/../../packages/kyc-core/src/testing.ts',
+    '^@blinkbitcoin/kyc-core/sumsub$':
+      '<rootDir>/../../packages/kyc-core/src/sumsub.ts',
     '^@blinkbitcoin/kyc-core$':
       '<rootDir>/../../packages/kyc-core/src/index.ts',
     '^@blinkbitcoin/kyc-react-native/hosted$':
       '<rootDir>/../../packages/kyc-react-native/src/hosted.ts',
+    '^@blinkbitcoin/kyc-react-native/sumsub$':
+      '<rootDir>/../../packages/kyc-react-native/src/sumsub.ts',
     '^@blinkbitcoin/kyc-react-native$':
       '<rootDir>/../../packages/kyc-react-native/src/index.ts',
-    '^@blinkbitcoin/kyc-sumsub/react-native$':
-      '<rootDir>/../../packages/kyc-sumsub/src/react-native.ts',
-    '^@blinkbitcoin/kyc-sumsub$':
-      '<rootDir>/../../packages/kyc-sumsub/src/index.ts',
     // Native-module mocks: webview/netinfo and the Sumsub SDK live with the
-    // libraries that own them, safe-area is demo-only.
+    // library that owns them, safe-area is demo-only.
     '^@sumsub/react-native-mobilesdk-module$':
-      '<rootDir>/../../packages/kyc-sumsub/__mocks__/@sumsub/react-native-mobilesdk-module.ts',
+      '<rootDir>/../../packages/kyc-react-native/__mocks__/@sumsub/react-native-mobilesdk-module.ts',
     '^react-native-webview$':
       '<rootDir>/../../packages/kyc-react-native/__mocks__/react-native-webview.tsx',
     '^@react-native-community/netinfo$':

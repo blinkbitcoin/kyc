@@ -5,86 +5,11 @@
 // reached file imports '@apollo/' or 'graphql'. This is the guarantee that a
 // hosted-only consumer never needs those packages installed.
 
-import * as fs from 'fs';
 import * as path from 'path';
 
+import { apolloOffenders, collectImportGraph } from './support/importGraph';
+
 const SRC = path.resolve(__dirname, '..');
-
-// Matches static + type imports/re-exports: import ... from 'x' / export ... from 'x'
-const IMPORT_RE =
-  /(?:import|export)\s+(?:type\s+)?[^'"]*from\s+['"]([^'"]+)['"]/g;
-
-// Matches what IMPORT_RE misses: `import('x')` / `require('x')` calls
-// (dynamic imports, CJS interop) and bare side-effect imports (`import 'x'`).
-const DYNAMIC_IMPORT_RE =
-  /(?:^|[^\w])(?:import|require)\s*\(\s*['"]([^'"]+)['"]\s*\)|^\s*import\s+['"]([^'"]+)['"]/gm;
-
-const resolveRelative = (fromFile: string, spec: string): string | null => {
-  const base = path.resolve(path.dirname(fromFile), spec);
-  for (const candidate of [
-    base + '.ts',
-    base + '.tsx',
-    path.join(base, 'index.ts'),
-  ]) {
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
-  }
-  return null;
-};
-
-export const collectImportGraph = (
-  entry: string,
-  selfPackage: string,
-  selfSrcDir: string,
-): { files: string[]; externals: string[] } => {
-  const seen = new Set<string>();
-  const externals = new Set<string>();
-  const queue = [entry];
-
-  const visitSpec = (fromFile: string, spec: string): void => {
-    if (spec.startsWith('.')) {
-      const resolved = resolveRelative(fromFile, spec);
-      if (!resolved) {
-        throw new Error(`unresolved import ${spec} from ${fromFile}`);
-      }
-      queue.push(resolved);
-    } else if (spec === selfPackage || spec.startsWith(`${selfPackage}/`)) {
-      // Self-reference to this monorepo package: map onto its src entries
-      const sub =
-        spec === selfPackage ? 'index' : spec.slice(selfPackage.length + 1);
-      const resolved = resolveRelative(
-        path.join(selfSrcDir, 'x.ts'),
-        `./${sub}`,
-      );
-      if (!resolved) {
-        throw new Error(`unresolved import ${spec} from ${fromFile}`);
-      }
-      queue.push(resolved);
-    } else {
-      externals.add(spec);
-    }
-  };
-
-  while (queue.length > 0) {
-    const file = queue.pop() as string;
-    if (seen.has(file)) {
-      continue;
-    }
-    seen.add(file);
-    const source = fs.readFileSync(file, 'utf8');
-    for (const match of source.matchAll(IMPORT_RE)) {
-      visitSpec(file, match[1]);
-    }
-    for (const match of source.matchAll(DYNAMIC_IMPORT_RE)) {
-      const spec = match[1] ?? match[2];
-      if (spec) {
-        visitSpec(file, spec);
-      }
-    }
-  }
-  return { files: [...seen], externals: [...externals] };
-};
 
 describe('hosted entry (Apollo-free guarantee)', () => {
   it('never reaches a file that imports @apollo/* or graphql', () => {
@@ -95,13 +20,7 @@ describe('hosted entry (Apollo-free guarantee)', () => {
     );
 
     expect(files.length).toBeGreaterThan(2); // sanity: the walk followed the graph
-    const offenders = externals.filter(
-      spec =>
-        spec.startsWith('@apollo/') ||
-        spec === 'graphql' ||
-        spec.startsWith('graphql/'),
-    );
-    expect(offenders).toEqual([]);
+    expect(apolloOffenders(externals)).toEqual([]);
   });
 
   it('the full index DOES reach Apollo (sanity check that the walker works)', () => {

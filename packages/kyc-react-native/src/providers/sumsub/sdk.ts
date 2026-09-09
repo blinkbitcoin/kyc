@@ -3,7 +3,7 @@
 // same seam as esign's docusignWebForms.ts. Nothing here imports the peer at
 // module scope: hosts that only use the hosted mode must never load it.
 
-import type { SNSMobileSDKResult } from '../types';
+import type { SNSMobileSDKResult } from '@blinkbitcoin/kyc-core/sumsub';
 
 export interface SumsubStatusChangedEvent {
   prevStatus: string;

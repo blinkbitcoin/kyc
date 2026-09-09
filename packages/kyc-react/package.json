@@ -16,6 +16,16 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./sumsub": {
+      "import": {
+        "types": "./dist/sumsub.d.mts",
+        "default": "./dist/sumsub.mjs"
+      },
+      "require": {
+        "types": "./dist/sumsub.d.ts",
+        "default": "./dist/sumsub.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": ["src", "dist", "!**/__tests__"],

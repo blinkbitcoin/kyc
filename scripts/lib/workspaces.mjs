@@ -8,7 +8,6 @@
 /** The packages that get a version stamp. */
 export const PUBLISHED_PACKAGES = [
   'packages/kyc-core',
-  'packages/kyc-sumsub',
   'packages/kyc-react-native',
   'packages/kyc-react',
 ];
@@ -19,15 +18,11 @@ export const PUBLISHED_PACKAGES = [
  * dependency are absent.
  */
 export const INTERNAL_DEPENDENCIES = {
-  'packages/kyc-sumsub': ['@blinkbitcoin/kyc-core'],
   'packages/kyc-react-native': ['@blinkbitcoin/kyc-core'],
   'packages/kyc-react': ['@blinkbitcoin/kyc-core'],
-  'apps/api': ['@blinkbitcoin/kyc-sumsub'],
+  'apps/api': ['@blinkbitcoin/kyc-core'],
   'examples/react-demo': ['@blinkbitcoin/kyc-react'],
-  'examples/react-native-demo': [
-    '@blinkbitcoin/kyc-react-native',
-    '@blinkbitcoin/kyc-sumsub',
-  ],
+  'examples/react-native-demo': ['@blinkbitcoin/kyc-react-native'],
 };
 
 /** The `npm pkg set` arguments that stamp `version` into every dependent. */

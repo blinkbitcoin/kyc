@@ -16,10 +16,9 @@ release`, see [docs/releasing.md](docs/releasing.md)).
 | Workspace | Path | Role |
 |-----------|------|------|
 | `backend` | `apps/api/` | Express 5 + Apollo Server 5 GraphQL API, Knex/PostgreSQL; verification session/token issuance, provider port (mock + Sumsub), signed webhooks and the hosted verification page |
-| `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: the shared verification state machine, `VerificationSource` + capability guards, `kyc-bridge` protocol, hosted + proxy sources, Apollo client factory, GraphQL operations, `ErrorCode` contract (no React/DOM). Entries: `.`, `/hosted` (Apollo-free), `/testing` (fake source) |
-| `@blinkbitcoin/kyc-sumsub` | `packages/kyc-sumsub/` | Sumsub adapters. Root entry = the only Sumsub↔normalized mapping (used by `apps/api` too); `/react-native` = `createSumsubNativeSource` over the Mobile SDK; `/web` = reserved placeholder (no web-SDK adapter in v1) |
-| `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `Verification` component + `useVerification` hook + `HostedWebView` (hardened WebView, camera capture granted, origin-pinned). Entries: `.`, `/hosted` (Apollo-free) |
-| `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Publishable React **web** library: `Verification` component + `useVerification` hook + `HostedFrame` (origin-pinned iframe, camera/microphone delegated) and the `MountableSource` seam. Single entry. |
+| `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: the shared verification state machine, `VerificationSource` + capability guards, `kyc-bridge` protocol, hosted + proxy sources, Apollo client factory, GraphQL operations, `ErrorCode` contract (no React/DOM); `providers/sumsub/` is the one Sumsub↔normalized mapping (used by `apps/api` too). Entries: `.`, `/hosted` (Apollo-free), `/testing` (fake source), `/sumsub` (Apollo-free, the mapping + the hosted layer) |
+| `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `Verification` component + `useVerification` hook + `HostedWebView` (hardened WebView, camera capture granted, origin-pinned); `providers/sumsub/` = `createSumsubNativeSource` over the optional Mobile SDK peer. Entries: `.`, `/hosted` (Apollo-free), `/sumsub` (Apollo-free, the native source + the hosted surface) |
+| `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Publishable React **web** library: `Verification` component + `useVerification` hook + `HostedFrame` (origin-pinned iframe, camera/microphone delegated) and the `MountableSource` seam; `providers/sumsub/` is the reserved seat of the web-SDK adapter (none in v1). Entries: `.`, `/sumsub` |
 | `kyc-react-native-example` | `examples/react-native-demo/` | RN demo app hosting the RN library (Maestro E2E target) |
 | `kyc-react-example` | `examples/react-demo/` | Vite web demo hosting the web library (`make web`) |
 
@@ -119,8 +118,9 @@ npm run migrate:test         # Same against the .env.test database
 - **Provider-agnostic**: `Verification` takes a `VerificationSource` (not
   session/token details). The abstraction + capability guards
   (`isLaunchable`, `isTokenRefreshable`) live in `@blinkbitcoin/kyc-core`;
-  Sumsub's sources live in `@blinkbitcoin/kyc-sumsub`. Add a provider = a
-  new `VerificationSource`; the component never changes.
+  Sumsub's native source lives in `packages/kyc-react-native/src/providers/sumsub/`
+  (`/sumsub` entry), its mapping in `packages/kyc-core/src/providers/sumsub/`.
+  Add a provider = a new `VerificationSource`; the component never changes.
 - The platform-agnostic code (the `VerificationSource` abstraction + guards,
   the `kyc-bridge` protocol, `createHostedSource` / `createProxySource`, the
   Apollo client factory, the `ErrorCode` contract + generated types) lives in
@@ -186,8 +186,9 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   never inline in a workflow; `make check-ci` runs actionlint + shellcheck
 - `graphql` is pinned to 16.x repo-wide (Apollo Server 5's peer range) - do
   not bump it to 17 until Apollo Server supports it
-- **Sumsub semantics live in one place.** `packages/kyc-sumsub/src/mapping.ts` is the only implementation of the Sumsub status/webhook/event tables. `apps/api` imports it (`@blinkbitcoin/kyc-sumsub`) and the hosted page embeds a JSON table *generated* from `mapSumsubStatus` at render time — never a second hand-written copy.
-- **`apps/api` consumes the package as a consumer does**, through `dist/`. Its `dev`, `build`, `typecheck` and `test:e2e` scripts each have an npm `pre*` hook that runs `npm run build -w packages/kyc-core -w packages/kyc-sumsub` first, so `npm run backend`, `scripts/e2e/backend-up.sh` and Playwright's `webServer` all work from a clean checkout. Unit tests skip the build: `apps/api/vitest.config.ts` aliases the two packages to their sources.
+- **Sumsub semantics live in one place.** `packages/kyc-core/src/providers/sumsub/mapping.ts` is the only implementation of the Sumsub status/webhook/event tables. `apps/api` imports it (`@blinkbitcoin/kyc-core/sumsub`) and the hosted page embeds a JSON table *generated* from `mapSumsubStatus` at render time — never a second hand-written copy.
+- **Provider boundary, everywhere.** Nothing Sumsub-specific outside a `providers/sumsub/` directory - in core (the mapping), the RN package (the native-SDK source), the web package (reserved) and `apps/api`. Generic layers never import a provider and each package's `src/sumsub.ts` is a one-line re-export of its `providers/sumsub/` surface; guard tests enforce both.
+- **`apps/api` consumes the package as a consumer does**, through `dist/`. Its `dev`, `build`, `typecheck` and `test:e2e` scripts each have an npm `pre*` hook that runs `npm run build -w packages/kyc-core` first, so `npm run backend`, `scripts/e2e/backend-up.sh` and Playwright's `webServer` all work from a clean checkout. Unit tests skip the build: `apps/api/vitest.config.ts` aliases the package's entries to their sources.
 
 ## CI and releases
 
@@ -218,7 +219,9 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
 
 - **Provider pattern**: the verification-mode boundary is
   `VerificationSource` (`packages/kyc-core/src/verification/types.ts`);
-  Sumsub's sources live in `packages/kyc-sumsub/`. The backend's equivalent
+  Sumsub's client code sits under `providers/sumsub/` in core (the mapping)
+  and the RN package (the native source), reached through the `/sumsub`
+  entries. The backend's equivalent
   is `VerificationProvider` (`apps/api/src/providers/port.ts`) with mock and
   sumsub adapters; the optional `getStatusByUserId` capability is detected
   with `supportsUserStatusLookup`.

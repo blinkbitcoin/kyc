@@ -6,12 +6,12 @@ The provider's SDK runs **in-process**: on React Native, `@sumsub/react-native-m
 
 ## What you need
 
-1. `@blinkbitcoin/kyc-react-native` and `@blinkbitcoin/kyc-sumsub`.
+1. `@blinkbitcoin/kyc-react-native` - the native source is its `/sumsub` entry.
 2. The provider SDK peer: `@sumsub/react-native-mobilesdk-module` (≥1.40), plus `pod install` on iOS.
 3. **A backend that mints provider access tokens.** This repo's `apps/api` does, but any backend of yours will do - the package only ever calls a callback you supply.
 
 ```sh
-npm i @blinkbitcoin/kyc-react-native @blinkbitcoin/kyc-sumsub \
+npm i @blinkbitcoin/kyc-react-native \
       @sumsub/react-native-mobilesdk-module react-native-webview @react-native-community/netinfo
 cd ios && bundle exec pod install
 ```
@@ -20,7 +20,7 @@ cd ios && bundle exec pod install
 
 ```tsx
 import { Verification } from '@blinkbitcoin/kyc-react-native';
-import { createSumsubNativeSource } from '@blinkbitcoin/kyc-sumsub/react-native';
+import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
 
 const source = createSumsubNativeSource({
   getAccessToken: async () => {

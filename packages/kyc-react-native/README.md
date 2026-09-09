@@ -26,7 +26,7 @@ The provider SDK runs in-process; no WebView is rendered.
 
 ```tsx
 import { Verification } from '@blinkbitcoin/kyc-react-native/hosted';
-import { createSumsubNativeSource } from '@blinkbitcoin/kyc-sumsub/react-native';
+import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
 
 const source = createSumsubNativeSource({ getAccessToken: fetchTokenFromYourApi });
 
@@ -81,6 +81,23 @@ const source = createProxySource({
   platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID',
 });
 ```
+
+### Testing without the native module
+
+`__mocks__/@sumsub/react-native-mobilesdk-module.ts` ships with this package:
+a complete fake of the builder chain (records `withHandlers` / `withDebug` /
+`withLocale`, drives `onStatusChanged` / `onEvent` / `onLog`, resolves or
+rejects `launch()`). Point your Jest at it so your unit tests never load the
+native module:
+
+```js
+moduleNameMapper: {
+  '^@sumsub/react-native-mobilesdk-module$':
+    '<rootDir>/node_modules/@blinkbitcoin/kyc-react-native/__mocks__/@sumsub/react-native-mobilesdk-module.ts',
+}
+```
+
+Or inject a double directly: `createSumsubNativeSource({ getAccessToken, sdk })`.
 
 ## Permissions
 

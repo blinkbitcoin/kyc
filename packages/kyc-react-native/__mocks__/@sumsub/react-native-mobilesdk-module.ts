@@ -10,8 +10,8 @@ import type {
   SumsubHandlers,
   SumsubInstanceLike,
   SumsubSdkLike,
-} from '../../src/native/sdk';
-import type { SNSMobileSDKResult } from '../../src/types';
+} from '../../src/providers/sumsub/sdk';
+import type { SNSMobileSDKResult } from '@blinkbitcoin/kyc-core/sumsub';
 
 export interface SumsubMockState {
   accessToken?: string;
