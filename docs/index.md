@@ -19,6 +19,7 @@
 #### Packages - the product
 
 - **`packages/kyc-core`** - platform-agnostic: `VerificationSource` + capability guards, the `kyc-bridge` protocol, the shared state machine, the error-code contract, the hosted and proxy sources. Entries: `.`, `./hosted` (Apollo-free), `./testing`, `./sumsub` (Apollo-free; the one Sumsub mapping, in `providers/sumsub/`).
+- **`packages/kyc-server`** - the server half, being extracted from `apps/api`: the domain over the provider + store ports, the Sumsub adapter, the hosted page, Fetch handlers, `./express`, `./knex`, `./sumsub`.
 - **`packages/kyc-react-native`** - `Verification` + `useVerification` over a hardened `react-native-webview`, and the Sumsub native-SDK source in `providers/sumsub/`. Entries: `.`, `./hosted`, `./sumsub`.
 - **`packages/kyc-react`** - the same pair over an origin-pinned iframe, plus the `MountableSource` seam; `providers/sumsub/` is reserved for the web-SDK adapter. Entries: `.`, `./sumsub`.
 
@@ -69,6 +70,7 @@ Organized by namespace - pick by what you are doing:
 | Doc | Covers |
 |-----|--------|
 | [../packages/kyc-core/README.md](../packages/kyc-core/README.md) | The four entries, the bridge protocol, the error-code split, the state machine, the Sumsub mapping |
+| [../packages/kyc-server/README.md](../packages/kyc-server/README.md) | The server package: what a backend imports, the four entries, the extraction status |
 | [../packages/kyc-react-native/README.md](../packages/kyc-react-native/README.md) | The React Native package: modes, permission setup, `Verification` props, the hook, the native-SDK source and its test double |
 | [../packages/kyc-react/README.md](../packages/kyc-react/README.md) | The web package: iframe/CSP requirements, origin pinning, `Verification` props |
 | [../apps/api/README.md](../apps/api/README.md) | Running and configuring the reference backend |

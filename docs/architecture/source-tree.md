@@ -36,6 +36,26 @@ kyc/
 │       ├── codegen.ts
 │       └── dist/                    # tsup output (gitignored)
 │
+├── 🖥️ SERVER PACKAGE - being extracted from apps/api
+│   │
+│   └── packages/kyc-server/
+│       ├── src/
+│       │   ├── index.ts             # `.` - the framework-free surface
+│       │   ├── types.ts             # The domain vocabulary (statuses, platforms, provider results)
+│       │   ├── provider.ts          # VerificationProvider port + HostedPageRenderer capability ⭐
+│       │   ├── errors.ts            # KycError + ErrorCodes (the wire contract)
+│       │   ├── signature.ts         # verifyHexDigest, the webhook-signature primitive
+│       │   ├── http.ts              # HttpError + withRetry
+│       │   ├── html.ts              # escapeHtml, sanitizeId, jsonForScript
+│       │   ├── pages.ts             # The hosted page's neutral layer: params, CSP, not-found page
+│       │   ├── bridge/script.ts     # The kyc-bridge script every page inlines
+│       │   ├── audit.ts             # Audit vocabulary + metadata allow-list
+│       │   ├── validation.ts        # Input rules (validateStartInput)
+│       │   ├── auth.ts              # bearerToken
+│       │   ├── log.ts               # Logger port + sanitizeForLog
+│       │   └── tracing.ts           # Tracing port + noopTracing
+│       └── dist/                    # tsup output (gitignored)
+│
 ├── 📦 PLATFORM PACKAGES - THE PRODUCT
 │   │
 │   ├── packages/kyc-react-native/

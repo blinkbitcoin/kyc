@@ -8,6 +8,7 @@
 /** The packages that get a version stamp. */
 export const PUBLISHED_PACKAGES = [
   'packages/kyc-core',
+  'packages/kyc-server',
   'packages/kyc-react-native',
   'packages/kyc-react',
 ];
@@ -18,6 +19,7 @@ export const PUBLISHED_PACKAGES = [
  * dependency are absent.
  */
 export const INTERNAL_DEPENDENCIES = {
+  'packages/kyc-server': ['@blinkbitcoin/kyc-core'],
   'packages/kyc-react-native': ['@blinkbitcoin/kyc-core'],
   'packages/kyc-react': ['@blinkbitcoin/kyc-core'],
   'apps/api': ['@blinkbitcoin/kyc-core'],

@@ -12,6 +12,7 @@ export class BadgeError extends Error {}
 // Jest uses the lcov reporter's `coverage/lcov-report`.
 export const WORKSPACES = [
   { ws: 'packages/kyc-core', reportDir: 'coverage/lcov-report' },
+  { ws: 'packages/kyc-server', reportDir: 'coverage/lcov-report' },
   { ws: 'packages/kyc-react-native', reportDir: 'coverage/lcov-report' },
   { ws: 'packages/kyc-react', reportDir: 'coverage/lcov-report' },
   { ws: 'apps/api', reportDir: 'coverage' },
