@@ -5,5 +5,9 @@
   "scripts": {
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.9",
+    "@vitest/coverage-v8": "^4.1.11"
   }
 }
