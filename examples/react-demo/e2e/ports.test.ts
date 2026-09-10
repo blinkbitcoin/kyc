@@ -17,40 +17,40 @@ import {
 
 describe('portFrom', () => {
   it('uses the default when the variable is unset or empty', () => {
-    expect(portFrom('X', undefined, 5000)).toBe(5000);
-    expect(portFrom('X', '', 5000)).toBe(5000);
+    expect(portFrom('X', undefined, 5100)).toBe(5100);
+    expect(portFrom('X', '', 5100)).toBe(5100);
   });
 
   it('reads a real port number', () => {
-    expect(portFrom('X', '5010', 5000)).toBe(5010);
-    expect(portFrom('X', '65535', 5000)).toBe(65535);
+    expect(portFrom('X', '5110', 5100)).toBe(5110);
+    expect(portFrom('X', '65535', 5100)).toBe(65535);
   });
 
   it.each(['0', '65536', '-1', '1.5', 'abc', ' '])('rejects %j', value => {
-    expect(() => portFrom('KYC_API_PORT', value, 5000)).toThrow(
+    expect(() => portFrom('KYC_API_PORT', value, 5100)).toThrow(
       /KYC_API_PORT must be a port number/,
     );
   });
 });
 
 describe('portsFrom', () => {
-  it('defaults to the kyc range 5000-5002', () => {
+  it('defaults to the kyc range 5100-5102', () => {
     expect(portsFrom({})).toEqual(DEFAULT_PORTS);
     expect(DEFAULT_PORTS).toEqual({
-      api: 5000,
-      web: { hosted: 5001, proxy: 5002 },
+      api: 5100,
+      web: { hosted: 5101, proxy: 5102 },
     });
   });
 
   it('moves each service with its own variable', () => {
     expect(
       portsFrom({
-        KYC_API_PORT: '5010',
-        KYC_WEB_PORT: '5011',
-        KYC_WEB_PROXY_PORT: '5012',
+        KYC_API_PORT: '5110',
+        KYC_WEB_PORT: '5111',
+        KYC_WEB_PROXY_PORT: '5112',
       }),
-    ).toEqual({ api: 5010, web: { hosted: 5011, proxy: 5012 } });
-    expect(portsFrom({ KYC_WEB_PORT: '5011' }).api).toBe(5000);
+    ).toEqual({ api: 5110, web: { hosted: 5111, proxy: 5112 } });
+    expect(portsFrom({ KYC_WEB_PORT: '5111' }).api).toBe(5100);
   });
 });
 

@@ -95,7 +95,7 @@ same backend on the host machine:
 - **GraphQL** (`verificationSessionStart`/`Refresh`, the mutations the app
   itself calls): `src/config.ts`'s `getDevBackendHost` resolves to the
   emulator's `10.0.2.2` alias for the host loopback, so `GRAPHQL_URL` is
-  `http://10.0.2.2:<KYC_API_PORT>/graphql` (5000 by default; the variable is
+  `http://10.0.2.2:<KYC_API_PORT>/graphql` (5100 by default; the variable is
   inlined at bundle time like `KYC_MODE`) on Android without any extra setup.
 - **The hosted page** (what loads *inside* the WebView): the backend mints
   its URL from `PUBLIC_BASE_URL`, which stays `http://localhost:<port>` for

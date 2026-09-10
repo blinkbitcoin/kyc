@@ -42,7 +42,7 @@ be a placeholder; the device matrix needs a real, public one.
 ## 4. A public URL (device matrix only)
 
 Real webhooks and the hosted page on a phone need the backend reachable
-from outside: an SSH tunnel or an ngrok-style forwarder to `:5000`. That
+from outside: an SSH tunnel or an ngrok-style forwarder to `:5100`. That
 URL is `PUBLIC_BASE_URL`; add the web demo's origin to
 `CORS_ALLOWED_ORIGINS` for the web pass. `make sumsub-check` warns when
 `PUBLIC_BASE_URL` is local.
@@ -51,7 +51,7 @@ URL is `PUBLIC_BASE_URL`; add the web demo's origin to
 
 ```sh
 make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=… \
-     [LEVEL_NAME=basic-kyc-level] [PUBLIC_BASE_URL=http://localhost:5000] \
+     [LEVEL_NAME=basic-kyc-level] [PUBLIC_BASE_URL=http://localhost:5100] \
      [WEBHOOK_DIGEST_ALG=HMAC_SHA256_HEX] [JWT_SECRET=…] [FORCE=1]
 make sumsub-check
 ```

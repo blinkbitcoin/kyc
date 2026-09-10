@@ -14,7 +14,7 @@ Everything lives behind four targets (`scripts/e2e/live.sh`,
 make sumsub-check   # app-token auth + the level, one throwaway 60 s token
 make test-live      # the live tests alone; the service round trips need DATABASE_URL
 make e2e-live       # check → E2E Postgres (:5433) → live tests → the access-token
-                    #   example on :5003 (TOKEN_PORT) mints a real token → DB down
+                    #   example on :5103 (TOKEN_PORT) mints a real token → DB down
 ```
 
 In CI the same runner reads the `SUMSUB_*` values from the environment (job
@@ -49,7 +49,7 @@ Sessions from a local run land in the tmpfs E2E database (dropped by
 | `[live] DATABASE_URL is not set` | `make test-live` outside `e2e-live` | `make e2e-live`, or export a `DATABASE_URL` and migrate |
 | the signed-webhook test answers `401` | `SUMSUB_WEBHOOK_DIGEST_ALG` in the `.env` is not what the test should sign with, or the secret differs from the dashboard's | set both from the webhook's settings |
 | the signed-webhook test answers `200` with outcome `unknown_session` | the session row was not found by external user id (a stale DB, or `PUBLIC_BASE_URL` pointing at another instance) | run inside `e2e-live` (fresh DB) |
-| `port 5003 is taken` / the example never answers | a stale example process | `TOKEN_PORT=5013 make e2e-live` |
+| `port 5103 is taken` / the example never answers | a stale example process | `TOKEN_PORT=5113 make e2e-live` |
 | `server demos smoke: access-token mutation (sumsub)` fails while the check passed | the example reads `SUMSUB_*` from the environment, not the `.env` | `live.sh` exports the `.env`; run through it |
 
 No live pass has been recorded from this repo yet: the first real run's

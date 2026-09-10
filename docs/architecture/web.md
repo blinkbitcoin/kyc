@@ -90,4 +90,4 @@ export const isMountable: (source: VerificationSource) => source is MountableSou
 
 ## Testing strategy
 
-Jest + jsdom + `@testing-library/react`, 100% thresholds, `collectCoverageFrom: ['src/**/*.{ts,tsx}']` so a new file cannot hide from the gate. Playwright drives the real cross-origin iframe in `make e2e-web` (hosted) and `make e2e-web-proxy` (proxy) on the ports `KYC_WEB_PORT` / `KYC_WEB_PROXY_PORT` / `KYC_API_PORT` name (`e2e/ports.ts`; 5001 / 5002 / 5000 by default).
+Jest + jsdom + `@testing-library/react`, 100% thresholds, `collectCoverageFrom: ['src/**/*.{ts,tsx}']` so a new file cannot hide from the gate. Playwright drives the real cross-origin iframe in `make e2e-web` (hosted) and `make e2e-web-proxy` (proxy) on the ports `KYC_WEB_PORT` / `KYC_WEB_PROXY_PORT` / `KYC_API_PORT` name (`e2e/ports.ts`; 5101 / 5102 / 5100 by default).

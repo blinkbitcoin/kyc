@@ -34,8 +34,8 @@ this one mutation is also the refresh: no session id, nothing to store.
 
 ```sh
 cp .env.example .env
-make dev                     # http://localhost:5003 (PORT overrides), mock provider
-curl -s http://localhost:5003 -H 'content-type: application/json' \
+make dev                     # http://localhost:5103 (PORT overrides), mock provider
+curl -s http://localhost:5103 -H 'content-type: application/json' \
   -H 'authorization: Bearer user-1' \
   -d '{"query":"mutation { verificationAccessToken(platform: IOS, tier: \"basic\") { accessToken provider } }"}'
 ```

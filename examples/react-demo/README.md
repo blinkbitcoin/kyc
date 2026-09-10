@@ -9,7 +9,7 @@ Playwright E2E target. `VITE_KYC_MODE` selects the mode at build time.
 | `proxy` | `createProxySource({ client, platform: 'WEB' })` | backend + database |
 
 ```bash
-make web                          # repo root, hosted mode on :5001 (KYC_WEB_PORT)
+make web                          # repo root, hosted mode on :5101 (KYC_WEB_PORT)
 VITE_KYC_MODE=proxy npm run dev   # here, proxy mode
 VITE_KYC_UI=themed npm run dev    # the same flow under Blink's palette and Spanish copy
 ```
@@ -50,12 +50,12 @@ page's own camera/mic prompt with no error the host can see.
 ```bash
 make e2e-web                     # hosted - what CI runs
 make e2e-web-proxy               # proxy
-KYC_API_PORT=5010 KYC_WEB_PORT=5011 KYC_WEB_PROXY_PORT=5012 make e2e-web   # another worktree
+KYC_API_PORT=5110 KYC_WEB_PORT=5111 KYC_WEB_PROXY_PORT=5112 make e2e-web   # another worktree
 ```
 
 Every service runs on a custom port: `e2e/ports.ts` reads `KYC_API_PORT`
-(backend, 5000), `KYC_WEB_PORT` (hosted demo, 5001) and
-`KYC_WEB_PROXY_PORT` (proxy demo, 5002), so parallel repos and worktrees
+(backend, 5100), `KYC_WEB_PORT` (hosted demo, 5101) and
+`KYC_WEB_PROXY_PORT` (proxy demo, 5102), so parallel repos and worktrees
 never adopt each other's servers; the backend is started with its port,
 `PUBLIC_BASE_URL` on it and the two demo origins in `CORS_ALLOWED_ORIGINS`.
 The dev server (`make web`) listens on `KYC_WEB_PORT` too, and finds a

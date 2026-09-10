@@ -92,7 +92,7 @@ describe('validateSecurityConfig', () => {
   it('accepts a well-formed PUBLIC_BASE_URL', () => {
     expect(() => validateSecurityConfig(SECURE)).not.toThrow();
     expect(() =>
-      validateSecurityConfig({ JWT_SECRET: 's', PUBLIC_BASE_URL: 'http://localhost:5000' })
+      validateSecurityConfig({ JWT_SECRET: 's', PUBLIC_BASE_URL: 'http://localhost:5100' })
     ).not.toThrow();
   });
 });
@@ -110,10 +110,10 @@ describe('getAllowedOrigins', () => {
 });
 
 describe('getPublicBaseUrl / getPublicOrigin', () => {
-  it('defaults to localhost:5000 under insecure dev only', () => {
+  it('defaults to localhost:5100 under insecure dev only', () => {
     const dev = { ALLOW_INSECURE_DEV: 'true' };
-    expect(getPublicBaseUrl(dev)).toBe('http://localhost:5000');
-    expect(getPublicOrigin(dev)).toBe('http://localhost:5000');
+    expect(getPublicBaseUrl(dev)).toBe('http://localhost:5100');
+    expect(getPublicOrigin(dev)).toBe('http://localhost:5100');
     // Outside insecure dev there is nothing to guess: validateSecurityConfig
     // has already refused to boot without an explicit value.
     expect(getPublicBaseUrl({})).toBe('');

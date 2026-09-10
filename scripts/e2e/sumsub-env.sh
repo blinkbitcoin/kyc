@@ -3,7 +3,7 @@
 # three secrets (App Token, its secret key, the webhook secret key) and the
 # level name - docs/integration/sumsub.md, section 1.
 #   make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=… \
-#        [LEVEL_NAME=basic-kyc-level] [PUBLIC_BASE_URL=http://localhost:5000] \
+#        [LEVEL_NAME=basic-kyc-level] [PUBLIC_BASE_URL=http://localhost:5100] \
 #        [WEBHOOK_DIGEST_ALG=HMAC_SHA256_HEX] [JWT_SECRET=…] [FORCE=1]
 # Refuses to overwrite an existing .env unless FORCE=1. Local only, never CI
 # (CI reads the same names from the sumsub-sandbox environment).
@@ -17,7 +17,7 @@ if [ -f "$OUT" ] && [ -z "${FORCE:-}" ]; then
 fi
 {
   echo "# Written by make sumsub-env ($(date -u +%Y-%m-%dT%H:%M:%SZ)); local only, never commit"
-  echo "PORT=${PORT:-5000}"
+  echo "PORT=${PORT:-5100}"
   echo "DATABASE_URL=${DATABASE_URL:-postgresql://dev:dev@localhost:5432/kyc}"
   # No JWT_SECRET unless asked: with ALLOW_INSECURE_DEV the bearer token is
   # the user id, which is what the live tests and the demos send.
@@ -30,7 +30,7 @@ fi
   echo "SUMSUB_WEBHOOK_DIGEST_ALG=${WEBHOOK_DIGEST_ALG:-HMAC_SHA256_HEX}"
   echo "SUMSUB_LEVEL_NAME=${LEVEL_NAME:-basic-kyc-level}"
   echo "SUMSUB_BASE_URL=${SUMSUB_BASE_URL:-https://api.sumsub.com}"
-  echo "PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:${PORT:-5000}}"
+  echo "PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:${PORT:-5100}}"
 } > "$OUT"
 chmod 600 "$OUT"
 echo "wrote $OUT (level ${LEVEL_NAME:-basic-kyc-level})"

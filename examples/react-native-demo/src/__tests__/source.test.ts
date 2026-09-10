@@ -46,8 +46,8 @@ describe('buildSource - hosted', () => {
           verificationSessionStart: {
             provider: 'mock',
             sessionId: 's-1',
-            url: 'http://localhost:5000/hosted/s-1',
-            allowedOrigin: 'http://localhost:5000',
+            url: 'http://localhost:5100/hosted/s-1',
+            allowedOrigin: 'http://localhost:5100',
             accessToken: 'tok-1',
           },
         },
@@ -61,8 +61,8 @@ describe('buildSource - hosted', () => {
     });
 
     await expect(source.start()).resolves.toMatchObject({
-      url: 'http://localhost:5000/hosted/s-1',
-      allowedOrigin: 'http://localhost:5000',
+      url: 'http://localhost:5100/hosted/s-1',
+      allowedOrigin: 'http://localhost:5100',
     });
     expect(isTokenRefreshable(source)).toBe(true);
     if (isTokenRefreshable(source)) {

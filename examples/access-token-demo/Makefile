@@ -1,7 +1,7 @@
 # Example-app targets. Repo-wide flows live in the root Makefile.
 .DEFAULT_GOAL := help
 
-dev: ## Run the API (KYC_PROVIDER=mock needs no credentials; PORT, default 5003)
+dev: ## Run the API (KYC_PROVIDER=mock needs no credentials; PORT, default 5103)
 	npm run dev
 
 start: dev ## Alias for dev

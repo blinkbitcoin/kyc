@@ -6,9 +6,9 @@ import { requireBuiltLibraries, sourceAliases } from './vite/libraries.ts';
 const packages = path.resolve(import.meta.dirname, '../../packages');
 
 // Every service in this repo runs on a custom port so repos and worktrees
-// never clash: the dev server and the preview take KYC_WEB_PORT (5001);
+// never clash: the dev server and the preview take KYC_WEB_PORT (5101);
 // the Playwright configs pass --port per mode (e2e/ports.ts).
-const webPort = Number(process.env.KYC_WEB_PORT || 5001);
+const webPort = Number(process.env.KYC_WEB_PORT || 5101);
 
 export default defineConfig(({ command }) => {
   if (command === 'build') {

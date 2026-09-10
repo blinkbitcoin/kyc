@@ -12,8 +12,8 @@ const URL = 'https://kyc.example.com/hosted/sess-1?x=1';
 describe('originOf', () => {
   it('keeps scheme, host and port and lowercases them', () => {
     expect(originOf(URL)).toBe('https://kyc.example.com');
-    expect(originOf('http://10.0.2.2:5000/hosted/a')).toBe(
-      'http://10.0.2.2:5000',
+    expect(originOf('http://10.0.2.2:5100/hosted/a')).toBe(
+      'http://10.0.2.2:5100',
     );
     expect(originOf('HTTPS://KYC.Example.com/a')).toBe(
       'https://kyc.example.com',

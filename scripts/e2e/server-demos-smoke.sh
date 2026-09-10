@@ -3,13 +3,13 @@
 # the mock provider, no database, no Sumsub (make e2e-server-demos; CI: E2E /
 # Server demos). PROVIDER=sumsub: the real provider with the SUMSUB_* values
 # from the environment - the example mints a real access token (part of
-# make e2e-live). Port: TOKEN_PORT (5003).
+# make e2e-live). Port: TOKEN_PORT (5103).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 # shellcheck source=scripts/e2e/wait-lib.sh
 . scripts/e2e/wait-lib.sh
 LOG_DIR="${RUNNER_TEMP:-/tmp}"
-TOKEN_PORT="${TOKEN_PORT:-5003}"
+TOKEN_PORT="${TOKEN_PORT:-5103}"
 PROVIDER="${PROVIDER:-mock}"
 if [ "$PROVIDER" = sumsub ]; then
   : "${SUMSUB_APP_TOKEN:?}" "${SUMSUB_SECRET_KEY:?}"

@@ -104,12 +104,12 @@ Organized by namespace - pick by what you are doing:
 # 1. Install all workspaces (single root lockfile)
 npm ci
 
-# 2. Start the backend (dev Postgres + migrations + server on :5000)
+# 2. Start the backend (dev Postgres + migrations + server on :5100)
 make db-up migrate backend
 
 # 3. Start a demo (new terminal, from the repo root)
 make start && make ios      # React Native (or: make android)
-make web                    # or the Vite demo on :5001
+make web                    # or the Vite demo on :5101
 ```
 
 ### Run tests

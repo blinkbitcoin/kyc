@@ -62,7 +62,7 @@ export const providerFromEnv = (
 
 export interface DefaultRegistryOptions {
   // Where the hosted page's webhooks post back (the mock signs them).
-  // Default: PUBLIC_BASE_URL, else http://localhost:5000.
+  // Default: PUBLIC_BASE_URL, else http://localhost:5100.
   publicBaseUrl?: () => string;
   // The mock's webhook signing secret. Default: MOCK_WEBHOOK_SECRET, else "mock".
   mockWebhookSecret?: () => string;
@@ -83,7 +83,7 @@ export const defaultRegistry = (
     createMockProvider({
       publicBaseUrl:
         options.publicBaseUrl ??
-        (() => env.PUBLIC_BASE_URL || 'http://localhost:5000'),
+        (() => env.PUBLIC_BASE_URL || 'http://localhost:5100'),
       webhookSecret:
         options.mockWebhookSecret ?? (() => env.MOCK_WEBHOOK_SECRET || 'mock'),
       logger: options.logger,

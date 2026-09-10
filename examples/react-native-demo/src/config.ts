@@ -12,9 +12,9 @@ declare const process: {
 
 // Every service in this repo runs on a custom port so repos and worktrees
 // never clash: KYC_API_PORT (inlined at bundle time like KYC_MODE) says
-// where the backend listens; 5000 is the repo default.
+// where the backend listens; 5100 is the repo default.
 export const resolveBackendPort = (raw?: string): number =>
-  raw !== undefined && /^\d+$/.test(raw) ? Number(raw) : 5000;
+  raw !== undefined && /^\d+$/.test(raw) ? Number(raw) : 5100;
 const BACKEND_PORT = resolveBackendPort(process.env.KYC_API_PORT);
 
 // The Android emulator reaches the host machine through 10.0.2.2. The E2E

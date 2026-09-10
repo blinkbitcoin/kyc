@@ -2,7 +2,7 @@
 // environment/config system. VITE_API_ORIGIN is how the demo finds a backend
 // on a custom port (the E2E stack sets it from KYC_API_PORT, e2e/ports.ts).
 export const resolveApiOrigin = (origin?: string): string =>
-  origin !== undefined && origin !== '' ? origin : 'http://localhost:5000';
+  origin !== undefined && origin !== '' ? origin : 'http://localhost:5100';
 export const API_ORIGIN = resolveApiOrigin(import.meta.env.VITE_API_ORIGIN);
 export const GRAPHQL_URL = `${API_ORIGIN}/graphql`;
 

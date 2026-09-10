@@ -56,7 +56,7 @@ describe('hosted page (E2E)', () => {
   });
 
   it('404s with the sessionExpired page for an unknown session', async () => {
-    const res = await request(app).get('/hosted/00000000-0000-5000-8000-000000000000');
+    const res = await request(app).get('/hosted/00000000-0000-5100-8000-000000000000');
     expect(res.status).toBe(404);
     expect(res.text).toContain("post('sessionExpired')");
   });

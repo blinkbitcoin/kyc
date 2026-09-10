@@ -10,10 +10,10 @@ import {
 
 describe('demo config', () => {
   it('points at the local reference backend', () => {
-    expect(API_ORIGIN).toBe('http://localhost:5000');
-    expect(GRAPHQL_URL).toBe('http://localhost:5000/graphql');
-    expect(resolveApiOrigin(undefined)).toBe('http://localhost:5000');
-    expect(resolveApiOrigin('')).toBe('http://localhost:5000');
+    expect(API_ORIGIN).toBe('http://localhost:5100');
+    expect(GRAPHQL_URL).toBe('http://localhost:5100/graphql');
+    expect(resolveApiOrigin(undefined)).toBe('http://localhost:5100');
+    expect(resolveApiOrigin('')).toBe('http://localhost:5100');
   });
 
   it('takes the E2E stack backend origin from VITE_API_ORIGIN', () => {

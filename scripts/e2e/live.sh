@@ -6,7 +6,7 @@
 # then the access-token example minting a real token, and the database
 # down. Local (make e2e-live) and CI (the Live job) alike; no device, no
 # browser - the device matrix in docs/integration/sumsub.md stays manual.
-#   make e2e-live [TOKEN_PORT=5003]
+#   make e2e-live [TOKEN_PORT=5103]
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 SERVICE=examples/full-service-demo
@@ -40,5 +40,5 @@ echo "== live tests (token, status, hosted page, signed webhook)"
 npm run --silent test:live -w "$SERVICE"
 
 echo "== the access-token example mints a real token"
-PROVIDER=sumsub TOKEN_PORT="${TOKEN_PORT:-5003}" bash scripts/e2e/server-demos-smoke.sh
+PROVIDER=sumsub TOKEN_PORT="${TOKEN_PORT:-5103}" bash scripts/e2e/server-demos-smoke.sh
 echo "live run: all ok"

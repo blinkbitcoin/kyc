@@ -3,9 +3,9 @@
 // and worktrees never clash: set the three variables per worktree (direnv,
 // a shell export) and the whole stack moves.
 //
-//   KYC_API_PORT        the reference backend         default 5000
-//   KYC_WEB_PORT        the web demo, hosted mode     default 5001
-//   KYC_WEB_PROXY_PORT  the web demo, proxy mode      default 5002
+//   KYC_API_PORT        the reference backend         default 5100
+//   KYC_WEB_PORT        the web demo, hosted mode     default 5101
+//   KYC_WEB_PROXY_PORT  the web demo, proxy mode      default 5102
 //
 // Runs under Node (Playwright config) but is typechecked with the demo's
 // browser tsconfig, so no node imports.
@@ -21,8 +21,8 @@ export interface E2EPorts {
 }
 
 export const DEFAULT_PORTS: E2EPorts = {
-  api: 5000,
-  web: { hosted: 5001, proxy: 5002 },
+  api: 5100,
+  web: { hosted: 5101, proxy: 5102 },
 };
 
 // A port from one variable: unset or empty means the default; anything

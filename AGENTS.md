@@ -120,9 +120,9 @@ The reasons behind these rules, and the check that holds each one, are in
   a different layout calls `useVerification`
 - `graphql` stays on 16.x repo-wide (Apollo Server 5 peer range)
 - Every service runs on a custom port so repos and worktrees never clash:
-  the backend `PORT` / `KYC_API_PORT` (5000), the web demo `KYC_WEB_PORT`
-  (5001) and `KYC_WEB_PROXY_PORT` (5002), the access-token example `PORT`
-  (5003); nothing hard-codes a port outside those defaults
+  the backend `PORT` / `KYC_API_PORT` (5100), the web demo `KYC_WEB_PORT`
+  (5101) and `KYC_WEB_PROXY_PORT` (5102), the access-token example `PORT`
+  (5103); nothing hard-codes a port outside those defaults
 - The git hooks (lefthook) run format, lint, commitlint and typecheck; CI is
   the authoritative gate and every workflow must be green before merge
 

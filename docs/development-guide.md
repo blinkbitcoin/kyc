@@ -72,7 +72,7 @@ dotenv never overrides direnv-exported values, so precedence is consistent.
 ```env
 DATABASE_URL=postgresql://dev:dev@localhost:5432/kyc
 KYC_PROVIDER=mock            # 'sumsub' for the real integration
-PORT=5000
+PORT=5100
 
 # Required when KYC_PROVIDER=sumsub (server fails fast if missing)
 # SUMSUB_APP_TOKEN=<app token>
@@ -91,8 +91,8 @@ PORT=5000
 ```bash
 cd examples/full-service-demo
 npm run dev
-# Server runs at http://localhost:5000
-# GraphQL Playground at http://localhost:5000/graphql
+# Server runs at http://localhost:5100
+# GraphQL Playground at http://localhost:5100/graphql
 ```
 
 ### Start Mobile (Metro)
@@ -236,13 +236,13 @@ docker-compose -f docker-compose.test.yml down
 npx playwright install chromium     # once per machine
 make e2e-web                        # hosted mode - what CI runs
 make e2e-web-proxy                  # proxy mode
-KYC_API_PORT=5010 KYC_WEB_PORT=5011 KYC_WEB_PROXY_PORT=5012 make e2e-web   # a second worktree
+KYC_API_PORT=5110 KYC_WEB_PORT=5111 KYC_WEB_PROXY_PORT=5112 make e2e-web   # a second worktree
 ```
 
 Both targets bring up the dockerized test Postgres, migrate it, and let
 Playwright start the backend and Vite. Every service runs on a custom port
 (`examples/react-demo/e2e/ports.ts` reads `KYC_API_PORT`, `KYC_WEB_PORT`,
-`KYC_WEB_PROXY_PORT`; 5000 / 5001 / 5002 by default), so a second repo or
+`KYC_WEB_PROXY_PORT`; 5100 / 5101 / 5102 by default), so a second repo or
 worktree sets three variables and never adopts this one's servers; the
 backend is told its port, the public base URL to mint on and the demo
 origins to allow. The app and the hosted page are genuinely cross-origin
@@ -401,8 +401,8 @@ npm run migrate
 | `MOCK_WEBHOOK_SECRET` | no | Secret the mock provider signs its own webhooks with, default `mock` |
 | `NODE_ENV` | no | `production` activates the fail-closed auth/webhook behavior described above |
 | `OTEL_*` | no | Standard OpenTelemetry vars; tracing is off unless set (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, `OTEL_TRACES_EXPORTER=console` for stdout) |
-| `PORT` | No | Server port (default: 5000). The E2E scripts and the demos find the backend through `KYC_API_PORT` (same default); the web demo listens on `KYC_WEB_PORT` (5001), its proxy build on `KYC_WEB_PROXY_PORT` (5002), the access-token example on its own `PORT` (5003) |
-| `PUBLIC_BASE_URL` | Prod | Absolute http(s) base the hosted-page url and the mock webhook target are built from; required unless `ALLOW_INSECURE_DEV=true`, default `http://localhost:5000` in insecure dev |
+| `PORT` | No | Server port (default: 5100). The E2E scripts and the demos find the backend through `KYC_API_PORT` (same default); the web demo listens on `KYC_WEB_PORT` (5101), its proxy build on `KYC_WEB_PROXY_PORT` (5102), the access-token example on its own `PORT` (5103) |
+| `PUBLIC_BASE_URL` | Prod | Absolute http(s) base the hosted-page url and the mock webhook target are built from; required unless `ALLOW_INSECURE_DEV=true`, default `http://localhost:5100` in insecure dev |
 | `SUMSUB_APP_TOKEN` | sumsub | Sumsub app token |
 | `SUMSUB_BASE_URL` | no | Sumsub API base (defaults to `https://api.sumsub.com`) |
 | `SUMSUB_LEVEL_NAME` | no | Verification level requested when the client does not send one, default `basic-kyc-level` |
