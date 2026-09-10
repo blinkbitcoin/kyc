@@ -9,8 +9,6 @@ export default {
         'server', // packages/kyc-server
         'rn', // packages/kyc-react-native
         'react', // packages/kyc-react
-        'sumsub', // packages/kyc-sumsub
-        'api', // examples/full-service-demo
         'demo', // examples/*
         'e2e',
         'ci',

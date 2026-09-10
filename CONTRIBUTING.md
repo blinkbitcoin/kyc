@@ -67,10 +67,8 @@ area names (`commitlint.config.mjs` is the source of truth):
 |-------|--------|
 | `core` | `packages/kyc-core` |
 | `server` | `packages/kyc-server` |
-| `sumsub` | `packages/kyc-sumsub` |
 | `rn` | `packages/kyc-react-native` |
 | `react` | `packages/kyc-react` |
-| `api` | `examples/full-service-demo` |
 | `demo` | `examples/*` |
 | `e2e` | Maestro / Playwright / backend E2E suites |
 | `ci` | `.github/` |
