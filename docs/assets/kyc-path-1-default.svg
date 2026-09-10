@@ -18,11 +18,11 @@
 <rect x="88" y="72" width="22" height="4" rx="2" fill="#C7D7FE"/>
 <rect x="88" y="81" width="14" height="4" rx="2" fill="#C7D7FE"/>
 <g text-anchor="middle">
-<text x="90" y="128" font-size="13" font-weight="700" fill="#1C2230">Verify your identity</text>
+<text x="90" y="128" font-size="13" font-weight="700" fill="#1C2230">Verify identity</text>
 <text x="90" y="146" font-size="8.5" fill="#666666">Have your ID document ready</text>
 <text x="90" y="158" font-size="8.5" fill="#666666">and allow camera access.</text>
 <rect x="35" y="172" width="110" height="28" rx="6" fill="#007AFF"/>
-<text x="90" y="190" font-size="10" font-weight="700" fill="#FFFFFF">Verify your identity</text>
+<text x="90" y="190" font-size="10" font-weight="700" fill="#FFFFFF">Verify identity</text>
 <text x="90" y="224" font-size="10" fill="#007AFF">Cancel</text>
 </g>
 <rect x="66" y="278" width="48" height="4" rx="2" fill="#1C2230"/>
