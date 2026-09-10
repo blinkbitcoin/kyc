@@ -10,6 +10,7 @@ import {
   envLines,
   portFrom,
   resolvePorts,
+  testDatabaseUrl,
 } from './ports.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -31,7 +32,11 @@ describe('the port table', () => {
       webHosted: 5101,
       webProxy: 5102,
       token: 5103,
+      testDb: 5104,
     });
+    expect(testDatabaseUrl(5104)).toBe(
+      'postgresql://test:test@localhost:5104/kyc_test',
+    );
   });
 
   it('moves every service with the base', () => {
@@ -79,6 +84,8 @@ describe('envLines', () => {
       'export KYC_WEB_PORT=5101',
       'export KYC_WEB_PROXY_PORT=5102',
       'export TOKEN_PORT=9000',
+      'export KYC_TEST_DB_PORT=5104',
+      'export KYC_TEST_DATABASE_URL=postgresql://test:test@localhost:5104/kyc_test',
     ]);
   });
 });
@@ -87,7 +94,7 @@ describe('envLines', () => {
 // Native bundle, an ES-module example), so each declares its own offset as
 // a literal. These checks keep those literals on the table.
 describe('the consumers', () => {
-  const { base, api, webHosted, webProxy, token } = resolvePorts({});
+  const { base, api, webHosted, webProxy, token, testDb } = resolvePorts({});
 
   it.each([
     ['examples/full-service-demo/src/port.ts', `PORT_BASE_DEFAULT = ${base}`],
@@ -120,6 +127,12 @@ describe('the consumers', () => {
       `http://localhost:${webHosted},http://localhost:${webProxy}`,
     ],
     ['examples/access-token-demo/.env.example', `PORT=${token}`],
+    [
+      'examples/full-service-demo/.env.test',
+      `DATABASE_URL=${testDatabaseUrl(testDb)}`,
+    ],
+    ['docker-compose.test.yml', `"\${KYC_TEST_DB_PORT:-${testDb}}:5432"`],
+    ['scripts/ci/postgres-brew.sh', 'KYC_TEST_DB_PORT'],
   ])('%s carries %s', (file, literal) => {
     expect(read(file)).toContain(literal);
   });

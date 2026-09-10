@@ -124,7 +124,8 @@ The reasons behind these rules, and the check that holds each one, are in
 - `graphql` stays on 16.x repo-wide (Apollo Server 5 peer range)
 - Every service listens on `KYC_PORT_BASE` (default 5100 - 5000 is
   everybody's, 4100 is esign's) plus its offset: the backend +0, the web demo
-  +1 (hosted) / +2 (proxy), the access-token example +3. The table is
+  +1 (hosted) / +2 (proxy), the access-token example +3, the E2E Postgres
+  +4. The table is
   `scripts/lib/ports.mjs`; shell reads it through `scripts/e2e/ports-env.sh`
   (`$KYC_API_PORT`, `$KYC_WEB_PORT`, `$TOKEN_PORT`, ...), the Playwright
   configs through `examples/react-demo/e2e/ports.ts`, and each service

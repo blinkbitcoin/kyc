@@ -123,25 +123,24 @@ migrate: ## Apply Knex migrations to the dev database
 
 # ---------- E2E ----------
 
-test-db-up: ## Start the E2E Postgres (tmpfs, port 5433) and wait for it
-	docker compose -f docker-compose.test.yml up -d --wait
-	bash scripts/e2e/db-wait.sh
+test-db-up: ## Start the E2E Postgres (tmpfs, port KYC_TEST_DB_PORT = KYC_PORT_BASE + 4, default 5104) and wait for it
+	bash scripts/e2e/test-db.sh up
 
 test-db-down: ## Stop the E2E Postgres
-	docker compose -f docker-compose.test.yml down
+	bash scripts/e2e/test-db.sh down
 
 e2e-backend: test-db-up ## Backend E2E suite against real Postgres (then tears DB down)
-	npm run migrate:test -w examples/full-service-demo
-	npm run test:e2e -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run test:e2e -w examples/full-service-demo
 	$(MAKE) test-db-down
 
 e2e-web: test-db-up build ## Playwright browser E2E for the web demo (hosted mode; then tears DB down) - builds the libraries first (the demo bundles their dist)
-	npm run migrate:test -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
 	npm run test:e2e -w examples/react-demo
 	$(MAKE) test-db-down
 
 e2e-web-proxy: test-db-up build ## Playwright browser E2E for the web demo in proxy mode (then tears DB down) - builds the libraries first (the demo bundles their dist)
-	npm run migrate:test -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
 	npm run test:e2e:proxy -w examples/react-demo
 	$(MAKE) test-db-down
 

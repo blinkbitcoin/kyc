@@ -161,7 +161,7 @@ The OTel SDK starts only when configured; the `@opentelemetry/api` facade makes 
 
 - **Package unit (Jest, 100% s/b/f/l):** the service over the in-memory store and fake providers, the Knex store's SQL through `knex-mock-client` (`FOR UPDATE`, the terminal guard inside the `UPDATE`), the migrations' exact columns and literal name, the Sumsub client over an injected `fetch`, the status table's full-vocabulary equality with `mapSumsubStatus`, the handlers with `Request`/`Response`, the router with supertest; plus the guards: core-boundary (never core's root, never Apollo), provider-boundary (only the registry, the index and `sumsub.ts` may import `providers/`), single-write-path, the Sumsub barrel.
 - **Service unit (Vitest, 100%):** the composition - what the service adds: config validation, JWT, the registry's policy, tracing, the app's middleware.
-- **E2E (Vitest + dockerized Postgres on 5433, `make e2e-backend`):** session start / refresh / status, the signed webhook and its state machine, the hosted page's rendered bridge script, with the package's migrations applied to a real database.
+- **E2E (Vitest + dockerized Postgres on `KYC_TEST_DB_PORT`, base + 4 = 5104, `make e2e-backend`):** session start / refresh / status, the signed webhook and its state machine, the hosted page's rendered bridge script, with the package's migrations applied to a real database.
 - **Live (opt-in, `make e2e-live`):** the same against the real Sumsub sandbox API - [../operations/live-e2e-ci.md](../operations/live-e2e-ci.md).
 
 ## Environment variables

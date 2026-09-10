@@ -242,7 +242,7 @@ KYC_PORT_BASE=5300 make e2e-web     # a second worktree: every service moves wit
 Both targets bring up the dockerized test Postgres, migrate it, and let
 Playwright start the backend and Vite. Every service listens on
 `KYC_PORT_BASE` (5100) plus its offset (backend +0, hosted demo +1, proxy
-demo +2, access-token example +3; the table is `scripts/lib/ports.mjs`,
+demo +2, access-token example +3, the E2E Postgres +4; the table is `scripts/lib/ports.mjs`,
 mirrored by `examples/react-demo/e2e/ports.ts` and checked against it), so
 a second repo or worktree sets one variable and never adopts this one's
 servers - a service's own variable (`KYC_API_PORT`, `KYC_WEB_PORT`, ...)
@@ -413,7 +413,7 @@ npm run migrate
 | `NODE_ENV` | no | `production` activates the fail-closed auth/webhook behavior described above |
 | `OTEL_*` | no | Standard OpenTelemetry vars; tracing is off unless set (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, `OTEL_TRACES_EXPORTER=console` for stdout) |
 | `PORT` | No | Server port (default: `KYC_PORT_BASE` + 0 = 5100) |
-| `KYC_PORT_BASE` | No | The repo's base port (default 5100); every service is base + offset (`scripts/lib/ports.mjs`: backend +0, hosted demo +1, proxy demo +2, access-token example +3), so one variable moves a worktree; `KYC_API_PORT` / `KYC_WEB_PORT` / `KYC_WEB_PROXY_PORT` / `TOKEN_PORT` override one service |
+| `KYC_PORT_BASE` | No | The repo's base port (default 5100); every service is base + offset (`scripts/lib/ports.mjs`: backend +0, hosted demo +1, proxy demo +2, access-token example +3, the E2E Postgres +4), so one variable moves a worktree; `KYC_API_PORT` / `KYC_WEB_PORT` / `KYC_WEB_PROXY_PORT` / `TOKEN_PORT` / `KYC_TEST_DB_PORT` override one service |
 | `PUBLIC_BASE_URL` | Prod | Absolute http(s) base the hosted-page url and the mock webhook target are built from; required unless `ALLOW_INSECURE_DEV=true`, default `http://localhost:5100` in insecure dev |
 | `SUMSUB_APP_TOKEN` | sumsub | Sumsub app token |
 | `SUMSUB_BASE_URL` | no | Sumsub API base (defaults to `https://api.sumsub.com`) |

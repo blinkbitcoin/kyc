@@ -77,7 +77,7 @@
 
 | Suite | Runner | What it actually integrates |
 |-------|--------|-----------------------------|
-| Backend | Vitest + dockerized Postgres on 5433 | Resolvers, migrations, the signed webhook and the hosted page HTML, end to end |
+| Backend | Vitest + dockerized Postgres on base + 4 (5104) | Resolvers, migrations, the signed webhook and the hosted page HTML, end to end |
 | Web | Playwright (`make e2e-web`, `make e2e-web-proxy`) | The real cross-origin iframe (the built demo under `vite preview`, bundling the libraries' `dist`, and the page on the backend - ports from `KYC_*_PORT`, `examples/react-demo/e2e/ports.ts), so the `postMessage` path and the origin pin are genuinely exercised against what a web consumer installs |
 | Mobile | Maestro (`make e2e-android`, `make e2e-ios`, `make e2e-fake-native`) | The real WebView, the bridge, and - via `createFakeLaunchableSource` - the native-launch branch without any provider SDK. CI's Metro starts with `KYC_MODE=hosted` (`scripts/e2e/metro-start.sh`); `e2e-fake-native` is manual, Android-emulator-only, and needs its own `KYC_MODE=fake-native` Metro |
 

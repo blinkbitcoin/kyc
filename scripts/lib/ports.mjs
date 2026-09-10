@@ -30,7 +30,16 @@ export const SERVICES = {
     env: 'TOKEN_PORT',
     what: 'access-token-demo (make e2e-server-demos, make e2e-live)',
   },
+  testDb: {
+    offset: 4,
+    env: 'KYC_TEST_DB_PORT',
+    what: 'the E2E Postgres (docker-compose.test.yml; CI macOS: Homebrew)',
+  },
 };
+
+/** The E2E database URL for that port (what .env.test carries for the default). */
+export const testDatabaseUrl = port =>
+  `postgresql://test:test@localhost:${port}/kyc_test`;
 
 /**
  * A port from one variable: unset or empty means the fallback; anything
@@ -74,5 +83,8 @@ export const envLines = env => {
     ...Object.entries(SERVICES).map(
       ([key, { env: name }]) => `export ${name}=${ports[key]}`,
     ),
+    // The E2E suites and the backend read DATABASE_URL (.env.test holds the
+    // default); a script that moved the base exports this one over it
+    `export KYC_TEST_DATABASE_URL=${testDatabaseUrl(ports.testDb)}`,
   ];
 };
