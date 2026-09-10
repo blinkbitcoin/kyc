@@ -1,14 +1,21 @@
 module.exports = {
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testEnvironment: 'jsdom',
   moduleNameMapper: {
+    '^@blinkbitcoin/kyc-core/hosted$': '<rootDir>/../kyc-core/src/hosted.ts',
+    '^@blinkbitcoin/kyc-core/sumsub$': '<rootDir>/../kyc-core/src/sumsub.ts',
     '^@blinkbitcoin/kyc-core$': '<rootDir>/../kyc-core/src/index.ts',
   },
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  collectCoverageFrom: ['src/**/*.{ts,tsx}'],
   coveragePathIgnorePatterns: [
     '/node_modules/',
     'src/generated/',
     'src/types\\.ts$',
     'src/index\\.ts$',
+    'src/hosted\\.ts$',
+    'src/sumsub\\.ts$',
+    'src/providers/sumsub/entry\\.ts$',
   ],
   coverageReporters: ['text', 'lcov', 'json-summary'],
   coverageThreshold: {

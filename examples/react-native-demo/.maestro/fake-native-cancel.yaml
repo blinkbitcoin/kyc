@@ -1,0 +1,37 @@
+# Maestro E2E: cancelling out of the native SDK.
+# The fake emits a bridge `cancel` and then resolves; the component returns
+# to idle and the host's onCancel fires exactly once (the hook must NOT also
+# synthesize a terminal complete from the resolved launch()).
+#
+# Requires Metro bundled with KYC_MODE=fake-native (see the happy path).
+appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android: com.reactnativesandbox
+tags:
+  - fake-native
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          stopApp: false
+      - tapOn:
+          id: "reset-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-start-button"
+          timeout: 20000
+
+      - tapOn:
+          id: "verification-start-button"
+      - extendedWaitUntil:
+          visible:
+            id: "fake-sdk-screen"
+          timeout: 20000
+
+      - tapOn:
+          id: "fake-sdk-cancel"
+
+      - extendedWaitUntil:
+          visible: "cancelled"
+          timeout: 15000
+      - assertVisible:
+          id: "verification-start-button"

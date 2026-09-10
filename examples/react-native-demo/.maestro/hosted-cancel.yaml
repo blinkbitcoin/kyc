@@ -1,0 +1,40 @@
+# Maestro E2E: the user cancels from inside the provider page.
+# The page posts a bridge `cancel`, the component returns to idle and the
+# host's onCancel fires - no error state anywhere.
+appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android: com.reactnativesandbox
+---
+- retry:
+    maxRetries: 1
+    commands:
+      - launchApp:
+          stopApp: false
+      - tapOn:
+          id: "reset-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-start-button"
+          timeout: 10000
+      - tapOn:
+          id: "verification-start-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-webview"
+          timeout: 20000
+      - extendedWaitUntil:
+          visible: "Mock Identity Verification"
+          timeout: 20000
+
+      # The component renders its own `verification-cancel-button` under the
+      # page while it runs, and that button also reads "Cancel", so scope this
+      # tap to the WebView subtree - we want the PAGE's button here, to prove
+      # the page -> bridge -> onCancel path rather than the local affordance.
+      - tapOn:
+          text: "Cancel"
+          childOf:
+            id: "verification-webview"
+
+      - extendedWaitUntil:
+          visible: "cancelled"
+          timeout: 15000
+      - assertVisible:
+          id: "verification-start-button"

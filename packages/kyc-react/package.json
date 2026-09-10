@@ -16,6 +16,26 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./hosted": {
+      "import": {
+        "types": "./dist/hosted.d.mts",
+        "default": "./dist/hosted.mjs"
+      },
+      "require": {
+        "types": "./dist/hosted.d.ts",
+        "default": "./dist/hosted.cjs"
+      }
+    },
+    "./sumsub": {
+      "import": {
+        "types": "./dist/sumsub.d.mts",
+        "default": "./dist/sumsub.mjs"
+      },
+      "require": {
+        "types": "./dist/sumsub.d.ts",
+        "default": "./dist/sumsub.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": ["src", "dist", "!**/__tests__"],
@@ -72,6 +92,8 @@
     "url": "git+https://github.com/blinkbitcoin/kyc.git",
     "directory": "packages/kyc-react"
   },
+  "homepage": "https://github.com/blinkbitcoin/kyc#readme",
+  "bugs": { "url": "https://github.com/blinkbitcoin/kyc/issues" },
   "type": "commonjs",
   "engines": {
     "node": ">= 18"

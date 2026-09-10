@@ -1,7 +1,7 @@
 # Development Guide
 
 **Project:** kyc
-**Updated:** 2026-09-05
+**Updated:** 2026-09-06
 
 ## Prerequisites
 
@@ -16,7 +16,9 @@
 | direnv | Latest | Env management (house convention) - `brew install direnv` + shell hook |
 | Nix (flakes) | Latest | Toolchain pinning via `flake.nix` (node 24, jdk 17, ruby 3.3, watchman) - loaded by direnv's `use flake` |
 
-- Sumsub sandbox credentials are only needed once the Sumsub adapter lands.
+- Sumsub sandbox credentials are only needed for the manual checklist in
+  [integration/sumsub.md](integration/sumsub.md). Nothing in `npm test`,
+  `make coverage` or any E2E suite talks to Sumsub.
 
 ## Initial Setup
 
@@ -33,7 +35,7 @@ npm ci
 # Enable direnv (once per machine) - loads .env files, enters the nix
 # flake dev shell (pinned node/jdk/ruby/watchman), and puts workspace
 # bins (tsx, knex, biome, ...) on PATH
-direnv allow . && direnv allow apps/api
+direnv allow . && direnv allow examples/full-service-demo
 ```
 
 Without direnv/nix, any Node 22.22+ or 24.15+ plus a JDK 17 and Ruby 3.2+ works -
@@ -52,7 +54,7 @@ cd ios && bundle exec pod install  # iOS native deps
 
 ```bash
 # Start development database
-cd apps/api
+cd examples/full-service-demo
 docker-compose up -d
 
 # Run migrations
@@ -66,11 +68,11 @@ Environment is managed with **direnv** (house convention): `.envrc` files load
 `dotenv/config` as a fallback for non-direnv environments (CI, IDE launchers) -
 dotenv never overrides direnv-exported values, so precedence is consistent.
 
-**Backend (`apps/api/.env`, see `apps/api/.env.example`):**
+**Backend (`examples/full-service-demo/.env`, see `examples/full-service-demo/.env.example`):**
 ```env
 DATABASE_URL=postgresql://dev:dev@localhost:5432/kyc
 KYC_PROVIDER=mock            # 'sumsub' for the real integration
-PORT=4000
+PORT=5100
 
 # Required when KYC_PROVIDER=sumsub (server fails fast if missing)
 # SUMSUB_APP_TOKEN=<app token>
@@ -87,10 +89,10 @@ PORT=4000
 ### Start Backend
 
 ```bash
-cd apps/api
+cd examples/full-service-demo
 npm run dev
-# Server runs at http://localhost:4000
-# GraphQL Playground at http://localhost:4000/graphql
+# Server runs at http://localhost:5100
+# GraphQL Playground at http://localhost:5100/graphql
 ```
 
 ### Start Mobile (Metro)
@@ -160,11 +162,11 @@ The npm scripts underneath:
 
 ## Testing
 
-**Unit + E2E suites are hermetic and mock-only by design.** They run against
-the `mock` `KYC_PROVIDER` and a real (or in-memory) Postgres, never against
-Sumsub. Setting `SUMSUB_*` variables does not (and should not) point these
-suites at the real provider - that only happens through manual, ad hoc runs
-of the demos once the Sumsub adapter lands in `apps/api`.
+**Unit and E2E suites are hermetic and mock-only by design.** They run against
+`KYC_PROVIDER=mock` and a real (or dockerized) Postgres, never against Sumsub.
+Setting `SUMSUB_*` variables does not - and must not - point these suites at
+the real provider: that happens only through the manual runs described in
+[integration/sumsub.md](integration/sumsub.md).
 
 ### Mobile Unit Tests
 
@@ -173,7 +175,7 @@ of the demos once the Sumsub adapter lands in `apps/api`.
 npm test
 
 # Run specific test file
-npm test -- Verification.test.tsx
+npm test -- IdentityVerification.test.tsx
 
 # Watch mode
 npm test -- --watch
@@ -182,7 +184,7 @@ npm test -- --watch
 ### Backend Unit Tests
 
 ```bash
-cd apps/api
+cd examples/full-service-demo
 
 # Run all tests
 npm test
@@ -193,6 +195,21 @@ npm test -- --coverage
 # Watch mode
 npm test -- --watch
 ```
+
+### Tooling Scripts
+
+The CI/release logic under `scripts/` is its own `tooling` npm workspace
+(`npm run test -w scripts`, `npm run test:coverage -w scripts`). Pure logic
+lives in `scripts/lib/*.mjs` (semver parsing, version resolution, badge
+rendering) and is covered by Vitest at the same 100% bar as the publishable
+packages and the backend; the CLI entry points that wrap it
+(`scripts/release/resolve-version.mjs`, `scripts/coverage-badge.mjs`,
+`scripts/status-badge.mjs`) are thin argv/env/git/fs wrappers and stay
+excluded from that coverage measurement by design. Shell scripts
+(`scripts/ci/changed-class.sh`, `scripts/ci/docs-freshness.sh`, ...) are
+exercised separately in `scripts/__tests__/*.test.mjs`, which shell out to
+the real script under a temp git repo/fixture rather than being covered by
+V8 instrumentation.
 
 ### Backend E2E Tests
 
@@ -213,26 +230,79 @@ npm run test:e2e
 docker-compose -f docker-compose.test.yml down
 ```
 
+### Web E2E Tests (Playwright)
+
+```bash
+npx playwright install chromium     # once per machine
+make e2e-web                        # hosted mode - what CI runs
+make e2e-web-proxy                  # proxy mode
+KYC_PORT_BASE=5300 make e2e-web     # a second worktree: every service moves with the base
+```
+
+Both targets bring up the dockerized test Postgres, migrate it, and let
+Playwright start the backend and Vite. Every service listens on
+`KYC_PORT_BASE` (5100) plus its offset (backend +0, hosted demo +1, proxy
+demo +2, access-token example +3, the E2E Postgres +4; the table is `scripts/lib/ports.mjs`,
+mirrored by `examples/react-demo/e2e/ports.ts` and checked against it), so
+a second repo or worktree sets one variable and never adopts this one's
+servers - a service's own variable (`KYC_API_PORT`, `KYC_WEB_PORT`, ...)
+still overrides just that service; the
+backend is told its port, the public base URL to mint on and the demo
+origins to allow. The app and the hosted page are genuinely cross-origin
+(the Vite port vs the backend port), so the suites exercise the real
+`postMessage` path and the origin pin rather than a same-origin shortcut.
+
+### Live Sumsub (opt-in)
+
+```bash
+make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=…   # writes examples/full-service-demo/.env
+make sumsub-check                                            # credentials + level, in one call
+make e2e-live                                                # the whole live run against the sandbox API
+make live-web                                                # the web demo on the sandbox, waiting for the browser rows
+make live-ios                                                # the RN demo on the attached iPhone (KYC_MODE=hosted|native)
+make live-android                                            # ...or the attached Android phone
+```
+
+Skipped without credentials, never part of `make test`; in CI it is the
+opt-in `Live Sumsub` job (`docs/operations/live-e2e-ci.md`). The device
+matrix (`docs/integration/sumsub.md`, sections 3-5) is manual.
+
 ### Mobile E2E Tests (Maestro)
 
 ```bash
-# Install Maestro CLI
+# Install Maestro once
 curl -Ls "https://get.maestro.mobile.dev" | bash
 
-# Start backend with mock provider against the test database
-cd apps/api && KYC_PROVIDER=mock npx dotenv-cli -e .env.test -- npm run dev &
+# Android, in one command (an emulator must already be running):
+emulator -avd <avd> &
+make e2e-android-local     # test DB + backend + debug APK + Metro (hosted) + Maestro, then teardown
 
-# Build and run app on simulator
-npm run ios
+# ...or step by step, which is what CI's jobs do:
+make test-db-up && npm run migrate:test -w examples/full-service-demo
+make e2e-backend-up        # the backend on KYC_API_PORT (CI's iOS job feeds it Homebrew Postgres instead)
+make android-build         # debug APK for the emulator's ABI
+make e2e-metro-up          # Metro in hosted mode, bundle prewarmed
+make e2e-android
+make e2e-metro-down && make e2e-backend-down && make test-db-down
 
-# Run Maestro tests
-maestro test examples/react-native-demo/.maestro/
+# iOS, in one command (boots the first iPhone simulator if none is booted):
+make e2e-ios-local         # test DB + backend + pods if missing + .app + install + Metro + Maestro
 ```
 
-`examples/react-native-demo/.maestro/` currently has the smoke flow
-(`app-launch.yaml`) that boots the app; verification-flow coverage grows here
-as the phases land (see
-[the design](superpowers/specs/2026-09-05-kyc-design.md)).
+Six flows run by default (`app-launch`, `hosted-happy-path`, `hosted-decline`,
+`hosted-cancel`, `hosted-token-refresh`, `hosted-error-retry`). Two more are
+tagged `fake-native` and excluded from the default run because they need their
+own Metro - which is why the CI-invoked script names never change:
+
+```bash
+#   in another terminal: KYC_MODE=fake-native npm start
+make e2e-fake-native      # no backend needed
+```
+
+`make e2e-ios` runs the same default suite on a booted simulator with the app
+installed. The Android runner does `adb reverse tcp:$KYC_API_PORT tcp:$KYC_API_PORT`
+(`scripts/e2e/android-maestro.sh`), which is what makes the backend's
+`http://localhost:<port>/hosted/<id>` load inside the emulator's WebView.
 
 ## Code Style
 
@@ -274,7 +344,7 @@ npm run lint:fix
 ### Knex Commands
 
 ```bash
-cd apps/api
+cd examples/full-service-demo
 
 # Create migration
 npx tsx "$(command -v knex)" migrate:make -x ts <migration-name>
@@ -323,7 +393,7 @@ npm install
 
 ### Migration Issues
 ```bash
-cd apps/api
+cd examples/full-service-demo
 npx tsx "$(command -v knex)" migrate:status
 npm run migrate
 ```
@@ -334,23 +404,28 @@ npm run migrate
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `KYC_PROVIDER` | No | Provider selection: `mock` (default) or `sumsub` |
-| `SUMSUB_APP_TOKEN` | sumsub | Sumsub app token |
-| `SUMSUB_SECRET_KEY` | sumsub | Sumsub secret key |
-| `SUMSUB_WEBHOOK_SECRET` | sumsub | Webhook signature validation secret |
-| `SUMSUB_BASE_URL` | no | Sumsub API base (defaults to `https://api.sumsub.com`) |
-| `OTEL_*` | no | Standard OpenTelemetry vars; tracing is off unless set (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, `OTEL_TRACES_EXPORTER=console` for stdout) |
-| `NODE_ENV` | no | `production` activates the fail-closed auth/webhook behavior described above |
 | `ALLOW_INSECURE_DEV` | no | Explicit opt-in to run without JWT/webhook secrets (never in prod) |
 | `CORS_ALLOWED_ORIGINS` | no | Comma-separated CORS allow-list |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `JWT_SECRET` | Prod | HS256 JWT verification secret. Unset: dev treats bearer token as userId; production treats requests as unauthenticated (fail-closed) |
-| `PORT` | No | Server port (default: 4000) |
+| `KYC_PROVIDER` | No | Provider selection: `mock` (default) or `sumsub` |
+| `MOCK_WEBHOOK_SECRET` | no | Secret the mock provider signs its own webhooks with, default `mock` |
+| `NODE_ENV` | no | `production` activates the fail-closed auth/webhook behavior described above |
+| `OTEL_*` | no | Standard OpenTelemetry vars; tracing is off unless set (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, `OTEL_TRACES_EXPORTER=console` for stdout) |
+| `PORT` | No | Server port (default: `KYC_PORT_BASE` + 0 = 5100) |
+| `KYC_PORT_BASE` | No | The repo's base port (default 5100); every service is base + offset (`scripts/lib/ports.mjs`: backend +0, hosted demo +1, proxy demo +2, access-token example +3, the E2E Postgres +4), so one variable moves a worktree; `KYC_API_PORT` / `KYC_WEB_PORT` / `KYC_WEB_PROXY_PORT` / `TOKEN_PORT` / `KYC_TEST_DB_PORT` override one service |
+| `PUBLIC_BASE_URL` | Prod | Absolute http(s) base the hosted-page url and the mock webhook target are built from; required unless `ALLOW_INSECURE_DEV=true`, default `http://localhost:5100` in insecure dev |
+| `SUMSUB_APP_TOKEN` | sumsub | Sumsub app token |
+| `SUMSUB_BASE_URL` | no | Sumsub API base (defaults to `https://api.sumsub.com`) |
+| `SUMSUB_LEVEL_NAME` | no | IdentityVerification level requested when the client does not send one, default `basic-kyc-level` |
+| `SUMSUB_SECRET_KEY` | sumsub | Sumsub secret key |
+| `SUMSUB_TOKEN_TTL_SECS` | no | Access-token lifetime in seconds, default `600` |
+| `SUMSUB_WEBHOOK_SECRET` | sumsub | Webhook signature validation secret |
 
-The `sumsub` column means required when `KYC_PROVIDER=sumsub` — the
-server refuses to start without them (fail-fast) unless `ALLOW_INSECURE_DEV=true`.
-The Sumsub adapter for `apps/api` (webhook + hosted page) lands in a later
-phase - see [the design](superpowers/specs/2026-09-05-kyc-design.md).
+The `sumsub` column means required when `KYC_PROVIDER=sumsub` - the server
+refuses to start without them unless `ALLOW_INSECURE_DEV=true`. The full
+control set, and what each one is defending against, is in
+[architecture/security.md](architecture/security.md).
 
 ### Mobile / web demos (bundle-time)
 
@@ -361,44 +436,62 @@ phase - see [the design](superpowers/specs/2026-09-05-kyc-design.md).
 
 Both demos resolve the backend origin themselves (Android emulators reach the
 host machine via `10.0.2.2`, iOS simulators via `localhost`); the RN and web
-`Verification`/`useVerification` packages take a session/token source from
+`IdentityVerification`/`useIdentityVerification` packages take a session/token source from
 the host app rather than owning a GraphQL client directly.
+
+## Documentation
+
+Docs are hand-maintained and live beside the code they describe. The map is
+[index.md](./index.md).
+
+```bash
+make docs-check       # warns on architecture changes without a docs/ update
+make diagrams         # renders docs/diagrams/dist/*.svg and reassembles the page
+make diagrams-check   # fails if the combined page is stale
+```
+
+Diagram sources are `docs/diagrams/src/*.mmd` and are canonical; the SVGs and
+`docs/diagrams/README.md` are generated. Adding a diagram means a new `.mmd`,
+an entry in `scripts/assemble-diagrams.mjs`'s `SECTIONS`, and a row in
+`.claude/skills/regenerate-mermaid-diagrams/SKILL.md`. Changing a source
+without committing its re-rendered SVG is a **hard CI failure**, not a warning.
+
+Keep labels free of bare `;` - mermaid parses it as a statement separator and
+mermaid-cli rejects it even where GitHub's renderer is lenient.
 
 ## CI/CD
 
 ### GitHub Actions Workflows
 
+One workflow file per event source, named after what runs. GitHub draws one
+graph per run; the whole pipeline with its cross-workflow edges is one
+diagram: [CI / Release Pipeline](diagrams/README.md#ci--release-pipeline).
+
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `ci.yml` | Push to main, PRs, GitHub Release, manual | The one pipeline every branch runs, staged so a failure never spends the next stage's minutes: `Checks` (calls `checks.yml`) → `Unit` (calls `test.yml`) → `E2E` (calls `e2e.yml`), then `Badges` (coverage + Unit / E2E pass-fail badges for the branch to `gh-pages/badges/<branch>/`, after E2E so it never delays it), and on main pushes / releases / dispatch `Publish` (GitHub Packages: release → stable `latest`, version = the tag; main → prerelease `next`) + `Verify` (installs the published packages from GitHub Packages into a clean project and asserts the consumer contract). Workflow badge, if needed: `ci.yml/badge.svg?branch=<branch>` |
-| `checks.yml` | `workflow_call` only | First stage, all static: `Changes` (classifies the PR: when every changed file is docs/, `*.md`, `LICENSE` or a template, Unit and E2E are skipped; main pushes get the same via `paths-ignore`), `Code` (audit-ci, actionlint, diagram freshness, `make check-code` = lint + typecheck + format), `Packages` (build, publint + arethetypeswrong, pack smoke), `Commits` (Conventional Commits on the PR's commits and title; PRs only), `Docs` (warns when architecture-relevant files change without a docs/ update; fails for a diagram source without its SVG) |
+| `ci.yml` | Push to main, PRs, release tag (dispatched by `release.yml`, or a hand-cut GitHub Release), manual | The one pipeline every branch runs, staged so a failure never spends the next stage's minutes: `Checks` (calls `checks.yml`) → `Unit` (calls `test.yml`) → `E2E` (calls `e2e.yml`; its `Build Packages` job is the one build of the packages), then `Badges` (coverage + Unit / E2E pass-fail badges for the branch to `gh-pages/badges/<branch>/`, after E2E so it never delays it), and on main pushes / releases / dispatch `Publish` (ships the tarballs `Build Packages` made and `Web` tested to GitHub Packages, nothing is rebuilt: release → stable `latest`, version = the tag; main → prerelease `next`) + `Verify` (installs the published packages from GitHub Packages into a clean project and asserts the consumer contract). Workflow badge, if needed: `ci.yml/badge.svg?branch=<branch>` |
+| `checks.yml` | `workflow_call` only | First stage, all static: `Changes` (classifies the PR: when every changed file is docs/, `*.md`, `LICENSE` or a template, Unit and E2E are skipped; main pushes get the same via `paths-ignore`), `Code` (audit-ci, actionlint, diagram freshness, `make check-code` = lint + typecheck + format), `Commits` (Conventional Commits on the PR's commits and title; PRs only), `Docs` (warns when architecture-relevant files change without a docs/ update; fails for a diagram source without its SVG) |
 | `test.yml` | `workflow_call` only | Unit tests + coverage thresholds; uploads the coverage badge (1 day, consumed by `Badges`) and the combined HTML coverage report (`coverage-report` artifact, 30 days) |
-| `e2e.yml` | `workflow_call` only | All E2E suites as jobs: `backend`, `web` (Playwright), `android` (emulator), and `ios` (simulator) **only when opted in** (see below) |
-| `release-retry.yml` | CI completed on main | When the main run is green, re-runs the failed Publish of any release tagged on that commit (releases wait for / refuse a red main run) |
-| `cancel-closed.yml` | PR closed/merged | Cancels the PR's still-running runs (the push-to-main run is unaffected) and removes its `gh-pages` badge directory |
-| `commitlint.yml` | PR title edited | Re-lints the PR title only; the gating lint is the `Commits` job in `checks.yml` (a title edit must not re-run the whole pipeline) |
+| `e2e.yml` | `workflow_call` only | `build-packages` (version stamp, build, publint + arethetypeswrong, pack smoke; uploads the dist for `web` and the tarballs for `Publish`) plus the E2E suites as jobs: `backend`, `web` (Playwright, bundles the demo against that dist - what a web consumer installs), `build-android` → `android` (emulator), and `build-ios` → `ios` (simulator) **on by default** (see below). Outputs the stamped `version` / `disttag` for `Publish` |
+| `release.yml` | Push to main; CI completed on main | `Release PR / Tag` (push): keeps the `chore(release): X.Y.Z` PR current (version from the Conventional Commits since the last tag, `CHANGELOG.md` entry); when that PR merges, tags `vX.Y.Z`, creates the GitHub Release and dispatches `ci.yml` at the tag with `release_tag` (a release the workflow token creates never fires the `release:` trigger). `Re-run blocked releases` (CI completed green): re-runs the failed Publish of any release run for that commit (releases wait for / refuse a red main run). See [releasing.md](releasing.md) |
+| `pull-request.yml` | PR closed; PR title edited | `Cancel in-flight runs` + `Remove branch badge` (closed): cancels the PR's still-running runs (the push-to-main run is unaffected) and removes its `gh-pages` badge directory. `Title` (edited): re-lints the PR title only; the gating lint is the `Commits` job in `checks.yml` (a title edit must not re-run the whole pipeline) |
+| `codeql.yml` | Push to main, PRs (both ignore docs-only changes), weekly schedule | CodeQL static analysis (JavaScript/TypeScript); alerts land under Security → Code scanning;<br>suite + alert-suppression query in `.github/codeql/codeql-config.yml`;<br>`make codeql` runs the same analysis locally |
 
 Badges are per branch by construction: `gh-pages/badges/X/{unit,e2e,coverage}.svg`
 (and a workflow badge filtered with `?branch=X`) all describe branch `X`
 and nothing else. The README shows `main`.
 
-### iOS E2E is opt-in
+### iOS E2E and the macOS runner
 
-The iOS job needs a macOS runner, and GitHub-hosted macOS is billed at 10x
-Linux (one ~15 min run is ~150 Linux minutes; on every push it exhausted the
-org's shared Actions budget). `ci.yml` therefore passes `ios: false` to
-`e2e.yml` unless one of these says otherwise; a skipped job costs nothing and
-the `E2E` badge describes what actually ran (backend, web, Android).
+The iOS job runs on every run. It needs a macOS runner, which GitHub hosts for
+free on a public repo; on a private repo macOS bills at 10x Linux (one ~15 min
+run is ~150 Linux minutes), which is why the job was opt-in before the repo
+went public. Only the live Sumsub job is conditional; the one iOS switch is
+where it runs:
 
 | Switch | Effect |
 |--------|--------|
-| Repo variable `E2E_IOS=true` | iOS runs on every run. Flip once self-hosted Apple silicon runners are registered. |
-| PR label `e2e:ios` | iOS runs for that PR only (labeling triggers a run). |
-| Repo variable `E2E_IOS_RUNNER` | `runs-on` for the iOS job, default `macos-latest`. Set to the self-hosted label(s), e.g. `["self-hosted","macOS","arm64"]`, and GitHub-hosted macOS is never used. |
-
-Re-enable recipe, no workflow edit: register the runners, set `E2E_IOS_RUNNER`
-to their label, try one PR with the `e2e:ios` label, then set `E2E_IOS=true`
-(`gh variable set E2E_IOS --body true`).
+| Repo variable `E2E_IOS_RUNNER` | `runs-on` for the iOS job, default `macos-latest`. Set to self-hosted label(s), e.g. `["self-hosted","macOS","arm64"]`, and GitHub-hosted macOS is never used. |
 
 All workflows run with `permissions: contents: read` (the publish job adds
 `packages: write`; the Badges and closed-PR cleanup jobs get
@@ -415,19 +508,95 @@ stack) and `scripts/release/` (publish), exposed through `make` wherever a
 human would run it - so a CI failure can be reproduced without pushing:
 
 ```bash
-# The whole Checks stage
+# The whole Checks stage (static only)
 make check-code check-ci codegen-check diagrams-check docs-check
-npm run check:packages && bash scripts/pack-smoke.sh   # Checks / Packages
+
+# GitHub's CodeQL analysis, locally (never in a workflow: GitHub runs it there).
+# Same language, same config (suite + the alert-suppression query), so a finding
+# and an inline `// codeql[<rule-id>]` marker show up here before the push;
+# the CLI comes from the flake on first use (nix shell .#codeql, one large fetch)
+make codeql
 
 # Unit
 make coverage
 
 # E2E
+make build && npm run check:packages && bash scripts/pack-smoke.sh   # Build Packages
 make e2e-backend        # Backend
-make e2e-web            # Web (Playwright)
+make e2e-web            # Web (Playwright; builds the libraries, then bundles + previews the demo)
 make e2e-android        # Android: emulator running, APK built, Metro + backend up (see `make help`)
 make e2e-ios            # iOS: simulator booted with the app installed, Metro + backend up
 
 # Release plumbing
 make version            # what a push to main would publish; make version TAG=vX.Y.Z for a release
+make release            # merge the open release PR (release-please) - the whole stable release step
+make release-rc V=X.Y.Z-rc.1   # hand-cut a prerelease-suffixed tag (ships under next)
 ```
+
+### First release
+
+The repo publishes a `next` prerelease from every green push to `main`
+automatically. The first **stable** version still needs a human, but only for
+one click: release-please proposes the version and the notes, and merging its
+pull request is the release. Full walkthrough: [releasing.md](releasing.md).
+
+1. **Land the work.** Either merge the phase branches in order (bootstrap →
+   core → api → sumsub → rn → react → demos/E2E → docs), or open one PR for
+   the whole v1 - the pipeline is identical either way. Every PR needs an
+   approving review under the org ruleset; `main` is never pushed to directly.
+2. **Wait for `main` to be green.** The Publish job refuses to ship from a red
+   main run, and a release run against one is blocked until it turns green.
+3. **Let release-please open the release PR.** The first `feat:` (or `fix:`)
+   commit on `main` makes the `Release` workflow open
+   `chore(release): 0.1.0` - `0.1.0` because `bump-minor-pre-major` turns a
+   `feat` into a minor bump from the manifest's `0.0.1`. The PR carries the
+   new `CHANGELOG.md`, the root `package.json` / `package-lock.json` version
+   and `.release-please-manifest.json`; its body is the release notes. Nothing
+   ships until it is merged.
+4. **Check what the release would produce**, without touching anything:
+
+```bash
+DRY_RUN=1 node scripts/release/resolve-version.mjs         # the prerelease CI publishes today
+#   -> version=0.0.1-pre.<run>.<sha>   disttag=next
+make version                                                # the same thing, through make
+make version TAG=v0.1.0                                     # what the tag would publish
+#   -> version=0.1.0                  disttag=latest
+```
+
+   `DRY_RUN=1` prints the decision and skips both `npm pkg set` loops, so
+   `package.json` stays at `0.0.0-development`.
+
+5. **Approve the release PR and merge it:**
+
+```bash
+make release
+```
+
+   which merges the open `chore(release): 0.1.0` PR (the Merge button does the
+   same). `release.yml` then tags `v0.1.0`, creates the GitHub Release
+   from the changelog entry, and dispatches `ci.yml` at the tag with
+   `release_tag=v0.1.0`. The tag *is* the version: that run stamps `0.1.0`
+   into all four packages before building them and pins each one's
+   `@blinkbitcoin/kyc-core` dependency to exactly `0.1.0`, so the packages'
+   own `package.json` files stay at `0.0.0-development`.
+
+6. **Watch Publish and Verify.** `Verify` (`scripts/release/registry-smoke.sh`)
+   installs the published packages from GitHub Packages into a clean project
+   and asserts the consumer contract - including that `/hosted` and `/testing`
+   load without Apollo. You can re-run it later by hand:
+
+```bash
+make registry-smoke V=0.1.0
+```
+
+7. **If it fails**, fix forward and merge; the next release PR bumps again.
+   GitHub Packages never accepts the same version twice, so `0.1.0` cannot be
+   re-published. A run that failed *before* Publish can simply be re-run, and
+   `release.yml`'s retry job re-runs a Publish that was blocked by a red main
+   run.
+
+**`CHANGELOG.md` is generated, never hand-edited on `main`.** release-please
+writes it from the Conventional Commit PR titles, which is why the title is
+linted by commitlint and is the line reviewers see; only `feat` / `fix` /
+`perf` / `revert` appear there, so a CI-only fix is `ci:`, not `fix(ci):`.
+Context can be added to the entry on the release PR's branch before merging.

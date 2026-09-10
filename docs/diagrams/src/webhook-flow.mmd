@@ -1,0 +1,48 @@
+sequenceDiagram
+    participant PR as Provider (Sumsub or mock)
+    participant WH as POST /webhook/kyc/:provider
+    participant PV as VerificationProvider
+    participant SM as handleWebhookEvent
+    participant DB as PostgreSQL
+    participant AL as AuditLog
+
+    PR->>WH: POST raw JSON body
+    Note over WH: x-payload-digest + x-payload-digest-alg for sumsub, X-Mock-Signature for mock
+
+    WH->>WH: isKnownProvider and equals the configured KYC_PROVIDER
+    alt Unknown or non-configured provider
+        WH-->>PR: 404 Unknown provider
+    else Configured provider
+        WH->>PV: verifyWebhook(headers, rawBody)
+        alt Invalid or missing signature
+            WH-->>PR: 401 Unauthorized
+        else Valid signature
+            WH->>PV: parseWebhookEvent(rawBody)
+            alt Malformed payload
+                WH-->>PR: 400 Invalid payload
+            else Parsed WebhookEvent
+                WH->>SM: handleWebhookEvent(event, provider)
+                SM->>DB: find by providerApplicantId, else latest unbound session for externalUserId
+                alt No status mapped
+                    SM-->>WH: ignored_unknown_status
+                else No matching session
+                    SM-->>WH: unknown_session
+                else Matched by externalUserId, already bound to a different applicant
+                    SM->>DB: bindApplicantId
+                    SM->>AL: webhook_rejected - reason applicant_mismatch
+                    SM-->>WH: rejected_unbound
+                else Status already stored
+                    SM-->>WH: unchanged
+                else Stored status is terminal
+                    SM->>AL: webhook_rejected - reason terminal_status
+                    SM-->>WH: rejected_terminal
+                else Transition allowed
+                    Note over SM,AL: bindApplicantId (when matched by externalUserId) + updateSessionStatus + status_updated, one transaction
+                    SM->>DB: updateSessionStatus
+                    SM->>AL: status_updated
+                    SM-->>WH: updated
+                end
+                WH-->>PR: 200 received true with the outcome
+            end
+        end
+    end

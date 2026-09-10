@@ -9,6 +9,8 @@
 
 # Binary artifacts
 *.jar binary
+*.jpg binary
+*.png binary
 
 # Generated files: collapse in GitHub PR diffs
 package-lock.json linguist-generated=true

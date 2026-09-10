@@ -1,9 +1,11 @@
 name: Checks
 
 # Reusable only: ci.yml calls this as the first stage of every run. Everything
-# here is static and cheap (~1-2 min); Unit waits for all of it and E2E waits
-# for Unit, so a lint error or a bad commit message never spends unit-test or
-# emulator minutes. Concurrency is the caller's.
+# here is static and cheap (~1-2 min) - nothing is built; the packages are
+# built once, in E2E / Build Packages, after Unit has passed. Unit waits for
+# all of it and E2E waits for Unit, so a lint error or a bad commit message
+# never spends unit-test, build or emulator minutes. Concurrency is the
+# caller's.
 on:
   workflow_call:
     outputs:
@@ -13,6 +15,11 @@ on:
 
 # Must not exceed the caller's (ci.yml grants contents: read). The PR title
 # and SHAs come from the event payload, so no pull-requests scope is needed.
+# A registry request that hangs costs one minute per attempt instead of
+# npm's default five (#52). Warm installs make no request at all.
+env:
+  NPM_CONFIG_FETCH_TIMEOUT: '60000'
+
 permissions:
   contents: read
 
@@ -60,9 +67,21 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies (workspace root)
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
+      # The only audit in the pipeline: every npm ci runs --no-audit because
+      # npm's built-in audit call (advisories/bulk) has been seen hanging for
+      # the full 5-minute fetch-timeout in every job of a run (#52). Bounded
+      # here by timeout-minutes, not by ci.yml's 60s fetch-timeout: that cap is
+      # for npm ci's cold path, and the one request this step makes is exactly
+      # the one that stalls, so it gets (nearly) the whole step budget - a
+      # stall must outlast 4.5 min to fail. audit-ci does not retry a timeout.
+      # A dead advisory endpoint fails PRs soft and main hard.
       - name: Dependency audit (known upstream issues allowlisted)
+        timeout-minutes: 5
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+        env:
+          NPM_CONFIG_FETCH_TIMEOUT: '270000'
         run: npx audit-ci --config audit-ci.jsonc
 
       - name: Lint GitHub Actions workflows (actionlint)
@@ -80,36 +99,9 @@ jobs:
       - name: Lint + typecheck + format check
         run: make check-code
 
-  packages:
-    name: Packages
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies (workspace root)
-        run: npm ci
-
-      - name: Build packages
-        run: npm run build
-
-      - name: Package shape (publint + arethetypeswrong)
-        run: npm run check:packages
-
-      - name: Pack + install smoke (hosted Apollo-free boundary)
-        run: bash scripts/pack-smoke.sh
-
   # Conventional Commits on the PR's commits and its title (squash merges take
   # the title as the commit on main). Rules: commitlint.config.mjs. PRs only;
-  # a title-only edit is re-checked by commitlint.yml (a re-run of this job
+  # a title-only edit is re-checked by pull-request.yml (a re-run of this job
   # would still see the title from the original event payload).
   commits:
     name: Commits
@@ -134,7 +126,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies (workspace root)
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --prefer-offline --no-audit
 
       - name: Lint PR commits
         run: npx commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.event.pull_request.head.sha }}" --verbose
@@ -155,6 +147,7 @@ jobs:
       # Github context via env vars, not inline interpolation (script injection hygiene)
       EVENT_NAME: ${{ github.event_name }}
       BASE_REF: ${{ github.base_ref }}
+      PR_AUTHOR: ${{ github.event.pull_request.user.login }}
     steps:
       - uses: actions/checkout@v7
         with:

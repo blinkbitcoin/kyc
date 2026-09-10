@@ -1,22 +1,26 @@
 #!/usr/bin/env bash
 # Maestro E2E on a running Android emulator: installs the debug APK, wires
-# Metro (8081) and the backend (4000) into the emulator via adb reverse (the
-# signing WebView loads localhost:4000 URLs minted by the mock provider), runs
+# Metro (8081) and the backend (KYC_API_PORT) into the emulator via adb
+# reverse (the WebView loads localhost:<port> URLs minted by the mock provider), runs
 # the suite and keeps device forensics (logcat) when it fails.
 # Needs: emulator up, debug APK built, Metro + backend running (metro-start.sh,
 # backend-up.sh). CI: the `script:` input of reactivecircus/android-emulator-
 # runner, which executes each line as its own `sh -c` - hence a file, not
 # inline shell. Local: make e2e-android.
 set -uo pipefail
+# shellcheck source=scripts/e2e/ports-env.sh
+. "$(dirname "$0")/ports-env.sh"
 
 APK=examples/react-native-demo/android/app/build/outputs/apk/debug/app-debug.apk
 LOGS="${RUNNER_TEMP:-/tmp}/android-logs"
 
+[ -f "$APK" ] || { echo "::error::no debug APK at $APK - run make android-build (or make e2e-android-local for the whole stack)"; exit 1; }
 adb install "$APK"
-# Metro + backend: the signing WebView loads localhost:4000 URLs minted by
-# the mock provider - reverse both into the emulator.
+# Metro + backend: the WebView loads localhost:<port> URLs minted by the
+# mock provider - reverse both into the emulator.
+API_PORT="$KYC_API_PORT"
 adb reverse tcp:8081 tcp:8081
-adb reverse tcp:4000 tcp:4000
+adb reverse "tcp:$API_PORT" "tcp:$API_PORT"
 # A starved CI emulator throws "X isn't responding" dialogs (even for the
 # launcher) on top of the app under test, which then fails visibility
 # assertions. Hide ANR/crash dialogs; real crashes still land in logcat.
@@ -32,6 +36,11 @@ adb logcat -c
 status=0
 # Bounded (see maestro-bound.sh) so the logcat post-mortem below still runs
 # when Maestro hangs; a `::error::` line marks the timeout case.
+# The emulator by serial: with an iOS simulator booted as well (a laptop,
+# not CI) Maestro would otherwise pick whichever device it lists first
+# (the demo's test:e2e:android script appends --device from this variable)
+MAESTRO_DEVICE="${ANDROID_SERIAL:-$(adb get-serialno)}"
+export MAESTRO_DEVICE
 bounded_maestro test:e2e:android -w examples/react-native-demo || status=$?
 
 # Forensics: the failure screenshots show the launcher (the app process is

@@ -1,0 +1,35 @@
+# Maestro E2E: a declined verification is a normal terminal outcome, not an
+# error. The component shows the outcome screen (pending-screen) and the host
+# gets onComplete with status 'declined' - no delay, unlike an approval.
+appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android: com.reactnativesandbox
+---
+- retry:
+    maxRetries: 1
+    commands:
+      - launchApp:
+          stopApp: false
+      - tapOn:
+          id: "reset-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-start-button"
+          timeout: 10000
+      - tapOn:
+          id: "verification-start-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-webview"
+          timeout: 20000
+      - extendedWaitUntil:
+          visible: "Mock Identity Verification"
+          timeout: 20000
+
+      - tapOn: "Decline"
+
+      - extendedWaitUntil:
+          visible:
+            id: "pending-screen"
+          timeout: 20000
+      - extendedWaitUntil:
+          visible: "completed: declined"
+          timeout: 15000

@@ -3,11 +3,9 @@
 # `docker compose up --wait` already blocks on the healthcheck; this is the
 # explicit pg_isready confirmation the backend suite relied on.
 set -euo pipefail
+# shellcheck source=scripts/e2e/wait-lib.sh
+. "$(dirname "$0")/wait-lib.sh"
 cd "$(dirname "$0")/../.."
-for i in {1..30}; do
-  if docker compose -f docker-compose.test.yml exec -T postgres-test pg_isready -U test -d kyc_test; then
-    echo "Database is ready"; exit 0
-  fi
-  echo "Waiting for database... ($i/30)"; sleep 2
-done
-echo "ERROR: Database failed to become ready after 60 seconds"; exit 1
+# -h forces a TCP check (the Unix socket is ready before the listener is).
+wait_for database 30 2 "" docker compose -f docker-compose.test.yml exec -T postgres-test \
+  pg_isready -h 127.0.0.1 -p 5432 -U test -d kyc_test

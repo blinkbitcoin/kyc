@@ -1,0 +1,51 @@
+# Maestro E2E: the provider reports an error, the component offers Try again,
+# and retrying mints a fresh session that loads the page again.
+# MOCK_ERROR is not a token failure, so the affordance is retry-button (a
+# full re-run), not restart-button.
+appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android: com.reactnativesandbox
+---
+- retry:
+    maxRetries: 1
+    commands:
+      - launchApp:
+          stopApp: false
+      - tapOn:
+          id: "reset-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-start-button"
+          timeout: 10000
+      - tapOn:
+          id: "verification-start-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-webview"
+          timeout: 20000
+      - extendedWaitUntil:
+          visible: "Simulate an error"
+          timeout: 20000
+
+      - tapOn: "Simulate an error"
+
+      - extendedWaitUntil:
+          visible:
+            id: "error-screen"
+          timeout: 20000
+      - assertVisible:
+          id: "retry-button"
+      - assertVisible: "error: MOCK_ERROR"
+
+      - tapOn:
+          id: "retry-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-webview"
+          timeout: 20000
+
+      # Leave the suite on a clean idle screen for whatever runs next.
+      - tapOn:
+          id: "reset-button"
+      - extendedWaitUntil:
+          visible:
+            id: "verification-start-button"
+          timeout: 10000

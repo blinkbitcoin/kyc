@@ -1,0 +1,43 @@
+# Maestro E2E: the NATIVE-LAUNCH branch, without a provider SDK.
+# createFakeLaunchableSource({ outcome: 'manual' }) makes the component take
+# the launch() path (no WebView is rendered at all); the demo overlays the
+# fake SDK screen for the duration of the launch and settles it from the
+# controller.
+#
+# Requires Metro bundled with KYC_MODE=fake-native:
+#   KYC_MODE=fake-native npm start
+# No backend and no database are needed - the fake never leaves the app.
+#
+# Runs on its own (tagged, excluded from the default suite), so it owns the
+# cold launch and is retried as a unit, like app-launch.yaml.
+appId: ${APP_ID} # iOS: org.reactjs.native.example.ReactNativeSandbox / Android: com.reactnativesandbox
+tags:
+  - fake-native
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp
+      - extendedWaitUntil:
+          visible:
+            id: "verification-start-button"
+          timeout: 60000
+      - assertVisible: "mode: fake-native"
+
+      - tapOn:
+          id: "verification-start-button"
+      - extendedWaitUntil:
+          visible:
+            id: "fake-sdk-screen"
+          timeout: 20000
+
+      - tapOn:
+          id: "fake-sdk-approve"
+
+      - extendedWaitUntil:
+          visible:
+            id: "success-screen"
+          timeout: 20000
+      - extendedWaitUntil:
+          visible: "completed: approved"
+          timeout: 15000

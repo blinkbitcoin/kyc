@@ -1,0 +1,40 @@
+flowchart TD
+    IDLE([idle]) --> TAP[User taps the start button]
+    TAP --> LOADING[loading<br/>begin]
+    LOADING --> PERM{checkPermissions<br/>React Native only}
+    PERM -- "denied or blocked" --> PD[permissionDenied<br/>Try again · Open settings]
+    PD --> TAP
+    PERM -- "granted or not supplied" --> NET{Online?}
+    NET -- "No" --> OFF[offline<br/>Check connection]
+    OFF --> TAP
+    NET -- "Yes" --> START[source.start]
+    START --> OK{Resolved?}
+    OK -- "No" --> ERR[error<br/>Try again]
+    OK -- "Yes" --> VER[verifying<br/>launch · WebView · iframe · mount]
+
+    VER -- "applicantLoaded" --> VER
+    VER -- "submitted" --> PEND[pending<br/>awaiting review]
+    VER -- "statusChanged pending" --> PEND
+    VER -- "complete approved" --> SUCCESS[success<br/>then onComplete]
+    VER -- "complete declined · finallyRejected · incomplete" --> PEND
+    VER -- "cancel" --> IDLE
+    VER -- "error PERMISSION_DENIED (web)" --> PD
+    VER -- "error" --> ERR
+    VER -- "sessionExpired" --> EXP[error TOKEN_EXPIRED<br/>Restart]
+    VER -- "tokenExpired" --> REF{isTokenRefreshable}
+    REF -- "Yes" --> SET[refreshToken then setToken] --> VER
+    REF -- "No · no allowedOrigin · refresh rejected" --> EXP
+
+    ERR -- "Try again" --> TAP
+    EXP -- "Restart drops the session" --> TAP
+    PEND --> DONE([onComplete])
+    SUCCESS --> DONE
+
+    style IDLE fill:#e7f5ff
+    style SUCCESS fill:#b2f2bb
+    style DONE fill:#b2f2bb
+    style ERR fill:#ffc9c9
+    style EXP fill:#ffec99
+    style OFF fill:#ffec99
+    style PD fill:#ffec99
+    style PEND fill:#ffec99

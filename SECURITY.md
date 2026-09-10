@@ -11,20 +11,23 @@ reproduction steps and the affected package/version.
 
 ## Scope
 
-- The published packages: `@blinkbitcoin/kyc-core`, `@blinkbitcoin/kyc-sumsub`,
+- The published packages: `@blinkbitcoin/kyc-core`,
   `@blinkbitcoin/kyc-react-native`, `@blinkbitcoin/kyc-react`
-- The backend service in `apps/api`
+- The backend service in `examples/full-service-demo`
 
 ## Security model
 
-The backend is fail-closed by default (it refuses to boot without
-`JWT_SECRET`, and without `SUMSUB_WEBHOOK_SECRET` once the Sumsub adapter is
-active, unless `ALLOW_INSECURE_DEV=true` is explicitly set - see
-`apps/api/src/config.ts`). The fuller threat model and controls (webhook
-signature verification and replay guard, rate limiting, provider-ID
-protection, PII-safe audit logging) land with the backend phases; until
-`docs/architecture/security.md` exists, the intended design is in
-[docs/superpowers/specs/2026-09-05-kyc-design.md](docs/superpowers/specs/2026-09-05-kyc-design.md).
+The full threat model and the controls - fail-closed boot, bearer-token auth
+and owner-scoped reads, webhook signature verification with a terminal-state
+guard, the client-side origin pin, the hosted page's CSP and
+`Permissions-Policy`, rate limiting, PII-safe logging and audit metadata, and
+the responsibilities that remain with the host app - are documented in
+[docs/architecture/security.md](docs/architecture/security.md).
+
+The short version: applicant documents, selfies and liveness video never pass
+through this repository. They go from the device or browser straight to the
+provider. `examples/full-service-demo` stores an applicant id and a status, never an image, a
+document number or a name.
 
 ## Supported versions
 

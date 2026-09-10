@@ -1,4 +1,4 @@
-// The verification-source abstraction: the seam that lets one <Verification>
+// The verification-source abstraction: the seam that lets one <IdentityVerification>
 // component drive any provider in any mode (native SDK, hosted page, proxy).
 //
 // Platform-agnostic (no React, no WebView/iframe, no native module) -
@@ -6,7 +6,7 @@
 // embeds/launches differs per platform.
 
 /** Normalized applicant status, regardless of provider. */
-export type VerificationStatus =
+export type IdentityVerificationStatus =
   | 'initial'
   | 'incomplete'
   | 'pending'
@@ -14,12 +14,37 @@ export type VerificationStatus =
   | 'declined'
   | 'finallyRejected';
 
+/**
+ * The runtime companion to IdentityVerificationStatus, in lifecycle order. Untrusted
+ * input (bridge messages, provider payloads) is validated against this list.
+ */
+export const IDENTITY_VERIFICATION_STATUSES: readonly IdentityVerificationStatus[] =
+  [
+    'initial',
+    'incomplete',
+    'pending',
+    'approved',
+    'declined',
+    'finallyRejected',
+  ] as const;
+
+/** Narrow untrusted input to a normalized status. */
+export const isIdentityVerificationStatus = (
+  value: unknown,
+): value is IdentityVerificationStatus =>
+  typeof value === 'string' &&
+  (IDENTITY_VERIFICATION_STATUSES as readonly string[]).includes(value);
+
 /** Normalized event the component acts on, regardless of provider. */
 export type VerificationEvent =
   | { type: 'applicantLoaded'; applicantId: string }
   | { type: 'submitted' }
-  | { type: 'statusChanged'; status: VerificationStatus }
-  | { type: 'complete'; status: VerificationStatus; applicantId?: string }
+  | { type: 'statusChanged'; status: IdentityVerificationStatus }
+  | {
+      type: 'complete';
+      status: IdentityVerificationStatus;
+      applicantId?: string;
+    }
   | { type: 'cancel' }
   /** Hosted mode only: the page's token expired; a refreshable source can mint a new one. */
   | { type: 'tokenExpired' }
@@ -40,11 +65,13 @@ export interface VerificationSession {
   /** Origin to accept postMessage from (hosted mode, defense in depth). */
   allowedOrigin?: string;
   applicantId?: string;
+  /** The applicant's status as of session creation/refresh, when the backend reports it. */
+  status?: IdentityVerificationStatus;
 }
 
 /** Terminal outcome handed to onComplete. */
-export interface VerificationResult {
-  status: VerificationStatus;
+export interface IdentityVerificationResult {
+  status: IdentityVerificationStatus;
   applicantId?: string;
 }
 
@@ -72,10 +99,17 @@ export interface TokenRefreshableSource extends VerificationSource {
 
 /** Native SDK mode: a source that runs the provider's SDK in-process. */
 export interface LaunchableSource extends VerificationSource {
+  /**
+   * `launch` resolves the terminal `IdentityVerificationResult`. A `cancel` event
+   * emitted before resolution means the user aborted; the resolved status
+   * is then advisory (typically `incomplete`). Implementations reject with
+   * a `VerificationSourceError` only for failures, never for user
+   * cancellation.
+   */
   launch(
     session: VerificationSession,
     onEvent: (event: VerificationEvent) => void,
-  ): Promise<VerificationResult>;
+  ): Promise<IdentityVerificationResult>;
 }
 
 /** Capability checks - structural (duck-typed), not nominal. */
@@ -88,3 +122,21 @@ export const isLaunchable = (
   source: VerificationSource,
 ): source is LaunchableSource =>
   typeof (source as LaunchableSource).launch === 'function';
+
+/**
+ * Color overrides for the default IdentityVerification UI, one set for both
+ * platforms; a per-element `styles` prop on the component wins over it.
+ */
+export interface IdentityVerificationTheme {
+  /** Primary button background, secondary button text, the spinner. */
+  primaryColor?: string;
+  /** Text on the primary button. */
+  primaryTextColor?: string;
+  /** Titles. */
+  textColor?: string;
+  /** Subtitles and hints. */
+  mutedTextColor?: string;
+  successColor?: string;
+  errorColor?: string;
+  fontFamily?: string;
+}

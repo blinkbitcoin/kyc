@@ -1,0 +1,65 @@
+type Query {
+  health: HealthCheck!
+  verificationSession(id: ID!): VerificationSessionStatus!
+}
+
+type Mutation {
+  verificationSessionStart(input: VerificationSessionStartInput!): VerificationSession!
+  verificationSessionRefresh(sessionId: ID!): AccessToken!
+}
+
+type HealthCheck {
+  status: String!
+  timestamp: String!
+}
+
+enum VerificationPlatform {
+  WEB
+  IOS
+  ANDROID
+}
+
+enum VerificationStatus {
+  initial
+  incomplete
+  pending
+  approved
+  declined
+  finallyRejected
+}
+
+input VerificationSessionStartInput {
+  platform: VerificationPlatform!
+  levelName: String
+  locale: String
+}
+
+type VerificationSession {
+  sessionId: ID!
+  provider: String!
+  status: VerificationStatus!
+  accessToken: String
+  url: String
+  allowedOrigin: String
+  applicantId: String
+}
+
+type VerificationSessionStatus {
+  sessionId: ID!
+  provider: String!
+  status: VerificationStatus!
+  applicantId: String
+}
+
+type AccessToken {
+  accessToken: String!
+}
+
+enum ErrorCode {
+  UNAUTHORIZED
+  VALIDATION_ERROR
+  PROVIDER_UNAVAILABLE
+  SESSION_NOT_FOUND
+  SESSION_CREATION_FAILED
+  PERSISTENCE_FAILED
+}

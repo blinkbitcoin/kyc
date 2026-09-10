@@ -1,21 +1,31 @@
 # packages/
 
-Publishable client libraries — the products of this repo. The platform
-packages expose the same public API over a shared core; pick by platform.
+The four published packages. The two platform packages are what an app
+installs (`kyc-core` arrives as a dependency); `kyc-server` is what a
+backend installs.
 
-| Package | What it is |
-|---------|------------|
-| [`kyc-core/`](kyc-core/README.md) | 🧩 `@blinkbitcoin/kyc-core` — platform-agnostic core: `VerificationSource` + capability guards, bridge protocol, `ErrorCode` contract. Dependency of the other three packages. |
-| [`kyc-sumsub/`](kyc-sumsub/README.md) | 🔌 `@blinkbitcoin/kyc-sumsub` — Sumsub adapters: shared mapping, `/react-native` (native SDK), `/web` (web SDK) |
-| [`kyc-react-native/`](kyc-react-native/README.md) | 📦 `@blinkbitcoin/kyc-react-native` — React Native `Verification` component + `useVerification` (hardened WebView for hosted mode) over core |
-| [`kyc-react/`](kyc-react/README.md) | 📦 `@blinkbitcoin/kyc-react` — React web `Verification` component + `useVerification` (iframe for hosted mode) over core |
+| Package | Entries | Role |
+|---------|---------|------|
+| [`kyc-react-native/`](kyc-react-native/README.md) | `.`, `./hosted`, `./sumsub` | 📱 **The product on mobile.** `IdentityVerification` + `useIdentityVerification` over a<br>hardened `react-native-webview`. `./hosted` is Apollo-free - Metro<br>resolves it straight to source. `./sumsub` adds the native-SDK source<br>(`providers/sumsub/`) over the optional Sumsub Mobile SDK peer |
+| [`kyc-react/`](kyc-react/README.md) | `.`, `./sumsub` | 🌐 **The product on the web.** The same pair over an origin-pinned<br>iframe, plus the `MountableSource` seam. `./sumsub` is the reserved<br>seat of the web-SDK adapter (none in v1) |
+| [`kyc-server/`](kyc-server/README.md) | `.`, `./express`, `./knex`, `./sumsub` | 🖥️ **The server half.** The verification-session domain over the<br>provider + store ports, Sumsub token minting and webhook verification,<br>the hosted page, Fetch handlers, an Express router and a Knex store.<br>What a backend that already exists imports; the reference backend is<br>built on it |
+| [`kyc-core/`](kyc-core/README.md) | `.`, `./hosted`, `./testing`, `./sumsub` | 🧩 **The shared vocabulary.** `VerificationSource` + capability guards,<br>the `kyc-bridge` protocol, the state machine both platforms run, the<br>error-code contract, the hosted and proxy sources. `./testing` ships<br>`createFakeLaunchableSource`; `./sumsub` is the one Sumsub mapping<br>(`providers/sumsub/`), also read by the backend |
 
-All four publish to GitHub Packages. Hosted-only consumers use the
-Apollo-free `/hosted` subpath entry (guard-tested; `@apollo/client` and
-`graphql` are optional peers).
+Two boundaries hold this together and are enforced by tests, not convention:
+
+- **Apollo containment.** Only `createProxySource` imports Apollo. `./hosted`,
+  `./testing` and `./sumsub` never reach it - proved by import-graph guard
+  tests and by `scripts/pack-smoke.sh`, which installs the packed tarballs and
+  asserts that requiring them loads no `@apollo/client` or `graphql`.
+- **Provider containment.** Nothing Sumsub-specific lives outside a
+  `providers/sumsub/` directory, generic layers never import one, and each
+  package's `src/sumsub.ts` is a one-line re-export of its provider surface -
+  all guard-tested. The component decides what to render by capability
+  (`isLaunchable`, `isMountable`), never by provider name.
+
+All four publish to GitHub Packages at the same version, with `kyc-core`
+pinned exactly. Coverage is 100% statements/branches/functions/lines on every
+one of them.
 
 `make help` here fans common targets (`test`, `coverage`, `typecheck`,
-`build`, `codegen`, `clean`) out to every package; packages with a `Makefile`
-are discovered automatically. Types under `kyc-core/src/generated/`
-come from `apps/api/schema.graphql` — edit the backend schema and run
-`make codegen`, never the generated files.
+`build`) out to every package.
