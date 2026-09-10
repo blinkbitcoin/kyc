@@ -14,7 +14,7 @@ never see. CI never drives the Sumsub UI: the device matrix in
 
 | Where | Name | Value |
 |---|---|---|
-| Environment `sumsub-sandbox`, secret | `SUMSUB_APP_TOKEN` | a sandbox App Token (Dev space → App Tokens) |
+| Environment `sumsub-sandbox`, secret | `SUMSUB_APP_TOKEN` | a sandbox App Token (Dev space → App Tokens); the shared `kyc-library` one is in the team secret manager, "kyc-library sandbox (Sumsub)" |
 | Environment `sumsub-sandbox`, secret | `SUMSUB_SECRET_KEY` | that token's secret key (shown once) |
 | Environment `sumsub-sandbox`, secret | `SUMSUB_WEBHOOK_SECRET` | the webhook secret key; the live test signs its own webhook with it |
 | Repository variable | `SUMSUB_LEVEL_NAME` | the sandbox level with a document and a liveness step (default `basic-kyc-level`) |

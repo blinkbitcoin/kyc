@@ -9,7 +9,12 @@ Budget about 90 minutes for a full manual pass. Record the result of each number
 ## The automated tier
 
 ```bash
-make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=… [LEVEL_NAME=…] [PUBLIC_BASE_URL=…]
+# Blink's sandbox, ready-made: the non-secret values are committed in
+# examples/full-service-demo/.env.sumsub.example, the three secrets live in the
+# team secret manager ("kyc-library sandbox (Sumsub)") - or make your own token
+cp examples/full-service-demo/.env.sumsub.example examples/full-service-demo/.env  # then fill in the three secrets
+# ...or write it from the values:
+make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=… LEVEL_NAME=01-upgrade-to-level-TWO [PUBLIC_BASE_URL=…]
 make sumsub-check   # app-token auth + the level: mints a throwaway token, says what is wrong otherwise
 make test-live      # the live tests alone (the service round trips need DATABASE_URL)
 make e2e-live       # check → E2E Postgres → live tests → the access-token example mints a real token

@@ -5,6 +5,14 @@ description: Use when a Sumsub sandbox needs to be prepared for this repo (first
 
 # Sumsub sandbox setup
 
+**Shortcut for Blink's sandbox:** the non-secret values (level names,
+algorithm, ports) are committed in
+`examples/full-service-demo/.env.sumsub.example`; the three secrets of the
+shared `kyc-library` sandbox token and webhook are in the team secret
+manager under "kyc-library sandbox (Sumsub)". `cp` the template to
+`examples/full-service-demo/.env`, fill the secrets, `make sumsub-check`.
+Everything below is for a new sandbox, or a token of your own.
+
 What the live tooling (`make e2e-live`, the `Live Sumsub` CI job) and the
 manual device matrix need from a Sumsub **sandbox**, and how to get it. The
 secrets never pass through a chat: write them with `make sumsub-env`, which
