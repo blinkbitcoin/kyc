@@ -19,6 +19,7 @@ make live-web       # public URL (Tailscale Funnel) + backend on the sandbox + w
                     #   waits for section 5 in a browser, Ctrl-C tears down
 make live-ios       # + Metro (KYC_MODE, KYC_API_HOST = the Mac's tailnet ip) + the app
                     #   on the attached iPhone: section 4 (hosted) / 3 (native)
+make live-android   # + adb reverse + Metro + the APK on the attached Android phone
 ```
 
 In CI the same runner reads the `SUMSUB_*` values from the environment (job

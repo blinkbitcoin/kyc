@@ -22,9 +22,10 @@ make e2e-live       # check → E2E Postgres → live tests → the access-token
 
 For the device rows, two more one-command stacks: `make live-web` (a public URL
 through Tailscale Funnel, the backend on the sandbox, the web demo - then it
-waits while you run section 5 in a browser) and `make live-ios` (the same plus
-Metro and the demo built onto the attached iPhone, `KYC_MODE=hosted` for
-section 4, `KYC_MODE=native` for section 3). Ctrl-C tears them down.
+waits while you run section 5 in a browser), `make live-ios` and
+`make live-android` (the same plus Metro and the demo built onto the attached
+phone, `KYC_MODE=hosted` for section 4, `KYC_MODE=native` for section 3).
+Ctrl-C tears them down.
 
 `make e2e-live` proves, against the real sandbox: the credentials are accepted and the level exists; the access-token contract the native SDK depends on (`{ token, userId }` echoing the external user id); a user who never opened the SDK reads as `initial`; the service starts and refreshes a session on the real provider and serves its hosted page for the real token; a webhook signed with the real secret and the configured digest algorithm (`SUMSUB_WEBHOOK_DIGEST_ALG`) is accepted, binds the applicant and approves the session; and `examples/access-token-demo` mints a real token. In CI the same run is the opt-in `E2E / Live Sumsub` job ([operations/live-e2e-ci.md](../operations/live-e2e-ci.md)). The tests live in `examples/full-service-demo/tests/live/`; the repo skill `.claude/skills/sumsub-live-verification` is the runbook.
 
@@ -81,6 +82,7 @@ cd examples/react-native-demo
 npm i @sumsub/react-native-mobilesdk-module
 (cd ios && bundle exec pod install)
 cd ../.. && KYC_MODE=native make live-ios      # backend + Metro + the app on the attached iPhone
+cd ../.. && KYC_MODE=native make live-android  # ...or on the attached Android phone
 ```
 
 Run every row on **both** an iPhone and an Android device.
@@ -104,6 +106,7 @@ Run every row on **both** an iPhone and an Android device.
 
 ```bash
 make live-ios                                  # KYC_MODE=hosted is the default
+make live-android                              # the attached Android phone (adb reverse for Metro + backend)
 ```
 
 Same device matrix.

@@ -260,6 +260,7 @@ make sumsub-check                                            # credentials + lev
 make e2e-live                                                # the whole live run against the sandbox API
 make live-web                                                # the web demo on the sandbox, waiting for the browser rows
 make live-ios                                                # the RN demo on the attached iPhone (KYC_MODE=hosted|native)
+make live-android                                            # ...or the attached Android phone
 ```
 
 Skipped without credentials, never part of `make test`; in CI it is the
