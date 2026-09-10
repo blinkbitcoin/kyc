@@ -61,6 +61,16 @@ export const getAllowedOrigins = (env: NodeJS.ProcessEnv = process.env): string[
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0);
 
+// A loop, not `/\/+$/`: CodeQL's js/polynomial-redos flags that regex on
+// input the code does not control (the URL comes from the environment).
+const stripTrailingSlashes = (value: string): string => {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') {
+    end -= 1;
+  }
+  return value.slice(0, end);
+};
+
 export const PUBLIC_BASE_URL_DEFAULT = 'http://localhost:5100';
 
 /**
@@ -70,9 +80,8 @@ export const PUBLIC_BASE_URL_DEFAULT = 'http://localhost:5100';
  * value, so there is nothing to guess.
  */
 export const getPublicBaseUrl = (env: NodeJS.ProcessEnv = process.env): string =>
-  (env.PUBLIC_BASE_URL || (isInsecureDevAllowed(env) ? PUBLIC_BASE_URL_DEFAULT : '')).replace(
-    /\/+$/,
-    ''
+  stripTrailingSlashes(
+    env.PUBLIC_BASE_URL || (isInsecureDevAllowed(env) ? PUBLIC_BASE_URL_DEFAULT : '')
   );
 
 /**

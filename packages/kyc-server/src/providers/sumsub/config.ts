@@ -48,14 +48,23 @@ const positiveInt = (raw: string | undefined, fallback: number): number => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+// A loop, not `/\/+$/`: CodeQL's js/polynomial-redos flags that regex on
+// input the code does not control (the URL comes from the environment).
+const stripTrailingSlashes = (value: string): string => {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') {
+    end -= 1;
+  }
+  return value.slice(0, end);
+};
+
 // Read the SUMSUB_* variables (defaults for everything but the credentials)
 export const sumsubConfigFromEnv = (env: Env = process.env): SumsubConfig => ({
   appToken: env[SUMSUB_ENV.appToken] || undefined,
   secretKey: env[SUMSUB_ENV.secretKey] || undefined,
   webhookSecret: env[SUMSUB_ENV.webhookSecret] || undefined,
-  baseUrl: (env[SUMSUB_ENV.baseUrl] || SUMSUB_DEFAULTS.baseUrl).replace(
-    /\/+$/,
-    '',
+  baseUrl: stripTrailingSlashes(
+    env[SUMSUB_ENV.baseUrl] || SUMSUB_DEFAULTS.baseUrl,
   ),
   levelName: env[SUMSUB_ENV.levelName] || SUMSUB_DEFAULTS.levelName,
   tokenTtlSecs: positiveInt(

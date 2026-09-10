@@ -28,7 +28,10 @@ export const handleApolloErrors: ErrorLink.ErrorHandler = ({ error }) => {
 
 export const createAuthContextSetter =
   (getAuthToken?: GetAuthToken): SetContextLink.ContextSetter =>
-  async ({ headers }) => {
+  // Both of the setter's parameters are declared (the operation goes
+  // unused): callers pass both, and a declared-arity mismatch is what
+  // CodeQL's js/superfluous-trailing-arguments reports
+  async ({ headers }, _operation) => {
     const token = getAuthToken ? await getAuthToken() : null;
     return {
       headers: {
