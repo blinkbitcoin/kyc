@@ -132,7 +132,7 @@ describe('useTokenRefresh - injecting', () => {
   });
 
   it('reports a rejected refresh as TOKEN_REFRESH_FAILED', async () => {
-    // toVerificationError attaches copy at the edge: getErrorMessage returns
+    // toIdentityVerificationError attaches copy at the edge: getErrorMessage returns
     // the fixed TOKEN_REFRESH_FAILED copy for a known code regardless of the
     // upstream provider's raw message - it never reaches the user.
     const { onFailure, injectJavaScript } = await mount(

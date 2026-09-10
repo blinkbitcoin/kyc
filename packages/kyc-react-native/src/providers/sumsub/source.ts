@@ -12,7 +12,7 @@ import { ClientErrorCodes } from '@blinkbitcoin/kyc-core/hosted';
 import type {
   LaunchableSource,
   VerificationEvent,
-  VerificationResult,
+  IdentityVerificationResult,
   VerificationSession,
   VerificationSourceError,
 } from '@blinkbitcoin/kyc-core/hosted';
@@ -103,7 +103,7 @@ export const createSumsubNativeSource = ({
     async launch(
       session: VerificationSession,
       onEvent: (event: VerificationEvent) => void,
-    ): Promise<VerificationResult> {
+    ): Promise<IdentityVerificationResult> {
       if (launching) {
         throw sourceError(
           ClientErrorCodes.SDK_UNAVAILABLE,

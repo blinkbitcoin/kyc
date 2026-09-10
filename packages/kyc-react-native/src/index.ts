@@ -13,10 +13,13 @@
 //   const client = createKycApolloClient({ uri, getAuthToken });
 //   const source = createProxySource({ client, platform: 'IOS' });
 //
-//   <Verification source={source} onComplete onError onCancel />
+//   <IdentityVerification source={source} onComplete onError onCancel />
 
-export { Verification, DEFAULT_LABEL } from './Verification';
-export { useVerification, DEFAULT_SUCCESS_DELAY_MS } from './useVerification';
+export { IdentityVerification, DEFAULT_LABEL } from './IdentityVerification';
+export {
+  useIdentityVerification,
+  DEFAULT_SUCCESS_DELAY_MS,
+} from './useIdentityVerification';
 export { useTokenRefresh } from './useTokenRefresh';
 export { HostedWebView, HOSTED_WEBVIEW_TEST_ID } from './hosted/HostedWebView';
 export {
@@ -30,7 +33,7 @@ export {
 export type * from './types';
 // This package's labels extend core's under the same name; naming the
 // re-export is what resolves the clash with the core re-export below.
-export type { VerificationLabels } from './types';
+export type { IdentityVerificationLabels } from './types';
 export {
   baseStyles,
   DEFAULT_LABELS,

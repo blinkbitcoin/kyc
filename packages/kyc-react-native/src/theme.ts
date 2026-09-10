@@ -1,4 +1,4 @@
-// Look of the default Verification UI: base styles, default copy, and the
+// Look of the default IdentityVerification UI: base styles, default copy, and the
 // resolvers that layer a host's theme / styles / labels on top.
 // Precedence: base style < theme-derived color < styles[key].
 
@@ -11,12 +11,12 @@ import type {
   LabelDefaults,
   ResolvedLabels,
 } from '@blinkbitcoin/kyc-core/hosted';
-import type { VerificationTheme } from '@blinkbitcoin/kyc-core/hosted';
+import type { IdentityVerificationTheme } from '@blinkbitcoin/kyc-core/hosted';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import type {
-  VerificationLabels,
-  VerificationStyleKey,
-  VerificationStyles,
+  IdentityVerificationLabels,
+  IdentityVerificationStyleKey,
+  IdentityVerificationStyles,
 } from './types';
 
 export const baseStyles = StyleSheet.create({
@@ -70,7 +70,7 @@ export const baseStyles = StyleSheet.create({
 });
 
 /** Copy of the built-in screens; `title` and `start` come from `label`. */
-export const DEFAULT_LABELS: LabelDefaults<VerificationLabels> = {
+export const DEFAULT_LABELS: LabelDefaults<IdentityVerificationLabels> = {
   subtitle: 'Have your ID document ready and allow camera access.',
   cancel: 'Cancel',
   loading: 'Preparing verification...',
@@ -92,12 +92,12 @@ export const DEFAULT_LABELS: LabelDefaults<VerificationLabels> = {
 /** Defaults, then `label` for title/start, then any explicit overrides. */
 export const resolveLabels = (
   label: string,
-  labels?: VerificationLabels,
-): ResolvedLabels<VerificationLabels> =>
+  labels?: IdentityVerificationLabels,
+): ResolvedLabels<IdentityVerificationLabels> =>
   resolveLabelsWith(DEFAULT_LABELS, label, labels);
 
 export type ResolvedStyles = Record<
-  VerificationStyleKey,
+  IdentityVerificationStyleKey,
   StyleProp<ViewStyle | TextStyle>
 >;
 
@@ -110,8 +110,8 @@ const font = (value?: string): TextStyle | undefined =>
 
 /** Base styles, then theme colors, then per-element overrides. */
 export const resolveStyles = (
-  theme?: VerificationTheme,
-  styles?: VerificationStyles,
+  theme?: IdentityVerificationTheme,
+  styles?: IdentityVerificationStyles,
 ): ResolvedStyles => ({
   root: [baseStyles.root, styles?.root],
   screen: [baseStyles.screen, styles?.screen],

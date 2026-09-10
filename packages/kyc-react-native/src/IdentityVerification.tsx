@@ -1,7 +1,7 @@
-// The default UI over useVerification: one screen per state and nothing
+// The default UI over useIdentityVerification: one screen per state and nothing
 // else. Every decision that is not "what does this state look like" lives in
 // the hook, the machine or webViewProps - so a host that wants its own look
-// calls useVerification directly and reuses HostedWebView. A host that only
+// calls useIdentityVerification directly and reuses HostedWebView. A host that only
 // wants its own colors and copy recolors (`theme`), restyles (`styles`) and
 // relabels (`labels`) this one; nothing it renders is hard-coded here.
 
@@ -17,13 +17,13 @@ import {
 
 import { HostedWebView } from './hosted/HostedWebView';
 import { resolveLabels, resolveStyles } from './theme';
-import { useVerification } from './useVerification';
+import { useIdentityVerification } from './useIdentityVerification';
 
-import type { VerificationProps } from './types';
+import type { IdentityVerificationProps } from './types';
 
 export const DEFAULT_LABEL = 'Verify identity';
 
-export const Verification: React.FC<VerificationProps> = ({
+export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
   source,
   onComplete,
   onError,
@@ -53,7 +53,7 @@ export const Verification: React.FC<VerificationProps> = ({
     handleMessage,
     handleEvent,
     webViewRef,
-  } = useVerification(source, {
+  } = useIdentityVerification(source, {
     onComplete,
     onError,
     onCancel,

@@ -18,14 +18,14 @@ import {
   simulateWebViewError,
 } from '../../__mocks__/react-native-webview';
 
-import { Verification } from '../Verification';
+import { IdentityVerification } from '../IdentityVerification';
 
 import type {
   VerificationEvent,
   VerificationSession,
   VerificationSource,
 } from '@blinkbitcoin/kyc-core/hosted';
-import type { VerificationProps } from '../types';
+import type { IdentityVerificationProps } from '../types';
 
 const session: VerificationSession = {
   provider: 'mock',
@@ -45,7 +45,9 @@ const hostedSource = (
   ...overrides,
 });
 
-const props = (over: Partial<VerificationProps> = {}): VerificationProps => ({
+const props = (
+  over: Partial<IdentityVerificationProps> = {},
+): IdentityVerificationProps => ({
   source: hostedSource(),
   onComplete: jest.fn(),
   onError: jest.fn(),
@@ -53,10 +55,10 @@ const props = (over: Partial<VerificationProps> = {}): VerificationProps => ({
   ...over,
 });
 
-const render = async (p: VerificationProps) => {
+const render = async (p: IdentityVerificationProps) => {
   let renderer!: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(() => {
-    renderer = ReactTestRenderer.create(<Verification {...p} />);
+    renderer = ReactTestRenderer.create(<IdentityVerification {...p} />);
   });
   return renderer;
 };
@@ -79,7 +81,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe('Verification - idle', () => {
+describe('IdentityVerification - idle', () => {
   it('shows the default label and starts the flow', async () => {
     const p = props();
     const renderer = await render(p);
@@ -107,7 +109,7 @@ describe('Verification - idle', () => {
   });
 });
 
-describe('Verification - loading and launching', () => {
+describe('IdentityVerification - loading and launching', () => {
   it('shows the spinner while the session is being acquired', async () => {
     let resolveStart!: (value: VerificationSession) => void;
     const p = props({
@@ -152,8 +154,8 @@ describe('Verification - loading and launching', () => {
   });
 });
 
-describe('Verification - the hosted page', () => {
-  const start = async (p: VerificationProps) => {
+describe('IdentityVerification - the hosted page', () => {
+  const start = async (p: IdentityVerificationProps) => {
     const renderer = await render(p);
     await press(renderer, 'verification-start-button');
     return renderer;
@@ -303,7 +305,7 @@ describe('Verification - the hosted page', () => {
   });
 });
 
-describe('Verification - recovery screens', () => {
+describe('IdentityVerification - recovery screens', () => {
   it('offers a retry - and no settings trip - when permission was merely denied', async () => {
     const onOpenSettings = jest.fn();
     const checkPermissions = jest
@@ -412,7 +414,7 @@ describe('Verification - recovery screens', () => {
   });
 });
 
-describe('Verification - pass-through props', () => {
+describe('IdentityVerification - pass-through props', () => {
   it('forwards style, renderLoading, onStatusChange and frame origins', async () => {
     const renderLoading = () => <></>;
     const onStatusChange = jest.fn();
@@ -457,7 +459,7 @@ describe('Verification - pass-through props', () => {
   });
 });
 
-describe('Verification - labels and theme', () => {
+describe('IdentityVerification - labels and theme', () => {
   const flat = (style: unknown) =>
     StyleSheet.flatten(style as never) as Record<string, unknown>;
 

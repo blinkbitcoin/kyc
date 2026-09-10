@@ -1,6 +1,6 @@
 /**
  * theme resolvers - how a host's theme / styles / labels layer onto the
- * default Verification look. Precedence: base < theme < styles[key].
+ * default IdentityVerification look. Precedence: base < theme < styles[key].
  */
 
 import { StyleSheet } from 'react-native';
@@ -14,13 +14,16 @@ import {
 } from '../theme';
 
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
-import type { VerificationTheme } from '@blinkbitcoin/kyc-core/hosted';
-import type { VerificationLabels, VerificationStyleKey } from '../types';
+import type { IdentityVerificationTheme } from '@blinkbitcoin/kyc-core/hosted';
+import type {
+  IdentityVerificationLabels,
+  IdentityVerificationStyleKey,
+} from '../types';
 
 const flat = (style: StyleProp<ViewStyle | TextStyle>): TextStyle =>
   StyleSheet.flatten(style) as TextStyle;
 
-const STYLE_KEYS: VerificationStyleKey[] = [
+const STYLE_KEYS: IdentityVerificationStyleKey[] = [
   'root',
   'screen',
   'page',
@@ -36,7 +39,7 @@ const STYLE_KEYS: VerificationStyleKey[] = [
   'hiddenWebView',
 ];
 
-const FULL_THEME: Required<VerificationTheme> = {
+const FULL_THEME: Required<IdentityVerificationTheme> = {
   primaryColor: '#111111',
   primaryTextColor: '#222222',
   textColor: '#333333',
@@ -126,7 +129,7 @@ describe('resolveLabels', () => {
   });
 
   it('every key can be overridden', () => {
-    const all: Required<VerificationLabels> = {
+    const all: Required<IdentityVerificationLabels> = {
       title: 't',
       subtitle: 'st',
       start: 's',

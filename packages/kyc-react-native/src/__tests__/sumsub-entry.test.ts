@@ -124,12 +124,14 @@ describe('the ./sumsub entry (Apollo-free guarantee, across packages)', () => {
 });
 
 describe('provider boundary (the neutral layer never imports providers/)', () => {
-  it.each(['hosted.ts', 'index.ts', 'Verification.tsx', 'useVerification.ts'])(
-    '%s reaches no providers/ file',
-    entry => {
-      expect(reachedProviders(path.join(RN_SRC, entry))).toEqual([]);
-    },
-  );
+  it.each([
+    'hosted.ts',
+    'index.ts',
+    'IdentityVerification.tsx',
+    'useIdentityVerification.ts',
+  ])('%s reaches no providers/ file', entry => {
+    expect(reachedProviders(path.join(RN_SRC, entry))).toEqual([]);
+  });
 
   it('the optional native peer is reached only through providers/sumsub/', () => {
     const { externals } = collectGraph(path.join(RN_SRC, 'hosted.ts'));

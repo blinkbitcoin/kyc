@@ -1,6 +1,6 @@
 // The headless verification flow. Owns: camera-permission preflight,
 // connectivity, session acquisition, the native-SDK launch path, and the
-// hosted page's message pump. Renders nothing - Verification.tsx is the
+// hosted page's message pump. Renders nothing - IdentityVerification.tsx is the
 // default UI over this hook, and a host can write its own.
 
 import { useCallback, useEffect, useReducer, useRef } from 'react';
@@ -10,7 +10,7 @@ import {
   isLaunchable,
   machineReducer,
   planEvent,
-  toVerificationError,
+  toIdentityVerificationError,
   UNKNOWN_ERROR_CODE,
 } from '@blinkbitcoin/kyc-core/hosted';
 import { useTokenRefresh } from './useTokenRefresh';
@@ -22,13 +22,13 @@ import type {
   MachineState,
   PermissionReason,
   VerificationEffect,
-  VerificationError,
+  IdentityVerificationError,
   VerificationEvent,
-  VerificationResult,
+  IdentityVerificationResult,
   VerificationSession,
   VerificationSource,
   VerificationSourceError,
-  VerificationStatus,
+  IdentityVerificationStatus,
 } from '@blinkbitcoin/kyc-core/hosted';
 import type { TokenInjectable } from './useTokenRefresh';
 
@@ -40,18 +40,18 @@ export type CheckPermissions = () => Promise<PermissionState>;
 
 export type { TokenInjectable } from './useTokenRefresh';
 
-export interface UseVerificationOptions {
-  onComplete: (result: VerificationResult) => void;
-  onError: (error: VerificationError) => void;
+export interface UseIdentityVerificationOptions {
+  onComplete: (result: IdentityVerificationResult) => void;
+  onError: (error: IdentityVerificationError) => void;
   onCancel: () => void;
-  onStatusChange?: (status: VerificationStatus) => void;
+  onStatusChange?: (status: IdentityVerificationStatus) => void;
   /** Omit to let the WebView / native SDK prompt for the camera itself. */
   checkPermissions?: CheckPermissions;
   /** How long the success screen shows before onComplete (default 1500ms). */
   successDelayMs?: number;
 }
 
-export interface UseVerification extends MachineState {
+export interface UseIdentityVerification extends MachineState {
   /** Ignored while a run is already in flight. */
   start: () => void;
   /** Re-run the flow from the top (error / permissionDenied / offline). */
@@ -74,10 +74,10 @@ const isOnline = async (): Promise<boolean> => {
   return state.isConnected === true && state.isInternetReachable !== false;
 };
 
-export const useVerification = (
+export const useIdentityVerification = (
   source: VerificationSource,
-  options: UseVerificationOptions,
-): UseVerification => {
+  options: UseIdentityVerificationOptions,
+): UseIdentityVerification => {
   const [state, dispatch] = useReducer(machineReducer, initialMachineState);
 
   // Mirrors `state` through the same reducer, so async work reads the current
@@ -122,7 +122,7 @@ export const useVerification = (
   }, []);
 
   const failWith = useCallback(
-    (error: VerificationError, keepSession: boolean) => {
+    (error: IdentityVerificationError, keepSession: boolean) => {
       applyAction({ type: 'failed', error, keepSession });
       // A throwing host callback must not surface twice (once here, once as
       // an unhandled rejection out of begin()) - it already got the error.
@@ -258,7 +258,7 @@ export const useVerification = (
         }
         const sourceError = cause as VerificationSourceError | undefined;
         failWith(
-          toVerificationError(
+          toIdentityVerificationError(
             sourceError?.code ?? UNKNOWN_ERROR_CODE,
             sourceError?.message,
           ),
@@ -310,7 +310,7 @@ export const useVerification = (
         }
         const sourceError = cause as VerificationSourceError | undefined;
         failWith(
-          toVerificationError(
+          toIdentityVerificationError(
             sourceError?.code ?? UNKNOWN_ERROR_CODE,
             sourceError?.message,
           ),
@@ -331,8 +331,11 @@ export const useVerification = (
       if (!mountedRef.current) {
         return;
       }
-      const thrown = cause as VerificationError | undefined;
-      failWith(toVerificationError(UNKNOWN_ERROR_CODE, thrown?.message), false);
+      const thrown = cause as IdentityVerificationError | undefined;
+      failWith(
+        toIdentityVerificationError(UNKNOWN_ERROR_CODE, thrown?.message),
+        false,
+      );
     } finally {
       runningRef.current = false;
     }

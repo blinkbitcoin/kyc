@@ -7,15 +7,18 @@
 // file imports '@apollo/client' or 'graphql'; enforced by the sumsub-entry
 // guard test. Proxy-mode apps import the package root instead.
 //
-//   import { Verification, createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
+//   import { IdentityVerification, createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
 
 export * from '@blinkbitcoin/kyc-core/sumsub';
 
-export { Verification, DEFAULT_LABEL } from '../../Verification';
 export {
-  useVerification,
+  IdentityVerification,
+  DEFAULT_LABEL,
+} from '../../IdentityVerification';
+export {
+  useIdentityVerification,
   DEFAULT_SUCCESS_DELAY_MS,
-} from '../../useVerification';
+} from '../../useIdentityVerification';
 export { useTokenRefresh } from '../../useTokenRefresh';
 export {
   HostedWebView,
@@ -30,7 +33,7 @@ export {
   originOf,
 } from '../../hosted/webViewProps';
 export type * from '../../types';
-export type { VerificationLabels } from '../../types';
+export type { IdentityVerificationLabels } from '../../types';
 export {
   baseStyles,
   DEFAULT_LABELS,

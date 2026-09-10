@@ -8,7 +8,7 @@ import {
 import { ClientErrorCodes } from '@blinkbitcoin/kyc-core/hosted';
 import { createFakeLaunchableSource } from '@blinkbitcoin/kyc-core/testing';
 
-import { useVerification } from '../useVerification';
+import { useIdentityVerification } from '../useIdentityVerification';
 
 import type {
   VerificationEvent,
@@ -16,9 +16,9 @@ import type {
   VerificationSource,
 } from '@blinkbitcoin/kyc-core/hosted';
 import type {
-  UseVerification,
-  UseVerificationOptions,
-} from '../useVerification';
+  UseIdentityVerification,
+  UseIdentityVerificationOptions,
+} from '../useIdentityVerification';
 
 const session: VerificationSession = {
   provider: 'mock',
@@ -37,27 +37,27 @@ const hostedSource = (
   ...overrides,
 });
 
-let latest: UseVerification;
+let latest: UseIdentityVerification;
 
 const Harness: React.FC<{
   source: VerificationSource;
-  options: UseVerificationOptions;
+  options: UseIdentityVerificationOptions;
 }> = ({ source, options }) => {
-  latest = useVerification(source, options);
+  latest = useIdentityVerification(source, options);
   return null;
 };
 
-const handlers = (): jest.Mocked<UseVerificationOptions> =>
+const handlers = (): jest.Mocked<UseIdentityVerificationOptions> =>
   ({
     onComplete: jest.fn(),
     onError: jest.fn(),
     onCancel: jest.fn(),
     onStatusChange: jest.fn(),
-  }) as unknown as jest.Mocked<UseVerificationOptions>;
+  }) as unknown as jest.Mocked<UseIdentityVerificationOptions>;
 
 const render = async (
   source: VerificationSource,
-  options: UseVerificationOptions,
+  options: UseIdentityVerificationOptions,
 ): Promise<ReactTestRenderer.ReactTestRenderer> => {
   let renderer!: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(() => {
@@ -73,7 +73,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe('useVerification - acquiring a session', () => {
+describe('useIdentityVerification - acquiring a session', () => {
   it('starts idle and reaches verifying through loading', async () => {
     const source = hostedSource();
     const options = handlers();
@@ -124,7 +124,7 @@ describe('useVerification - acquiring a session', () => {
   });
 });
 
-describe('useVerification - preflight', () => {
+describe('useIdentityVerification - preflight', () => {
   it('parks on permissionDenied without calling onError', async () => {
     const source = hostedSource();
     const options = handlers();
@@ -208,7 +208,7 @@ describe('useVerification - preflight', () => {
   });
 });
 
-describe('useVerification - one run at a time', () => {
+describe('useIdentityVerification - one run at a time', () => {
   it('ignores a second start() while the first is still in flight', async () => {
     let resolveStart!: (value: VerificationSession) => void;
     const source = hostedSource({
@@ -335,7 +335,7 @@ describe('useVerification - one run at a time', () => {
   });
 });
 
-describe('useVerification - a host callback that throws', () => {
+describe('useIdentityVerification - a host callback that throws', () => {
   it('surfaces it as the error state, not an unhandled rejection', async () => {
     const options = handlers();
     await render(hostedSource(), {
@@ -425,7 +425,7 @@ describe('useVerification - a host callback that throws', () => {
   });
 });
 
-describe('useVerification - the launchable (native SDK) path', () => {
+describe('useIdentityVerification - the launchable (native SDK) path', () => {
   it('launches instead of rendering a page and completes', async () => {
     jest.useFakeTimers();
     const source = createFakeLaunchableSource({ outcome: 'approved' });
@@ -609,10 +609,10 @@ describe('useVerification - the launchable (native SDK) path', () => {
   });
 });
 
-describe('useVerification - bridge messages', () => {
+describe('useIdentityVerification - bridge messages', () => {
   const messageOf = (event: VerificationEvent) => ({ event });
 
-  const started = async (options: UseVerificationOptions) => {
+  const started = async (options: UseIdentityVerificationOptions) => {
     const source = hostedSource();
     await render(source, options);
     await ReactTestRenderer.act(async () => {
@@ -778,7 +778,7 @@ describe('useVerification - bridge messages', () => {
   });
 });
 
-describe('useVerification - unmount safety', () => {
+describe('useIdentityVerification - unmount safety', () => {
   it('drops a late session, a late launch and a late message', async () => {
     let resolveStart!: (session: VerificationSession) => void;
     const source = hostedSource({
