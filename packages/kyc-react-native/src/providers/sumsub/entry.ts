@@ -30,6 +30,13 @@ export {
   originOf,
 } from '../../hosted/webViewProps';
 export type * from '../../types';
+export type { VerificationLabels } from '../../types';
+export {
+  baseStyles,
+  DEFAULT_LABELS,
+  resolveLabels,
+  resolveStyles,
+} from '../../theme';
 
 export {
   createSumsubNativeSource,

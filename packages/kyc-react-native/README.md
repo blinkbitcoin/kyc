@@ -3,6 +3,8 @@
 Plug-and-play identity verification (KYC) for React Native. One component,
 one hook, three integration modes — the app never learns a provider name.
 
+## Install
+
 ```sh
 npm install @blinkbitcoin/kyc-react-native react-native-webview @react-native-community/netinfo
 ```
@@ -154,12 +156,51 @@ not called for them, exactly like the offline state.
 | `onCancel` | `() => void` | — | User aborted. |
 | `onStatusChange` | `(status: VerificationStatus) => void` | — | Every intermediate status. |
 | `label` | `string` | `'Verify identity'` | Idle-screen title and button. |
+| `theme` | `VerificationTheme` | — | Color and font overrides for the built-in screens<br>(see Labels and theme). |
+| `styles` | `VerificationStyles` | — | Per-element style overrides; win over `theme`. |
+| `labels` | `VerificationLabels` | — | Copy overrides for the built-in screens; win over `label`. |
 | `successDelayMs` | `number` | `1500` | Success screen before `onComplete` (approvals only). |
 | `checkPermissions` | `() => Promise<'granted' \| 'denied' \| 'blocked'>` | — | Camera preflight. |
 | `onOpenSettings` | `() => void` | — | Adds an "Open settings" button to the permission screen —<br>shown only when the preflight reported `'blocked'`. |
 | `allowedNavigationOrigins` | `string[]` | `[]` | Extra origins the page may navigate to (whitelist **and** guard);<br>`'https://*.sumsub.com'` style wildcards allowed. |
 | `renderLoading` | `() => ReactElement` | — | Custom loading view inside the WebView. |
 | `style` | `StyleProp<ViewStyle>` | — | Applied to the root view the component renders<br>(the page and every screen live inside it). |
+
+## Labels and theme
+
+Blink is multilingual and branded, so nothing the built-in screens render
+is fixed: every string is a `VerificationLabels` key and every color a
+`VerificationTheme` key, and both are plain props.
+
+```tsx
+<Verification
+  source={source}
+  label="Verificar identidad"
+  theme={{ primaryColor: '#F7931A', primaryTextColor: '#000' }}
+  labels={{
+    subtitle: 'Ten tu documento a mano y permite el acceso a la cámara.',
+    cancel: 'Cancelar',
+    outcomeReviewing: 'Estamos revisando tus documentos.',
+    errorMessages: { NETWORK_ERROR: 'Sin conexión. Inténtalo de nuevo.' },
+  }}
+  onComplete={...} onError={...} onCancel={...}
+/>
+```
+
+Precedence: base style < `theme` color < `styles[key]`, and default copy <
+`label` (title and start button) < `labels`. `null` / `undefined` in
+`labels` keep the default. The keys: `title`, `subtitle`, `start`, `cancel`,
+`loading`, `inProgressTitle`, `inProgressSubtitle`, `pendingTitle`,
+`permissionTitle`, `permissionMessage`, `openSettings`, `retry`, `restart`,
+`offlineTitle`, `offlineMessage`, `checkConnection`, `errorTitle`, one
+`outcome*` per decision (`Approved`, `Declined`, `FinallyRejected`,
+`Incomplete`, `Reviewing`) and `errorMessages`, a table by error code
+([docs/integration/error-codes.md](../../docs/integration/error-codes.md))
+over the message the error carries. `VerificationStyleKey` lists the
+styled elements (`root`, `screen`, `page`, `actions`, `title`, `subtitle`,
+`button`, `buttonText`, `secondaryButton`, `secondaryButtonText`,
+`successText`, `errorTitle`, `hiddenWebView`). A host that wants a
+different layout altogether calls `useVerification` instead.
 
 ## `useVerification(source, options)`
 
@@ -231,3 +272,19 @@ A native provider SDK launch (mode 1) cannot be dismissed programmatically
 once it is showing: `cancel()` only works before `launch()` is called or
 after it resolves. The SDK owns its own screen and its own back/close
 button; there is no cross-platform API to close it from JS mid-flight.
+
+## Development (in this monorepo)
+
+```sh
+npm test -w packages/kyc-react-native            # Jest, 100% coverage enforced
+npm run typecheck -w packages/kyc-react-native
+npm run build -w packages/kyc-react-native       # react-native-builder-bob → lib/
+```
+
+`src/__tests__/hosted-entry.test.ts` and `sumsub-entry.test.ts` walk the
+import graph of the `/hosted` and `/sumsub` entries and fail if either
+reaches Apollo; `scripts/pack-smoke.sh` at the repo root installs the packed
+tarball and checks the same from the consumer's side. The React Native demo
+(`examples/react-native-demo`) resolves this package from source through
+its Jest `moduleNameMapper` and Metro config, so no build is needed to
+iterate on it.

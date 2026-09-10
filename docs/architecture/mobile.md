@@ -60,6 +60,9 @@ The machine is not owned here - it lives in `@blinkbitcoin/kyc-core` (`src/verif
 | `onCancel` | `() => void` | - | The user aborted |
 | `onStatusChange` | `(status: VerificationStatus) => void` | - | Every intermediate status |
 | `label` | `string` | `'Verify identity'` | Idle title and button (`DEFAULT_LABEL`) |
+| `theme` | `VerificationTheme` | - | Colors and font for the built-in screens (`src/theme.ts` resolves base < theme < `styles`) |
+| `styles` | `VerificationStyles` | - | Per-element overrides by `VerificationStyleKey` |
+| `labels` | `VerificationLabels` | - | Every string the screens render, resolved by core's `resolveLabelsWith` over `DEFAULT_LABELS` |
 | `successDelayMs` | `number` | `1500` | Success screen before `onComplete` (approvals only) |
 | `checkPermissions` | `() => Promise<'granted' \| 'denied' \| 'blocked'>` | - | Optional preflight - the host's own permission library |
 | `onOpenSettings` | `() => void` | - | Renders `open-settings-button` on the permission screen, only when `permissionReason === 'blocked'` |

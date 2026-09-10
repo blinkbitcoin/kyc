@@ -1,25 +1,22 @@
 // The default UI over useVerification: one screen per state and nothing
 // else. Every decision that is not "what does this state look like" lives in
 // the hook, the machine or webViewProps - so a host that wants its own look
-// calls useVerification directly and reuses HostedWebView.
+// calls useVerification directly and reuses HostedWebView. A host that only
+// wants its own colors and copy recolors (`theme`), restyles (`styles`) and
+// relabels (`labels`) this one; nothing it renders is hard-coded here.
 
-import React from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, { useMemo } from 'react';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import {
   describeFailure,
-  describeOutcome,
-  getErrorMessage,
+  failureLabel,
   isLaunchable,
   isRestartableError,
+  outcomeLabel,
 } from '@blinkbitcoin/kyc-core/hosted';
 
 import { HostedWebView } from './hosted/HostedWebView';
+import { resolveLabels, resolveStyles } from './theme';
 import { useVerification } from './useVerification';
 
 import type { VerificationProps } from './types';
@@ -33,6 +30,9 @@ export const Verification: React.FC<VerificationProps> = ({
   onCancel,
   onStatusChange,
   label = DEFAULT_LABEL,
+  theme,
+  styles,
+  labels,
   successDelayMs,
   checkPermissions,
   onOpenSettings,
@@ -61,6 +61,8 @@ export const Verification: React.FC<VerificationProps> = ({
     checkPermissions,
     successDelayMs,
   });
+  const s = useMemo(() => resolveStyles(theme, styles), [theme, styles]);
+  const t = useMemo(() => resolveLabels(label, labels), [label, labels]);
 
   // The hosted page is mounted ONCE and kept mounted across
   // 'verifying' -> 'pending': it is the same element in the same position of
@@ -81,41 +83,40 @@ export const Verification: React.FC<VerificationProps> = ({
     switch (status) {
       case 'idle':
         return (
-          <View style={styles.screen}>
-            <Text style={styles.title}>{label}</Text>
-            <Text style={styles.subtitle}>
-              Have your ID document ready and allow camera access.
-            </Text>
+          <View style={s.screen}>
+            <Text style={s.title}>{t.title}</Text>
+            <Text style={s.subtitle}>{t.subtitle}</Text>
             <TouchableOpacity
-              style={styles.button}
+              style={s.button}
               onPress={start}
               testID="verification-start-button"
               accessibilityRole="button"
-              accessibilityLabel={label}
+              accessibilityLabel={t.start}
             >
-              <Text style={styles.buttonText}>{label}</Text>
+              <Text style={s.buttonText}>{t.start}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.secondaryButton}
+              style={s.secondaryButton}
               onPress={cancel}
               testID="verification-cancel-button"
               accessibilityRole="button"
-              accessibilityLabel="Cancel verification"
+              accessibilityLabel={t.cancel}
             >
-              <Text style={styles.secondaryButtonText}>Cancel</Text>
+              <Text style={s.secondaryButtonText}>{t.cancel}</Text>
             </TouchableOpacity>
           </View>
         );
 
       case 'loading':
         return (
-          <View style={styles.screen}>
+          <View style={s.screen}>
             <ActivityIndicator
               size="large"
+              color={theme?.primaryColor}
               testID="loading-indicator"
-              accessibilityLabel="Loading, please wait"
+              accessibilityLabel={t.loading}
             />
-            <Text style={styles.subtitle}>Preparing verification...</Text>
+            <Text style={s.subtitle}>{t.loading}</Text>
           </View>
         );
 
@@ -123,92 +124,85 @@ export const Verification: React.FC<VerificationProps> = ({
       case 'pending':
         if (!showsPage) {
           return (
-            <View style={styles.screen} testID="launch-screen">
-              <Text style={styles.title}>Verification in progress</Text>
-              <Text style={styles.subtitle}>
-                Follow the steps in the verification screen.
-              </Text>
+            <View style={s.screen} testID="launch-screen">
+              <Text style={s.title}>{t.inProgressTitle}</Text>
+              <Text style={s.subtitle}>{t.inProgressSubtitle}</Text>
             </View>
           );
         }
         return hidden ? (
-          <View style={styles.screen} testID="pending-screen">
-            <Text style={styles.title}>Thanks</Text>
-            <Text style={styles.subtitle} testID="pending-message">
-              {describeOutcome(result?.status)}
+          <View style={s.screen} testID="pending-screen">
+            <Text style={s.title}>{t.pendingTitle}</Text>
+            <Text style={s.subtitle} testID="pending-message">
+              {outcomeLabel(t, result?.status)}
             </Text>
           </View>
         ) : (
           // The page owns the screen while it runs, so the only affordance
           // the component adds is a way out of it.
-          <View style={styles.actions}>
+          <View style={s.actions}>
             <TouchableOpacity
-              style={styles.secondaryButton}
+              style={s.secondaryButton}
               onPress={cancel}
               testID="verification-cancel-button"
               accessibilityRole="button"
-              accessibilityLabel="Cancel verification"
+              accessibilityLabel={t.cancel}
             >
-              <Text style={styles.secondaryButtonText}>Cancel</Text>
+              <Text style={s.secondaryButtonText}>{t.cancel}</Text>
             </TouchableOpacity>
           </View>
         );
 
       case 'success':
         return (
-          <View style={styles.screen} testID="success-screen">
-            <Text
-              style={styles.successText}
-              accessibilityLabel="Verification complete"
-            >
-              {describeOutcome('approved')}
+          <View style={s.screen} testID="success-screen">
+            <Text style={s.successText} accessibilityLabel={t.outcomeApproved}>
+              {t.outcomeApproved}
             </Text>
           </View>
         );
 
       case 'permissionDenied':
         return (
-          <View style={styles.screen} testID="permission-screen">
-            <Text style={styles.title}>Camera access needed</Text>
-            <Text style={styles.subtitle}>
-              {getErrorMessage('PERMISSION_DENIED')}
-            </Text>
+          <View style={s.screen} testID="permission-screen">
+            <Text style={s.title}>{t.permissionTitle}</Text>
+            <Text style={s.subtitle}>{t.permissionMessage}</Text>
             {/* 'blocked' cannot be retried in place - only the OS settings
                 can change it - and 'denied' can, so each reason gets exactly
                 the affordance that can resolve it. */}
             {permissionReason === 'blocked' && onOpenSettings ? (
               <TouchableOpacity
-                style={styles.button}
+                style={s.button}
                 onPress={onOpenSettings}
                 testID="open-settings-button"
                 accessibilityRole="button"
-                accessibilityLabel="Open settings"
+                accessibilityLabel={t.openSettings}
               >
-                <Text style={styles.buttonText}>Open settings</Text>
+                <Text style={s.buttonText}>{t.openSettings}</Text>
               </TouchableOpacity>
             ) : null}
             {permissionReason === 'denied' ? (
               <TouchableOpacity
-                style={styles.secondaryButton}
+                style={s.secondaryButton}
                 onPress={retry}
                 testID="retry-button"
                 accessibilityRole="button"
-                accessibilityLabel="Try again"
+                accessibilityLabel={t.retry}
               >
-                <Text style={styles.secondaryButtonText}>Try again</Text>
+                <Text style={s.secondaryButtonText}>{t.retry}</Text>
               </TouchableOpacity>
             ) : null}
             {permissionReason === 'blocked' && !onOpenSettings ? (
               // No settings escape hatch and retrying in place cannot help -
               // the only way out is to cancel.
               <TouchableOpacity
-                style={styles.secondaryButton}
+                style={s.secondaryButton}
                 onPress={cancel}
                 testID="verification-cancel-button"
                 accessibilityRole="button"
-                accessibilityLabel="Cancel verification"
+                accessibilityLabel={t.cancel}
               >
-                <Text style={styles.secondaryButtonText}>Cancel</Text>
+                <Text style={s.secondaryButtonText}>{t.cancel}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -216,19 +210,17 @@ export const Verification: React.FC<VerificationProps> = ({
 
       case 'offline':
         return (
-          <View style={styles.screen} testID="offline-screen">
-            <Text style={styles.title}>No connection</Text>
-            <Text style={styles.subtitle}>
-              A connection is required to verify your identity.
-            </Text>
+          <View style={s.screen} testID="offline-screen">
+            <Text style={s.title}>{t.offlineTitle}</Text>
+            <Text style={s.subtitle}>{t.offlineMessage}</Text>
             <TouchableOpacity
-              style={styles.button}
+              style={s.button}
               onPress={retry}
               testID="check-connection-button"
               accessibilityRole="button"
-              accessibilityLabel="Check connection"
+              accessibilityLabel={t.checkConnection}
             >
-              <Text style={styles.buttonText}>Check connection</Text>
+              <Text style={s.buttonText}>{t.checkConnection}</Text>
             </TouchableOpacity>
           </View>
         );
@@ -236,33 +228,30 @@ export const Verification: React.FC<VerificationProps> = ({
       case 'error': {
         const failure = describeFailure(error);
         const restartable = isRestartableError(failure.code);
+        const action = restartable ? t.restart : t.retry;
         return (
-          <View style={styles.screen} testID="error-screen">
-            <Text style={styles.errorTitle}>Verification failed</Text>
-            <Text style={styles.subtitle} testID="error-message">
-              {failure.message}
+          <View style={s.screen} testID="error-screen">
+            <Text style={s.errorTitle}>{t.errorTitle}</Text>
+            <Text style={s.subtitle} testID="error-message">
+              {failureLabel(t, failure)}
             </Text>
             <TouchableOpacity
-              style={styles.button}
+              style={s.button}
               onPress={restartable ? restart : retry}
               testID={restartable ? 'restart-button' : 'retry-button'}
               accessibilityRole="button"
-              accessibilityLabel={
-                restartable ? 'Restart verification' : 'Try again'
-              }
+              accessibilityLabel={action}
             >
-              <Text style={styles.buttonText}>
-                {restartable ? 'Restart' : 'Try again'}
-              </Text>
+              <Text style={s.buttonText}>{action}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.secondaryButton}
+              style={s.secondaryButton}
               onPress={cancel}
               testID="verification-cancel-button"
               accessibilityRole="button"
-              accessibilityLabel="Cancel verification"
+              accessibilityLabel={t.cancel}
             >
-              <Text style={styles.secondaryButtonText}>Cancel</Text>
+              <Text style={s.secondaryButtonText}>{t.cancel}</Text>
             </TouchableOpacity>
           </View>
         );
@@ -271,10 +260,10 @@ export const Verification: React.FC<VerificationProps> = ({
   })();
 
   return (
-    <View style={[styles.root, style]}>
+    <View style={[s.root, style]}>
       {showsPage ? (
         <View
-          style={hidden ? styles.hiddenWebView : styles.page}
+          style={hidden ? s.hiddenWebView : s.page}
           pointerEvents={hidden ? 'none' : 'auto'}
           accessibilityElementsHidden={hidden}
           importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
@@ -294,53 +283,3 @@ export const Verification: React.FC<VerificationProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  screen: {
-    flex: 1,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  page: { flex: 1, width: '100%' },
-  actions: { alignItems: 'center', paddingVertical: 12 },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  secondaryButton: { paddingHorizontal: 30, paddingVertical: 12 },
-  secondaryButtonText: { color: '#007AFF', fontSize: 16 },
-  // Darker green / red for WCAG AA contrast (4.5:1)
-  successText: {
-    fontSize: 20,
-    color: '#1E7E34',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  errorTitle: {
-    fontSize: 20,
-    color: '#C82333',
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  // Keeps the page's bridge alive under the pending overlay without showing
-  // the (already-submitted) hosted page.
-  hiddenWebView: { position: 'absolute', width: 0, height: 0, opacity: 0 },
-});

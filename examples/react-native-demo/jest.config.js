@@ -34,8 +34,7 @@ module.exports = {
   },
   collectCoverageFrom: ['App.tsx', 'src/**/*.{ts,tsx}'],
   coveragePathIgnorePatterns: ['/node_modules/'],
-  // Demo app: unit coverage is a floor, the real coverage is the Maestro suite.
   coverageThreshold: {
-    global: { statements: 80, branches: 80, functions: 80, lines: 80 },
+    global: { statements: 100, branches: 100, functions: 100, lines: 100 },
   },
 };

@@ -2,12 +2,14 @@
 // which is why it is in coveragePathIgnorePatterns.
 
 import type { ReactElement } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import type {
+  VerificationLabels as CoreLabels,
   VerificationError,
   VerificationResult,
   VerificationSource,
   VerificationStatus,
+  VerificationTheme,
 } from '@blinkbitcoin/kyc-core/hosted';
 import type { CheckPermissions } from './useVerification';
 
@@ -29,6 +31,33 @@ export type {
   NavigationRequest,
 } from './hosted/webViewProps';
 
+/** Every styled element of the default Verification UI. */
+export type VerificationStyleKey =
+  | 'root'
+  | 'screen'
+  | 'page'
+  | 'actions'
+  | 'title'
+  | 'subtitle'
+  | 'button'
+  | 'buttonText'
+  | 'secondaryButton'
+  | 'secondaryButtonText'
+  | 'successText'
+  | 'errorTitle'
+  | 'hiddenWebView';
+
+/** Per-element style overrides; applied after the base styles and the theme. */
+export type VerificationStyles = Partial<
+  Record<VerificationStyleKey, StyleProp<ViewStyle | TextStyle>>
+>;
+
+/** Copy overrides: the shared keys plus the one only this platform renders. */
+export interface VerificationLabels extends CoreLabels {
+  /** The settings button on the permission screen (`onOpenSettings`). */
+  openSettings?: string;
+}
+
 /**
  * Props for the default Verification UI. The component is provider-agnostic:
  * give it the source for the mode you want (createSumsubNativeSource,
@@ -43,6 +72,12 @@ export interface VerificationProps {
   onStatusChange?: (status: VerificationStatus) => void;
   /** Idle-screen title and button label (default: "Verify identity"). */
   label?: string;
+  /** Color and font overrides for the built-in screens. */
+  theme?: VerificationTheme;
+  /** Per-element style overrides (win over `theme`). */
+  styles?: VerificationStyles;
+  /** Copy overrides for the built-in screens (win over `label`). */
+  labels?: VerificationLabels;
   /** How long the success screen shows before onComplete (default 1500ms). */
   successDelayMs?: number;
   /** Preflight the camera with the host's own permission library. */

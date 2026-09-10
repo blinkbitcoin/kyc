@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 import {
   ClientErrorCodes,
   getErrorMessage,
@@ -454,5 +454,67 @@ describe('Verification - pass-through props', () => {
     await press(renderer, 'verification-start-button');
     expect(has(renderer, 'launch-screen')).toBe(true);
     expect(has(renderer, 'verification-webview')).toBe(false);
+  });
+});
+
+describe('Verification - labels and theme', () => {
+  const flat = (style: unknown) =>
+    StyleSheet.flatten(style as never) as Record<string, unknown>;
+
+  it('renders the host copy and colors on the idle screen', async () => {
+    const renderer = await render(
+      props({
+        label: 'Verifiera',
+        theme: { primaryColor: '#F7931A', primaryTextColor: '#000' },
+        styles: { subtitle: { letterSpacing: 2 } },
+        labels: { subtitle: 'Ha din legitimation redo.', cancel: 'Avbryt' },
+      }),
+    );
+
+    const startButton = renderer.root.findByProps({
+      testID: 'verification-start-button',
+    });
+    expect(startButton.props.accessibilityLabel).toBe('Verifiera');
+    expect(flat(startButton.props.style).backgroundColor).toBe('#F7931A');
+    expect(
+      renderer.root.findByProps({ testID: 'verification-cancel-button' }).props
+        .accessibilityLabel,
+    ).toBe('Avbryt');
+    const subtitle = renderer.root
+      .findAllByType(Text)
+      .find(node => node.props.children === 'Ha din legitimation redo.');
+    expect(subtitle).toBeDefined();
+    expect(flat(subtitle?.props.style).letterSpacing).toBe(2);
+  });
+
+  it('uses the host error copy for a code and the outcome copy while pending', async () => {
+    const source = hostedSource();
+    const renderer = await render(
+      props({
+        source,
+        labels: {
+          pendingTitle: 'Tack',
+          outcomeReviewing: 'Vi granskar dina dokument.',
+          errorMessages: { MOCK_ERROR: 'Något gick fel.' },
+        },
+      }),
+    );
+    await press(renderer, 'verification-start-button');
+
+    await ReactTestRenderer.act(async () => {
+      simulateRawWebViewMessage(bridge({ type: 'submitted' }));
+    });
+    expect(
+      renderer.root.findByProps({ testID: 'pending-message' }).props.children,
+    ).toBe('Vi granskar dina dokument.');
+
+    await ReactTestRenderer.act(async () => {
+      simulateRawWebViewMessage(
+        bridge({ type: 'error', code: 'MOCK_ERROR', message: 'built-in' }),
+      );
+    });
+    expect(
+      renderer.root.findByProps({ testID: 'error-message' }).props.children,
+    ).toBe('Något gick fel.');
   });
 });

@@ -18,7 +18,14 @@ Metro — not rebuilding the app.
 make start                       # KYC_MODE=native
 KYC_MODE=hosted npm start        # from this directory
 make ios / make android          # from the repo root
+KYC_UI=themed npm start          # the same flow under Blink's palette and Spanish copy
 ```
+
+`KYC_UI` (inlined the same way) picks the look: `default` is the
+component's own copy and colors, `themed` hands it the `theme` and
+`labels` props from `src/theme.ts` - what a branded, multilingual host
+writes. The testIDs are the same in both, so every Maestro flow runs
+under either.
 
 ## Screen contract
 

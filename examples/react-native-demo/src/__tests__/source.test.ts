@@ -167,4 +167,12 @@ describe('buildSource - fake-native', () => {
   it('needs no options at all', () => {
     expect(buildSource('fake-native').controller).not.toBeNull();
   });
+
+  it('launches without a launch-window listener when none is given', async () => {
+    const { source, controller } = buildSource('fake-native');
+    const session = await source.start();
+    const launch = (source as LaunchableSource).launch(session, jest.fn());
+    controller?.approve();
+    await expect(launch).resolves.toMatchObject({ status: 'approved' });
+  });
 });

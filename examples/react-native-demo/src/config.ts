@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 
 // KYC_MODE is inlined at bundle time by babel (see babel.config.js); declare
 // the shape we read without pulling in full @types/node.
-declare const process: { env: { KYC_MODE?: string } };
+declare const process: { env: { KYC_MODE?: string; KYC_UI?: string } };
 
 const BACKEND_PORT = 4000;
 
@@ -33,8 +33,18 @@ export type KycMode = 'native' | 'hosted' | 'proxy' | 'fake-native';
 //   proxy       → same page, but the backend orchestrates the whole session
 //   fake-native → a scripted LaunchableSource + an in-app fake SDK screen,
 //                 so the native-launch branch is testable without a provider
-const MODE = process.env.KYC_MODE;
-export const KYC_MODE: KycMode =
-  MODE === 'hosted' || MODE === 'proxy' || MODE === 'fake-native'
-    ? MODE
+export const resolveKycMode = (mode?: string): KycMode =>
+  mode === 'hosted' || mode === 'proxy' || mode === 'fake-native'
+    ? mode
     : 'native';
+export const KYC_MODE: KycMode = resolveKycMode(process.env.KYC_MODE);
+
+export type KycUi = 'default' | 'themed';
+
+// Look of the built-in screens, toggled at bundle time by KYC_UI:
+//   default → the component's own copy and colors
+//   themed  → Blink's palette and Spanish copy through the `theme` and
+//             `labels` props (src/theme.ts) - the same flow, restyled
+export const resolveKycUi = (ui?: string): KycUi =>
+  ui === 'themed' ? 'themed' : 'default';
+export const KYC_UI: KycUi = resolveKycUi(process.env.KYC_UI);

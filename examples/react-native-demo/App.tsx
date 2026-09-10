@@ -3,7 +3,8 @@
  *
  * One screen serves every KYC_MODE (native | hosted | proxy | fake-native):
  * only the source differs, so this file is the reference for the wiring a
- * real host app writes. The toolbar and the outcome line exist for the
+ * real host app writes. KYC_UI=themed shows the same flow under a host's
+ * own palette and copy (src/theme.ts). The toolbar and the outcome line exist for the
  * Maestro suite - a product screen would not need them.
  *
  * @format
@@ -26,8 +27,9 @@ import {
 } from 'react-native-safe-area-context';
 
 import { apolloClient } from './src/apollo';
-import { KYC_MODE } from './src/config';
+import { KYC_MODE, KYC_UI } from './src/config';
 import { buildSource } from './src/source';
+import { uiProps } from './src/theme';
 
 import type { FakeLaunchController } from '@blinkbitcoin/kyc-core/testing';
 import type {
@@ -129,6 +131,7 @@ export const VerificationScreen = ({
         onCancel={() => onOutcome({ kind: 'cancelled' })}
         successDelayMs={4000}
         checkPermissions={checkDemoPermissions}
+        {...uiProps(KYC_UI)}
       />
       {controller && launching ? (
         <FakeSdkScreen controller={controller} />

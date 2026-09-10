@@ -21,5 +21,14 @@ export {
   originOf,
 } from './hosted/webViewProps';
 export type * from './types';
+// This package's labels extend core's under the same name; naming the
+// re-export is what resolves the clash with the core re-export below.
+export type { VerificationLabels } from './types';
+export {
+  baseStyles,
+  DEFAULT_LABELS,
+  resolveLabels,
+  resolveStyles,
+} from './theme';
 
 export * from '@blinkbitcoin/kyc-core/hosted';
