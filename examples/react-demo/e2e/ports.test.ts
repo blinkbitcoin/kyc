@@ -107,6 +107,8 @@ describe('webServer entries', () => {
   it('starts the backend on the block port with both demo origins allowed', () => {
     const backend = backendServer();
     expect(backend.command).toContain(`PORT=${PORTS.api}`);
+    // The hosted-page URLs the backend mints must point at this backend
+    expect(backend.command).toContain(`PUBLIC_BASE_URL=${API_ORIGIN}`);
     expect(backend.command).toContain(
       `CORS_ALLOWED_ORIGINS=http://localhost:${PORTS.vite.hosted},http://localhost:${PORTS.vite.proxy}`,
     );

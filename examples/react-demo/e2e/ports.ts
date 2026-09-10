@@ -85,11 +85,14 @@ export const ciPolicy = (env: Record<string, string | undefined>) => ({
 const { reuseExistingServer, retries } = ciPolicy(process.env);
 export { retries };
 
-// Playwright webServer entries. The backend gets its port and the demo
-// origins it must allow (CORS); the demo gets the backend origin.
+// Playwright webServer entries. The backend gets its port, the public base
+// URL it mints hosted-page URLs from (the iframe must point at THIS
+// backend, not the canonical :4000 in .env.test) and the demo origins it
+// must allow (CORS); the demo gets the backend origin.
 export const backendServer = () => ({
   command: [
     `PORT=${PORTS.api}`,
+    `PUBLIC_BASE_URL=${API_ORIGIN}`,
     `CORS_ALLOWED_ORIGINS=${MODES.map(viteOrigin).join(',')}`,
     'KYC_PROVIDER=mock npx dotenv-cli -e examples/full-service-demo/.env.test -- npm run dev -w examples/full-service-demo',
   ].join(' '),
