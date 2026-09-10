@@ -7,7 +7,9 @@
 # demo) and tears down on Ctrl-C. The device reaches Metro and the backend
 # through `adb reverse` (USB), so KYC_API_HOST is localhost on the device;
 # the hosted page itself loads from PUBLIC_BASE_URL (the funnel).
-#   make live-android [KYC_MODE=hosted|native] [ANDROID_SERIAL=<serial>]
+#   make live-android [KYC_MODE=hosted|native] [LIVE_DEVICE=<serial>]
+# LIVE_DEVICE is the adb serial (adb devices); ANDROID_SERIAL, adb's own
+# variable, is honoured too.
 # A physical phone is the point (an emulator's virtual camera cannot do
 # liveness); the script only warns on an emulator.
 set -euo pipefail
@@ -18,7 +20,7 @@ live_env
 trap live_down EXIT
 trap 'exit 130' INT TERM # the EXIT trap tears down once
 adb get-state > /dev/null 2>&1 || { echo "::error::no Android device attached (adb devices) - plug the phone in with USB debugging on"; exit 1; }
-SERIAL="${ANDROID_SERIAL:-$(adb get-serialno)}"
+SERIAL="${LIVE_DEVICE:-${ANDROID_SERIAL:-$(adb get-serialno)}}"
 case "$SERIAL" in emulator-*) echo "::warning::$SERIAL is an emulator: its virtual camera cannot do liveness, the device rows need a physical phone";; esac
 live_public_url
 live_backend_up

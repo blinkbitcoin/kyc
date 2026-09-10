@@ -107,6 +107,7 @@ Run every row on **both** an iPhone and an Android device.
 ```bash
 make live-ios                                  # KYC_MODE=hosted is the default
 make live-android                              # the attached Android phone (adb reverse for Metro + backend)
+LIVE_DEVICE=<name|serial> make live-ios        # pick a device: the Xcode name on iOS, the adb serial on Android
 ```
 
 Same device matrix.
