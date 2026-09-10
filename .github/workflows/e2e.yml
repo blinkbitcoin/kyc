@@ -186,17 +186,21 @@ jobs:
 
   # Live Sumsub (opt-in, docs/operations/live-e2e-ci.md): app-token auth, a
   # real access token through the package, the service and the access-token
-  # example, the hosted page for a real token, and a webhook signed with the
-  # real secret. Secrets come from the `sumsub-sandbox` environment; the
-  # caller decides when this runs (never for fork PRs - they get no secrets).
-  # Every run mints tokens on the sandbox, hence opt-in and serialized. CI
-  # never drives the Sumsub UI: the device matrix (docs/integration/sumsub.md)
-  # is manual.
+  # example, the hosted page for a real token, a webhook signed with the
+  # real secret, and real applicants - a document upload, the check and
+  # GREEN / RED reviews walking sessions to every terminal state (no
+  # ingress here, so the service's status reads reconcile against Sumsub
+  # instead of waiting for the webhook). Secrets come from the
+  # `sumsub-sandbox` environment; the caller decides when this runs (never
+  # for fork PRs - they get no secrets). Every run mints tokens and creates
+  # a few throwaway sandbox applicants, hence opt-in and serialized. CI
+  # never drives the Sumsub UI: the camera rows (docs/integration/sumsub.md)
+  # are manual.
   live:
     name: Live Sumsub
     if: inputs.live
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     environment: sumsub-sandbox
     concurrency:
       group: live-sumsub
@@ -206,6 +210,7 @@ jobs:
       SUMSUB_SECRET_KEY: ${{ secrets.SUMSUB_SECRET_KEY }}
       SUMSUB_WEBHOOK_SECRET: ${{ secrets.SUMSUB_WEBHOOK_SECRET }}
       SUMSUB_LEVEL_NAME: ${{ vars.SUMSUB_LEVEL_NAME }}
+      SUMSUB_E2E_LEVEL_NAME: ${{ vars.SUMSUB_E2E_LEVEL_NAME }}
       SUMSUB_WEBHOOK_DIGEST_ALG: ${{ vars.SUMSUB_WEBHOOK_DIGEST_ALG }}
 
     steps:
