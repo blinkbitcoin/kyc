@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="340" viewBox="0 0 960 340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="blink-esign: your React Native or React web app renders one ESignature component; a SigningSource picks one of three modes (public URL, Web Forms instance, proxy envelope); the two backend-backed modes go through an optional backend service to DocuSign.">
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="380" viewBox="0 0 960 380" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Your React Native or React web app renders one Verification component. A VerificationSource picks one of three modes: the native provider SDK in-process, a hosted page embedded in a hardened WebView or origin-pinned iframe, or a proxy session on the reference backend. The two backend-backed modes go through the optional apps/api service, and every mode ends at Sumsub.">
+  <title>blinkbitcoin/kyc: one Verification component, three verification sources, one provider</title>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#64748b"/>
@@ -13,123 +14,112 @@
   </defs>
 
   <!-- canvas -->
-  <rect x="0.5" y="0.5" width="959" height="339" rx="16" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect x="0.5" y="0.5" width="959" height="379" rx="16" fill="#f8fafc" stroke="#e2e8f0"/>
 
   <!-- ===== Column 1: your app ===== -->
-  <text x="150" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#334155" letter-spacing="1">YOUR APP</text>
+  <text x="140" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#334155" letter-spacing="1">YOUR APP</text>
 
   <!-- browser window (behind) -->
-  <g transform="translate(96 70)">
-    <rect x="0" y="0" width="180" height="120" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
-    <rect x="0" y="0" width="180" height="18" rx="8" fill="#e2e8f0"/>
-    <rect x="0" y="10" width="180" height="8" fill="#e2e8f0"/>
-    <circle cx="11" cy="9" r="3" fill="#f87171"/>
-    <circle cx="21" cy="9" r="3" fill="#fbbf24"/>
-    <circle cx="31" cy="9" r="3" fill="#34d399"/>
-    <rect x="70" y="34" width="70" height="4" rx="2" fill="#cbd5e1"/>
-    <rect x="70" y="44" width="96" height="4" rx="2" fill="#e2e8f0"/>
-    <rect x="70" y="52" width="88" height="4" rx="2" fill="#e2e8f0"/>
-    <rect x="70" y="60" width="96" height="4" rx="2" fill="#e2e8f0"/>
-    <line x1="72" y1="100" x2="166" y2="100" stroke="#94a3b8"/>
-    <path d="M78 96 C 86 80, 92 108, 102 92 S 118 78, 124 96 S 140 108, 156 86" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>
+  <g transform="translate(96 76)">
+    <rect x="0" y="0" width="170" height="110" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+    <rect x="0" y="0" width="170" height="16" rx="8" fill="#e2e8f0"/>
+    <rect x="0" y="9" width="170" height="7" fill="#e2e8f0"/>
+    <circle cx="11" cy="8" r="3" fill="#f87171"/>
+    <circle cx="21" cy="8" r="3" fill="#fbbf24"/>
+    <circle cx="31" cy="8" r="3" fill="#34d399"/>
+    <rect x="18" y="34" width="38" height="26" rx="3" fill="#eff6ff" stroke="#bfdbfe"/>
+    <circle cx="28" cy="44" r="5" fill="#bfdbfe"/>
+    <rect x="36" y="40" width="14" height="3" rx="1.5" fill="#bfdbfe"/>
+    <rect x="36" y="47" width="14" height="3" rx="1.5" fill="#bfdbfe"/>
+    <rect x="66" y="34" width="86" height="4" rx="2" fill="#cbd5e1"/>
+    <rect x="66" y="44" width="72" height="4" rx="2" fill="#e2e8f0"/>
+    <rect x="66" y="54" width="80" height="4" rx="2" fill="#e2e8f0"/>
+    <rect x="18" y="76" width="134" height="18" rx="9" fill="#2563eb"/>
   </g>
 
-  <!-- phone (in front) -->
-  <g transform="translate(40 60)">
-    <rect x="0" y="0" width="118" height="184" rx="16" fill="#0f172a"/>
-    <rect x="6" y="6" width="106" height="172" rx="12" fill="url(#screen)"/>
-    <rect x="42" y="10" width="34" height="5" rx="2.5" fill="#0f172a"/>
-    <!-- document -->
-    <rect x="18" y="28" width="82" height="128" rx="4" fill="#ffffff" stroke="#e2e8f0"/>
-    <rect x="26" y="42" width="52" height="4" rx="2" fill="#cbd5e1"/>
-    <rect x="26" y="52" width="66" height="4" rx="2" fill="#e2e8f0"/>
-    <rect x="26" y="60" width="60" height="4" rx="2" fill="#e2e8f0"/>
-    <rect x="26" y="68" width="66" height="4" rx="2" fill="#e2e8f0"/>
-    <rect x="26" y="76" width="44" height="4" rx="2" fill="#e2e8f0"/>
-    <!-- signature line + squiggle -->
-    <line x1="26" y1="132" x2="92" y2="132" stroke="#94a3b8" stroke-width="1"/>
-    <path d="M30 128 C 36 110, 42 142, 50 122 S 62 104, 66 126 S 78 140, 88 116" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round"/>
-    <!-- signed check -->
-    <circle cx="86" cy="52" r="10" fill="#16a34a"/>
-    <path d="M81 52.5 L85 56.5 L92 48.5" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- home indicator -->
-    <rect x="42" y="167" width="34" height="4" rx="2" fill="#cbd5e1"/>
+  <!-- phone (front) -->
+  <g transform="translate(40 62)">
+    <rect x="0" y="0" width="116" height="184" rx="16" fill="#0f172a"/>
+    <rect x="6" y="8" width="104" height="168" rx="10" fill="url(#screen)"/>
+    <rect x="42" y="12" width="32" height="6" rx="3" fill="#0f172a"/>
+    <rect x="20" y="34" width="76" height="48" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+    <circle cx="40" cy="56" r="9" fill="#e2e8f0"/>
+    <rect x="54" y="46" width="32" height="4" rx="2" fill="#e2e8f0"/>
+    <rect x="54" y="56" width="32" height="4" rx="2" fill="#e2e8f0"/>
+    <rect x="54" y="66" width="22" height="4" rx="2" fill="#e2e8f0"/>
+    <path d="M18 32 V26 H26 M90 32 V26 H82 M18 84 V90 H26 M90 84 V90 H82" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="58" cy="118" r="14" fill="#b2f2bb"/>
+    <path d="M51 118 L56 124 L66 112" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="30" y="142" width="56" height="4" rx="2" fill="#e2e8f0"/>
+    <rect x="40" y="164" width="36" height="4" rx="2" fill="#334155"/>
   </g>
+
+  <text x="140" y="266" text-anchor="middle" font-size="12" fill="#64748b">React Native · React web</text>
 
   <!-- component chip -->
-  <g transform="translate(68 282)">
-    <rect x="0" y="0" width="180" height="26" rx="13" fill="#eff6ff" stroke="#bfdbfe"/>
-    <text x="90" y="17.5" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#1d4ed8">&lt;ESignature source /&gt;</text>
-  </g>
-  <text x="158" y="266" text-anchor="middle" font-size="11.5" fill="#64748b">React Native · React web</text>
-
-  <!-- arrow app -> source -->
-  <line x1="290" y1="150" x2="336" y2="150" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowBlue)"/>
-
-  <!-- ===== Column 2: signing source / modes ===== -->
-  <text x="500" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#334155" letter-spacing="1">PICK ONE SIGNING SOURCE</text>
-
-  <!-- mode 1 -->
-  <g transform="translate(345 72)">
-    <rect x="0" y="0" width="310" height="56" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-    <circle cx="26" cy="28" r="13" fill="#2563eb"/>
-    <text x="26" y="33" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">1</text>
-    <text x="50" y="24" font-size="14" font-weight="700" fill="#0f172a">Public URL</text>
-    <text x="50" y="43" font-size="12" fill="#64748b">embed a published form · no backend</text>
+  <g transform="translate(46 280)">
+    <rect x="0" y="0" width="188" height="26" rx="13" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="94" y="17" text-anchor="middle" font-size="11" fill="#1d4ed8" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">&lt;Verification source /&gt;</text>
   </g>
 
-  <!-- mode 2 -->
-  <g transform="translate(345 142)">
-    <rect x="0" y="0" width="310" height="56" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-    <circle cx="26" cy="28" r="13" fill="#2563eb"/>
-    <text x="26" y="33" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">2</text>
-    <text x="50" y="24" font-size="14" font-weight="700" fill="#0f172a">Web Forms instance</text>
-    <text x="50" y="43" font-size="12" fill="#64748b">per-signer prefill · one backend endpoint</text>
+  <!-- ===== Column 2: the three sources ===== -->
+  <text x="500" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#334155" letter-spacing="1">PICK ONE VERIFICATION SOURCE</text>
+
+  <g transform="translate(340 70)">
+    <rect x="0" y="0" width="320" height="58" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+    <circle cx="26" cy="29" r="13" fill="#2563eb"/>
+    <text x="26" y="34" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+    <text x="50" y="25" font-size="14" font-weight="700" fill="#0f172a">Native SDK</text>
+    <text x="50" y="43" font-size="11.5" fill="#64748b">provider SDK in-process · your backend mints the token</text>
   </g>
 
-  <!-- mode 3 -->
-  <g transform="translate(345 212)">
-    <rect x="0" y="0" width="310" height="56" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-    <circle cx="26" cy="28" r="13" fill="#2563eb"/>
-    <text x="26" y="33" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">3</text>
-    <text x="50" y="24" font-size="14" font-weight="700" fill="#0f172a">Proxy envelope</text>
-    <text x="50" y="43" font-size="12" fill="#64748b">templates · sessions · webhooks · GraphQL backend</text>
+  <g transform="translate(340 140)">
+    <rect x="0" y="0" width="320" height="58" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+    <circle cx="26" cy="29" r="13" fill="#2563eb"/>
+    <text x="26" y="34" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+    <text x="50" y="25" font-size="14" font-weight="700" fill="#0f172a">Hosted page</text>
+    <text x="50" y="43" font-size="11.5" fill="#64748b">hardened WebView · origin-pinned iframe · no Apollo</text>
   </g>
 
-  <text x="500" y="300" text-anchor="middle" font-size="11.5" fill="#64748b">same component, same callbacks - only the source changes</text>
-
-  <!-- ===== Column 3: provider + optional backend ===== -->
-  <text x="810" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#334155" letter-spacing="1">PROVIDER</text>
-
-  <!-- DocuSign / e-sign provider -->
-  <g transform="translate(735 68)">
-    <rect x="0" y="0" width="150" height="62" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-    <!-- pen nib icon -->
-    <path d="M22 44 L34 16 L46 44 Z" fill="none" stroke="#0f172a" stroke-width="2" stroke-linejoin="round"/>
-    <circle cx="34" cy="34" r="3" fill="#0f172a"/>
-    <text x="96" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="#0f172a">DocuSign</text>
-    <text x="96" y="46" text-anchor="middle" font-size="11.5" fill="#64748b">e-signature API</text>
+  <g transform="translate(340 210)">
+    <rect x="0" y="0" width="320" height="58" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+    <circle cx="26" cy="29" r="13" fill="#2563eb"/>
+    <text x="26" y="34" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">3</text>
+    <text x="50" y="25" font-size="14" font-weight="700" fill="#0f172a">Proxy session</text>
+    <text x="50" y="43" font-size="11.5" fill="#64748b">sessions · token refresh · webhook-backed status</text>
   </g>
 
-  <!-- backend -->
-  <g transform="translate(735 176)">
-    <rect x="0" y="0" width="150" height="92" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-dasharray="5 4"/>
-    <text x="75" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">Backend service</text>
-    <text x="75" y="41" text-anchor="middle" font-size="11.5" fill="#64748b">apps/api · optional</text>
-    <text x="75" y="57" text-anchor="middle" font-size="11.5" fill="#64748b">GraphQL · webhooks</text>
-    <!-- db cylinder -->
-    <g transform="translate(58 64)">
-      <ellipse cx="17" cy="4" rx="17" ry="4" fill="#e2e8f0" stroke="#94a3b8"/>
-      <path d="M0 4 v12 a17 4 0 0 0 34 0 V4" fill="#e2e8f0" stroke="#94a3b8"/>
+  <text x="500" y="292" text-anchor="middle" font-size="11.5" fill="#64748b">same component, same callbacks - only the source changes</text>
+
+  <!-- ===== Column 3: provider and backend ===== -->
+  <text x="818" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#334155" letter-spacing="1">PROVIDER</text>
+
+  <g transform="translate(738 64)">
+    <rect x="0" y="0" width="160" height="60" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="80" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="#0f172a">Sumsub</text>
+    <text x="80" y="45" text-anchor="middle" font-size="10.5" fill="#64748b">Mobile SDK · Web SDK · REST</text>
+  </g>
+
+  <g transform="translate(738 172)">
+    <rect x="0.5" y="0.5" width="159" height="95" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-dasharray="5 4"/>
+    <text x="80" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">apps/api</text>
+    <text x="80" y="38" text-anchor="middle" font-size="10.5" fill="#64748b">reference backend · optional</text>
+    <text x="80" y="52" text-anchor="middle" font-size="10.5" fill="#64748b">GraphQL · hosted page · webhooks</text>
+    <g transform="translate(64 62)">
+      <path d="M0 6 V22 A16 6 0 0 0 32 22 V6" fill="#f1f5f9" stroke="#cbd5e1"/>
+      <ellipse cx="16" cy="6" rx="16" ry="6" fill="#e2e8f0" stroke="#cbd5e1"/>
     </g>
   </g>
 
-  <!-- arrows: mode 1 -> DocuSign directly -->
-  <line x1="655" y1="100" x2="733" y2="100" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
-  <!-- modes 2 + 3 -> backend -->
-  <path d="M655 170 H695 V222 H733" fill="none" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
-  <path d="M655 240 H695 V222" fill="none" stroke="#64748b" stroke-width="1.6"/>
-  <!-- backend <-> DocuSign -->
-  <line x1="810" y1="174" x2="810" y2="132" stroke="#64748b" stroke-width="1.6" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-  <text x="820" y="158" font-size="10.5" fill="#64748b">REST + webhooks</text>
+  <!-- ===== Arrows ===== -->
+  <line x1="288" y1="150" x2="330" y2="150" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <path d="M660 99 H700 V94 H732" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M660 169 H700 V220 H732" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M660 239 H700 V220" fill="none" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="818" y1="170" x2="818" y2="128" stroke="#64748b" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="826" y="152" font-size="10.5" fill="#64748b">REST + webhooks</text>
+
+  <!-- ===== Footer: the four packages ===== -->
+  <line x1="40" y1="326" x2="920" y2="326" stroke="#e2e8f0"/>
+  <text x="480" y="352" text-anchor="middle" font-size="11.5" fill="#64748b">@blinkbitcoin/kyc-core · kyc-sumsub · kyc-react-native · kyc-react</text>
 </svg>

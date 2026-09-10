@@ -8,7 +8,7 @@
 <sub>E2E covers backend, web and Android; the iOS simulator suite is opt-in (macOS runners), see [CI/CD](docs/development-guide.md#ios-e2e-is-opt-in).</sub>
 
 <p align="center">
-  <img src="docs/assets/readme-hero.svg" alt="Architecture hero (placeholder from esign until the docs phase)" width="960">
+  <img src="docs/assets/readme-hero.svg" alt="Your React Native or React web app renders one Verification component. A VerificationSource picks one of three modes: the native provider SDK in-process, a hosted page embedded in a hardened WebView or origin-pinned iframe, or a proxy session on the reference backend. The two backend-backed modes go through the optional apps/api service, and every mode ends at Sumsub." width="960">
 </p>
 
 Embedded identity verification (KYC) for React Native and React web apps.
