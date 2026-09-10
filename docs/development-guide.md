@@ -258,6 +258,8 @@ origins to allow. The app and the hosted page are genuinely cross-origin
 make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=…   # writes examples/full-service-demo/.env
 make sumsub-check                                            # credentials + level, in one call
 make e2e-live                                                # the whole live run against the sandbox API
+make live-web                                                # the web demo on the sandbox, waiting for the browser rows
+make live-ios                                                # the RN demo on the attached iPhone (KYC_MODE=hosted|native)
 ```
 
 Skipped without credentials, never part of `make test`; in CI it is the

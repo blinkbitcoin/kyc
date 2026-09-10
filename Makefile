@@ -196,6 +196,12 @@ test-live: ## Live tests against the Sumsub sandbox (skip unless SUMSUB_* set; t
 e2e-live: ## Full live run: check, E2E Postgres, live tests (token, status, hosted page, signed webhook), the access-token example mints a real token
 	bash scripts/e2e/live.sh
 
+live-web: ## The web demo against the real sandbox, one command: .env, public URL (Tailscale Funnel), backend, demo; waits for the browser rows (section 5), Ctrl-C tears down
+	bash scripts/e2e/live-web.sh
+
+live-ios: ## The RN demo on the attached iPhone against the real sandbox, one command: .env, public URL, backend, Metro (KYC_MODE=hosted|native, KYC_API_HOST auto), device build; waits, Ctrl-C tears down
+	bash scripts/e2e/live-ios.sh
+
 # ---------- Housekeeping ----------
 
 clean: ## Remove build output and caches (library lib/, coverage)
@@ -214,4 +220,4 @@ help: ## List available targets
 	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check codeql start ios android backend web db-up db-down migrate \
 	diagrams test-db-up test-db-down e2e-backend e2e-web e2e-web-proxy \
 	e2e-server-demos e2e-backend-up e2e-backend-down e2e-metro-up e2e-metro-down android-build e2e-android e2e-android-local e2e-fake-native ios-build e2e-ios e2e-ios-local \
-	sumsub-env sumsub-check test-live e2e-live clean reset help
+	sumsub-env sumsub-check test-live e2e-live live-web live-ios clean reset help

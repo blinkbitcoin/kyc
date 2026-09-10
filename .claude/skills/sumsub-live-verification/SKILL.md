@@ -15,6 +15,10 @@ make sumsub-check   # app-token auth + the level, one throwaway 60 s token
 make test-live      # the live tests alone; the service round trips need DATABASE_URL
 make e2e-live       # check → E2E Postgres (:5433) → live tests → the access-token
                     #   example on :5103 (TOKEN_PORT) mints a real token → DB down
+make live-web       # public URL (Tailscale Funnel) + backend on the sandbox + web demo,
+                    #   waits for section 5 in a browser, Ctrl-C tears down
+make live-ios       # + Metro (KYC_MODE, KYC_API_HOST = the Mac's tailnet ip) + the app
+                    #   on the attached iPhone: section 4 (hosted) / 3 (native)
 ```
 
 In CI the same runner reads the `SUMSUB_*` values from the environment (job

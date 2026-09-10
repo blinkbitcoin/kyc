@@ -20,6 +20,12 @@ make test-live      # the live tests alone (the service round trips need DATABAS
 make e2e-live       # check → E2E Postgres → live tests → the access-token example mints a real token
 ```
 
+For the device rows, two more one-command stacks: `make live-web` (a public URL
+through Tailscale Funnel, the backend on the sandbox, the web demo - then it
+waits while you run section 5 in a browser) and `make live-ios` (the same plus
+Metro and the demo built onto the attached iPhone, `KYC_MODE=hosted` for
+section 4, `KYC_MODE=native` for section 3). Ctrl-C tears them down.
+
 `make e2e-live` proves, against the real sandbox: the credentials are accepted and the level exists; the access-token contract the native SDK depends on (`{ token, userId }` echoing the external user id); a user who never opened the SDK reads as `initial`; the service starts and refreshes a session on the real provider and serves its hosted page for the real token; a webhook signed with the real secret and the configured digest algorithm (`SUMSUB_WEBHOOK_DIGEST_ALG`) is accepted, binds the applicant and approves the session; and `examples/access-token-demo` mints a real token. In CI the same run is the opt-in `E2E / Live Sumsub` job ([operations/live-e2e-ci.md](../operations/live-e2e-ci.md)). The tests live in `examples/full-service-demo/tests/live/`; the repo skill `.claude/skills/sumsub-live-verification` is the runbook.
 
 Sections 1 and 2 below are the setup the automated tier needs too (`.claude/skills/sumsub-sandbox-setup` walks them); 2.1, 2.4 and 2.5 are what the unit and E2E suites already cover.
@@ -74,7 +80,7 @@ The demo deliberately does not install `@sumsub/react-native-mobilesdk-module`. 
 cd examples/react-native-demo
 npm i @sumsub/react-native-mobilesdk-module
 (cd ios && bundle exec pod install)
-KYC_MODE=native npm start
+cd ../.. && KYC_MODE=native make live-ios      # backend + Metro + the app on the attached iPhone
 ```
 
 Run every row on **both** an iPhone and an Android device.
@@ -97,7 +103,7 @@ Run every row on **both** an iPhone and an Android device.
 ## 4. React Native, hosted WebView mode (`KYC_MODE=hosted`)
 
 ```bash
-KYC_MODE=hosted npm start
+make live-ios                                  # KYC_MODE=hosted is the default
 ```
 
 Same device matrix.
@@ -115,6 +121,10 @@ Same device matrix.
 | 4.9 | **Backgrounding** | Send the app to the background mid-liveness and return | The page resumes or fails with a coded error; no frozen camera surface |
 
 ## 5. Web, hosted iframe mode (`VITE_KYC_MODE=hosted`)
+
+```bash
+make live-web                                  # then open http://localhost:5101
+```
 
 Run in **Chrome and Safari**, over HTTPS (or `localhost`).
 

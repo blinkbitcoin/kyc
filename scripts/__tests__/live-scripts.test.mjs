@@ -132,3 +132,41 @@ describe('scripts/e2e/live.sh', () => {
     expect(stderr).toContain('SUMSUB_SECRET_KEY');
   });
 });
+
+describe('scripts/e2e/live-stack.sh', () => {
+  const STACK_SH = join(REPO_ROOT, 'scripts/e2e/live-stack.sh');
+  const source = (script, env = {}) =>
+    spawnSync(
+      'bash',
+      ['-c', `cd "${REPO_ROOT}" && . "${STACK_SH}" && ${script}`],
+      {
+        encoding: 'utf8',
+        env: { PATH: process.env.PATH, HOME: process.env.HOME, ...env },
+      },
+    );
+
+  it('live_env refuses to run without the service .env', () => {
+    const { status, stdout } = source('live_env', {
+      LIVE_ENV_FILE: join(tempDir(), 'absent.env'),
+    });
+    expect(status).not.toBe(0);
+    expect(stdout).toContain('.env.sumsub.example');
+  });
+
+  it('funnel_host is empty without tailscale and strips the trailing dot with it', () => {
+    const bin = tempDir();
+    expect(source('funnel_host', { PATH: '/usr/bin:/bin' }).stdout.trim()).toBe(
+      '',
+    );
+    writeFileSync(
+      join(bin, 'tailscale'),
+      '#!/usr/bin/env bash\necho \'{"Self":{"DNSName":"mac.tail.ts.net."}}\'\n',
+    );
+    spawnSync('chmod', ['+x', join(bin, 'tailscale')]);
+    expect(
+      source('funnel_host', {
+        PATH: `${bin}:${process.env.PATH}`,
+      }).stdout.trim(),
+    ).toBe('mac.tail.ts.net');
+  });
+});
