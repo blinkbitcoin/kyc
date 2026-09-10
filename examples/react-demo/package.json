@@ -1,0 +1,38 @@
+{
+  "name": "kyc-react-example",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Example integration app for @blinkbitcoin/kyc-react (web)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:e2e": "playwright test",
+    "test:e2e:proxy": "playwright test --config playwright.proxy.config.ts"
+  },
+  "dependencies": {
+    "@apollo/client": "^4.2.12",
+    "@blinkbitcoin/kyc-react": "0.0.0-development",
+    "graphql": "^16.14.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^4.1.11",
+    "jsdom": "^30.0.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.9"
+  },
+  "license": "MIT"
+}

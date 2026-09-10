@@ -1,0 +1,31 @@
+# Maestro workspace config.
+#
+# app-launch always runs first: it is the boot smoke and the ONLY flow that
+# launches the app cold, absorbing the one-time cost (driver install, app
+# boot, JS bundle load) with a generous, retried wait. Every later flow keeps
+# the running process (launchApp stopApp: false) and resets through the
+# demo's "Start over" control - relaunching per flow raced the iOS driver and
+# flaked on slow CI runners.
+#
+# The two fake-native flows are tagged and excluded from the default suite
+# (npm run test:e2e / test:e2e:android): they need a Metro bundled with
+# KYC_MODE=fake-native. Run them with npm run test:e2e:fake-native.
+#
+# fake-native-happy-path / fake-native-cancel are deliberately NOT listed in
+# flowsOrder below: Maestro 2.6.1's planner throws
+# `IllegalStateException: Could not find flows` when a --include-tags /
+# --exclude-tags filter removes a flow that flowsOrder names but a later
+# ordered name still survives the filter. With both fake-native flows named
+# here, --exclude-tags=fake-native (the default suite) would drop them and
+# still resolve fine, but --include-tags=fake-native (test:e2e:fake-native)
+# drops every OTHER named flow and leaves none of the ordered names standing,
+# which is what trips the bug. Un-ordered tagged flows just run unordered,
+# which is fine - there are only two of them and they don't depend on order.
+executionOrder:
+  flowsOrder:
+    - app-launch
+    - hosted-happy-path
+    - hosted-decline
+    - hosted-cancel
+    - hosted-token-refresh
+    - hosted-error-retry

@@ -1,0 +1,225 @@
+# Development entry points - thin wrappers over the npm workspace scripts
+# (house convention, see e.g. blink-mobile's Makefile).
+# Run `make` or `make help` to list targets.
+
+.DEFAULT_GOAL := help
+
+# ---------- Setup ----------
+
+install: ## Install all workspaces (npm ci; also installs git hooks via lefthook)
+	npm ci
+
+hooks: ## (Re)install the lefthook git hooks
+	npx lefthook install
+
+pods: ## Install iOS CocoaPods (example app)
+	cd examples/react-native-demo && bundle install && cd ios && bundle exec pod install
+
+# ---------- Quality gates ----------
+
+unit: ## Run all unit test suites (libraries, example apps, backend)
+	npm test
+
+coverage: ## Run test suites with coverage (100% enforced on packages + backend + scripts/lib); fail on rows with nothing to cover
+	npm run test:coverage
+	node scripts/ci/coverage-empty.mjs
+
+coverage-badge: ## Render the README coverage badge from the last `make coverage` run (packages + backend + scripts/lib)
+	npm run coverage:badge
+
+typecheck: ## TypeScript across all workspaces
+	npm run typecheck
+
+lint: ## ESLint (mobile code) + Biome lint (backend)
+	npm run lint
+
+format: ## Format everything with Biome
+	npm run format
+
+format-check: ## Check formatting without writing
+	npm run format:check
+
+check-code: lint typecheck format-check ## Lint + typecheck + format check
+
+shellcheck: ## shellcheck every repo shell script (scripts/**)
+	shellcheck -x scripts/*.sh scripts/*/*.sh
+
+check-ci: shellcheck ## Lint the CI itself: actionlint (workflows) + shellcheck (scripts)
+	actionlint
+
+codegen-check: ## Fail if schema.graphql / generated client code are stale (what CI runs)
+	bash scripts/ci/codegen-check.sh
+
+test: unit check-code ## Unit tests + code checks
+
+build: ## Build the libraries (bob + tsup)
+	npm run build
+
+codegen: ## Regenerate schema.graphql + client types from the backend SDL
+	npm run codegen
+
+diagrams-check: ## Fail if docs/diagrams/README.md is stale relative to src/*.mmd (what CI runs)
+	bash scripts/ci/diagrams-check.sh
+
+docs-check: ## Warn when architecture-relevant changes (vs origin/main) ship without a docs/ update; fail on stale diagram SVGs or over-wide README table cells
+	bash scripts/ci/docs-freshness.sh
+	node scripts/ci/docs-tables.mjs
+
+codeql: ## GitHub's CodeQL analysis here (LOCAL ONLY - CI runs it on GitHub): codeql.yml's suite + inline-marker suppression, findings with rule ids in .codeql/
+	bash scripts/codeql-local.sh
+
+release: ## Merge the open release PR (release-please opens it after a feat/fix lands on main); needs one approval first
+	@pr=$$(gh pr list --state open --label 'autorelease: pending' --json number,title -q '.[0] // empty | "\(.number) \(.title)"'); \
+	test -n "$$pr" || { echo "no open release PR: one appears after a feat/fix/perf commit reaches main (docs/releasing.md)"; exit 1; }; \
+	echo "merging #$$pr"; gh pr merge "$${pr%% *}" --squash
+
+release-rc: ## Hand-cut a prerelease-suffixed tag that ships under next: make release-rc V=X.Y.Z-rc.1 (stable releases: make release)
+	@test -n "$(V)" || { echo "usage: make release-rc V=X.Y.Z-rc.1"; exit 1; }
+	@case "$(V)" in *-*) ;; *) echo "V must carry a prerelease suffix (X.Y.Z-rc.1); stable versions go through the release PR"; exit 1 ;; esac
+	gh release create "v$(V)" --target main --title "v$(V)" --prerelease --notes "Prerelease $(V) - see CHANGELOG.md on main for the pending changes."
+
+version: ## Show what CI would publish for HEAD (prerelease), or for a tag: make version TAG=vX.Y.Z
+	@DRY_RUN=1 EVENT=$(if $(TAG),release,push) TAG=$(TAG) node scripts/release/resolve-version.mjs
+
+registry-smoke: ## Install a published version from GitHub Packages and assert the consumer contract: make registry-smoke V=X.Y.Z
+	@test -n "$(V)" || { echo "usage: make registry-smoke V=X.Y.Z"; exit 1; }
+	bash scripts/release/registry-smoke.sh "$(V)"
+
+diagrams: ## Render docs/diagrams/dist/*.svg from src/*.mmd (pinned mermaid-cli) + reassemble the combined doc
+	for f in docs/diagrams/src/*.mmd; do \
+		npx --yes @mermaid-js/mermaid-cli@11.16.0 -i "$$f" \
+			-o "docs/diagrams/dist/$$(basename "$$f" .mmd).svg" \
+			--backgroundColor white --quiet || exit 1; \
+	done
+	node scripts/assemble-diagrams.mjs
+
+# ---------- Run ----------
+
+start: ## Metro bundler for the example app
+	npm start
+
+ios: ## Run the example app on the iOS simulator
+	npm run ios
+
+android: ## Run the example app on an Android emulator
+	npm run android
+
+backend: ## Backend dev server (tsx watch; env via direnv/.env)
+	npm run backend
+
+web: ## Vite dev server for the web example app
+	npm run web
+
+# ---------- Database ----------
+
+db-up: ## Start the dev Postgres (examples/full-service-demo/docker-compose.yml, port 5432)
+	cd examples/full-service-demo && docker compose up -d --wait
+
+db-down: ## Stop the dev Postgres
+	cd examples/full-service-demo && docker compose down
+
+migrate: ## Apply Knex migrations to the dev database
+	npm run migrate -w examples/full-service-demo
+
+# ---------- E2E ----------
+
+test-db-up: ## Start the E2E Postgres (tmpfs, port KYC_TEST_DB_PORT = KYC_PORT_BASE + 4, default 5104) and wait for it
+	bash scripts/e2e/test-db.sh up
+
+test-db-down: ## Stop the E2E Postgres
+	bash scripts/e2e/test-db.sh down
+
+e2e-backend: test-db-up ## Backend E2E suite against real Postgres (then tears DB down)
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run test:e2e -w examples/full-service-demo
+	$(MAKE) test-db-down
+
+e2e-web: test-db-up build ## Playwright browser E2E for the web demo (hosted mode; then tears DB down) - builds the libraries first (the demo bundles their dist)
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
+	npm run test:e2e -w examples/react-demo
+	$(MAKE) test-db-down
+
+e2e-web-proxy: test-db-up build ## Playwright browser E2E for the web demo in proxy mode (then tears DB down) - builds the libraries first (the demo bundles their dist)
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
+	npm run test:e2e:proxy -w examples/react-demo
+	$(MAKE) test-db-down
+
+e2e-server-demos: ## Boot the access-token example (mock provider) and call its mutation
+	bash scripts/e2e/server-demos-smoke.sh
+
+e2e-backend-up: ## The backend (mock provider) in the background on KYC_API_PORT, wait for /health (needs a migrated E2E database: Docker `make test-db-up` + `npm run migrate:test -w examples/full-service-demo`, or CI's Homebrew Postgres; `make e2e-*-local` does it all)
+	bash scripts/e2e/backend-up.sh
+
+e2e-backend-down: ## Stop the backend started by e2e-backend-up
+	bash scripts/e2e/backend-down.sh
+
+e2e-metro-up: ## Start Metro for the RN demo in the background (KYC_MODE=hosted unless set) and prewarm the Android bundle
+	bash scripts/e2e/metro-start.sh
+	bash scripts/e2e/metro-wait.sh android
+
+e2e-metro-down: ## Stop the Metro started by e2e-metro-up
+	bash scripts/e2e/metro-down.sh
+
+android-build: ## Debug APK of the RN demo for the attached emulator's ABI (what CI's Build Android job runs; ANDROID_ABI overrides)
+	bash scripts/e2e/android-build.sh
+
+ios-build: ## Debug build of the RN demo for the simulator (what CI's Build iOS job runs; needs `make pods`)
+	bash scripts/e2e/ios-build.sh
+
+e2e-ios: ## Maestro E2E, iOS (needs: booted simulator with the app installed via `make ios-build` + ios-simulator.sh install, `make e2e-backend-up`, `make e2e-metro-up`)
+	bash scripts/e2e/ios-maestro.sh
+
+e2e-ios-local: ## The whole iOS stack in one command on a Mac: DB, backend, pods if missing, .app, simulator, Metro, Maestro, teardown
+	bash scripts/e2e/ios-local.sh
+
+e2e-android: ## Maestro E2E, Android (needs: emulator, `make android-build`, `make e2e-backend-up`, `make e2e-metro-up`)
+	bash scripts/e2e/android-maestro.sh
+
+e2e-android-local: ## The whole Android stack in one command on a laptop: DB, backend, APK, Metro, Maestro, teardown (needs a running emulator)
+	bash scripts/e2e/android-local.sh
+
+e2e-fake-native: ## Maestro E2E, fake native SDK (MANUAL, Android emulator only: needs a `KYC_MODE=fake-native npm start` Metro, an emulator and the debug APK; no backend needed)
+	npm run test:e2e:fake-native -w examples/react-native-demo
+
+# ---------- Live Sumsub (opt-in, needs sandbox credentials) ----------
+
+sumsub-env: ## Write examples/full-service-demo/.env for a live run (APP_TOKEN= SECRET_KEY= WEBHOOK_SECRET= [LEVEL_NAME=] [PUBLIC_BASE_URL=] [FORCE=1])
+	bash scripts/e2e/sumsub-env.sh
+
+sumsub-check: ## App-token auth + the level with that .env: mints a throwaway token, says what is wrong otherwise
+	npm run sumsub:check -w examples/full-service-demo
+
+test-live: ## Live tests against the Sumsub sandbox (skip unless SUMSUB_* set; the service round trips also need DATABASE_URL)
+	npm run test:live -w examples/full-service-demo
+
+e2e-live: ## Full live run: check, E2E Postgres, live tests (token, status, hosted page, signed webhook), the access-token example mints a real token
+	bash scripts/e2e/live.sh
+
+live-web: ## The web demo against the real sandbox, one command: .env, public URL (Tailscale Funnel), backend, demo; waits for the browser rows (section 5), Ctrl-C tears down
+	bash scripts/e2e/live-web.sh
+
+live-ios: ## The RN demo on the attached iPhone against the real sandbox, one command: .env, public URL, backend, Metro (KYC_MODE=hosted|native, KYC_API_HOST auto), device build (LIVE_DEVICE=<name>); waits, Ctrl-C tears down
+	bash scripts/e2e/live-ios.sh
+
+live-android: ## The RN demo on the attached Android phone against the real sandbox, one command: .env, public URL, backend, adb reverse, Metro (KYC_MODE=hosted|native), APK for the device's ABI (LIVE_DEVICE=<serial>); waits, Ctrl-C tears down
+	bash scripts/e2e/live-android.sh
+
+# ---------- Housekeeping ----------
+
+clean: ## Remove build output and caches (library lib/, coverage)
+	npm run clean -w packages/kyc-core -w packages/kyc-server -w packages/kyc-react-native -w packages/kyc-react
+	rm -rf coverage packages/*/coverage examples/*/coverage
+
+reset: ## Full dependency reinstall (root lockfile only)
+	rm -rf node_modules package-lock.json
+	npm install
+
+help: ## List available targets
+	@grep -hE '^[a-zA-Z0-9_-]+:.*##' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*##"} {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: install hooks pods release release-rc version registry-smoke unit coverage coverage-badge typecheck lint format format-check check-code \
+	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check codeql start ios android backend web db-up db-down migrate \
+	diagrams test-db-up test-db-down e2e-backend e2e-web e2e-web-proxy \
+	e2e-server-demos e2e-backend-up e2e-backend-down e2e-metro-up e2e-metro-down android-build e2e-android e2e-android-local e2e-fake-native ios-build e2e-ios e2e-ios-local \
+	sumsub-env sumsub-check test-live e2e-live live-web live-ios live-android clean reset help

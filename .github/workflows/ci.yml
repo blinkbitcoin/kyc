@@ -1,0 +1,287 @@
+name: CI
+
+# The one pipeline every branch runs, so a workflow badge filtered by branch
+# (`ci.yml/badge.svg?branch=main`, or `?branch=<any>`) is correct for that
+# branch. Staged so a failure never spends the next stage's minutes:
+#
+#   Checks (lint, typecheck, commits, docs)                  ~1-2 min
+#     -> Unit (tests + coverage thresholds)                  ~2 min
+#       -> E2E (build packages -> web; backend; Android;     ~12-15 min
+#               iOS)
+#         -> Publish -> Verify (main / release / dispatch)
+#
+# A docs-only PR (docs/, *.md, LICENSE, templates - classified by the Changes
+# job in checks.yml) stops after Checks; main already skips docs-only pushes
+# via paths-ignore below, so PR and main follow the same rule.
+#
+# Checks, Unit and E2E are reusable workflows called as jobs; the Badges job
+# at the end publishes the coverage + status badges per branch to gh-pages.
+#
+# Publishing (main pushes / releases / dispatch) lives at the tail of the
+# same run and ships the tarballs E2E / Build Packages built and Web tested,
+# so "CI passing on main" means: coverage thresholds, every E2E suite, the
+# publish of those exact tarballs, and the verify of what was published all
+# passed for that commit.
+#
+#   - Stable (`latest` dist-tag): ONLY for a vX.Y.Z tag. The tag IS the
+#     version (vX.Y.Z -> X.Y.Z); the four publishable package.json files
+#     carry a placeholder that is stamped at build time. release.yml
+#     owns the tag: merging its "chore(release): X.Y.Z" PR (`make release`)
+#     creates the tag + GitHub Release and dispatches this workflow at the
+#     tag with `release_tag` (a dispatch is needed because a release created
+#     by the workflow token never fires the `release:` trigger). The
+#     `release:` trigger is kept for hand-cut tags (`make release-rc`); a tag
+#     with a prerelease part (v1.0.0-rc.1) ships under `next`.
+#     Ships only once the commit's own push-to-main run is green: the gate
+#     below waits for an in-flight main run and fails on a red one, and
+#     release.yml's retry job re-runs the failed Publish as soon as main goes
+#     green - so a release is fire-and-forget.
+#   - Prerelease (`next` dist-tag): every push to main (or a manual
+#     dispatch without `release_tag`) ships
+#     <next-patch-after-latest-tag>-pre.<run>.<sha>.
+#   Either way the four packages get the same version and the platform
+#   packages pin core to exactly that version (the only range that also
+#   works for prereleases).
+#
+# Requires no extra secrets - GITHUB_TOKEN with packages:write is enough
+# for same-org publishing, and release.yml needs only the same token.
+#
+# The whole pipeline in one picture: docs/diagrams/README.md#ci--release-pipeline
+#
+# iOS E2E always runs: "CI passing" covers backend, web, Android and iOS.
+# The repo is public, so GitHub-hosted macOS minutes are free (they bill at
+# 10x on private repos). One switch, no workflow edit needed:
+#   - repo variable E2E_IOS_RUNNER       -> runs-on label(s) for the iOS job,
+#                                           default macos-latest; set it to a
+#                                           self-hosted label, e.g.
+#                                           ["self-hosted","macOS","arm64"]
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**.md'] # docs-only pushes ship nothing new
+  pull_request:
+    types: [opened, synchronize, reopened, labeled] # labeled: the `e2e:live` opt-in
+  release:
+    types: [published] # hand-cut tags only (make release-rc); see release.yml
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Ship this vX.Y.Z tag under `latest` (set by release.yml; run at the tag ref). Empty = prerelease from HEAD.'
+        type: string
+        required: false
+        default: ''
+
+# A registry request that hangs costs one minute per attempt instead of
+# npm's default five (#52). Warm installs make no request at all.
+env:
+  NPM_CONFIG_FETCH_TIMEOUT: '60000'
+
+permissions:
+  contents: read
+
+# PR refs: a newer push supersedes an in-flight run. main: never cancel a
+# running publish (GitHub still replaces a *pending* main run with a newer
+# one, which is fine - the last commit is what the badge should reflect).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # Single-segment caller names: GitHub's run graph collapses labels with
+  # three or more "/" segments to "first / ... / last", so these render as
+  # "Unit / Coverage", "E2E / iOS".
+  checks:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
+  unit:
+    name: Unit
+    needs: [checks]
+    # An empty output (Checks failed before classifying) still means "run".
+    if: needs.checks.outputs.docs-only != 'true'
+    uses: ./.github/workflows/test.yml
+  e2e:
+    name: E2E
+    needs: [unit]
+    uses: ./.github/workflows/e2e.yml
+    with:
+      ios-runner: ${{ vars.E2E_IOS_RUNNER || 'macos-latest' }}
+      release-tag: ${{ inputs.release_tag || '' }}
+      # Live Sumsub: repo variable E2E_LIVE=true, or the e2e:live label on a
+      # PR from this repository (fork PRs get no secrets, so the label is
+      # inert there); docs/operations/live-e2e-ci.md
+      live: ${{ vars.E2E_LIVE == 'true' || contains(github.event.pull_request.labels.*.name, 'e2e:live') }}
+    # The live job reads the sumsub-sandbox environment's secrets
+    secrets: inherit
+
+  # Badges for this branch under gh-pages/badges/<branch>/: the measured
+  # coverage badge (artifact from Unit / Coverage, or a red "failing"
+  # placeholder when that job did not succeed) plus Unit / E2E pass-fail
+  # badges rendered from the job results (a workflow badge can only describe
+  # the whole pipeline). Runs after E2E so it never delays it; a stage that
+  # never ran because an earlier one failed renders as "skipped". Always
+  # runs so a red badge replaces a stale green one; skipped for fork PRs (no
+  # write token) and release runs (not a branch - a hand-cut `release:` event
+  # or a workflow_dispatch at a tag with `release_tag` set). gh-pages is the
+  # one branch the org ruleset exempts from the PR-approval requirement, so
+  # the default GITHUB_TOKEN can push there; pull-request.yml removes a PR's
+  # directory when it closes.
+  badges:
+    name: Badges
+    needs: [checks, unit, e2e]
+    if: |
+      always() &&
+      needs.checks.result != 'cancelled' && needs.unit.result != 'cancelled' && needs.e2e.result != 'cancelled' &&
+      github.event_name != 'release' && inputs.release_tag == '' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (workspace root)
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Download coverage badge
+        id: download
+        if: needs.unit.result == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-badge
+          path: coverage/badge
+
+      # Only a real failure gets the red placeholder; a skipped Unit (docs-only
+      # PR) leaves the branch's coverage badge as it was.
+      - name: Render "failing" coverage placeholder
+        if: needs.unit.result == 'failure'
+        run: npm run coverage:badge -- --status failing
+
+      - name: Render Unit + E2E status badges
+        env:
+          UNIT: ${{ needs.unit.result }}
+          E2E: ${{ needs.e2e.result }}
+        run: |
+          node scripts/status-badge.mjs unit Unit "$UNIT"
+          node scripts/status-badge.mjs e2e E2E "$E2E"
+
+      - name: Publish to gh-pages
+        env:
+          SHA: ${{ github.sha }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: bash scripts/ci/publish-badges.sh
+
+  publish:
+    name: Publish
+    needs: [unit, e2e]
+    # Ships only from main pushes, releases and manual dispatches; PR runs
+    # stop after the gates.
+    if: |
+      github.event_name == 'release' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      actions: read # look up the commit's main run
+    outputs:
+      version: ${{ needs.e2e.outputs.version }}
+
+    steps:
+      - name: Checkout code (for scripts/release)
+        uses: actions/checkout@v7
+
+      # A release run re-runs the whole gate itself, but the README badges
+      # and "is main green" mean the push-to-main run for that commit. Do not
+      # ship over a red one: wait while it is still running, fail if it
+      # failed. release.yml's retry job re-runs this job once main turns green.
+      - name: Require a green main run for the release commit
+        if: github.event_name == 'release' || inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: bash scripts/release/require-green-main.sh
+
+      # registry-url + scope write the .npmrc that routes @blinkbitcoin to
+      # GitHub Packages; npm publish <tarball> reads the name from the tarball.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://npm.pkg.github.com
+          scope: '@blinkbitcoin'
+
+      # Nothing is installed or built here: these are the tarballs E2E /
+      # Build Packages stamped, built and packed, and Web tested. The globs
+      # need the digit: kyc-react-* would also match kyc-react-native.
+      - name: Fetch the tarballs built by E2E / Build Packages
+        uses: actions/download-artifact@v8
+        with:
+          name: packages-tarballs
+          path: ${{ runner.temp }}/tarballs
+
+      - name: Publish @blinkbitcoin/kyc-core
+        run: npm publish "$RUNNER_TEMP"/tarballs/blinkbitcoin-kyc-core-[0-9]*.tgz --tag "$DISTTAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISTTAG: ${{ needs.e2e.outputs.disttag }}
+
+      - name: Publish @blinkbitcoin/kyc-server
+        run: npm publish "$RUNNER_TEMP"/tarballs/blinkbitcoin-kyc-server-[0-9]*.tgz --tag "$DISTTAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISTTAG: ${{ needs.e2e.outputs.disttag }}
+
+      - name: Publish @blinkbitcoin/kyc-react-native
+        run: npm publish "$RUNNER_TEMP"/tarballs/blinkbitcoin-kyc-react-native-[0-9]*.tgz --tag "$DISTTAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISTTAG: ${{ needs.e2e.outputs.disttag }}
+
+      - name: Publish @blinkbitcoin/kyc-react
+        run: npm publish "$RUNNER_TEMP"/tarballs/blinkbitcoin-kyc-react-[0-9]*.tgz --tag "$DISTTAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISTTAG: ${{ needs.e2e.outputs.disttag }}
+
+  # Consumes what was ACTUALLY published: installs the exact version from
+  # GitHub Packages into a clean project and asserts the consumer contract.
+  registry-smoke:
+    name: Verify
+    needs: [publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://npm.pkg.github.com
+          scope: '@blinkbitcoin'
+
+      # GitHub Packages strips `peerDependenciesMeta` from the metadata npm
+      # builds its tree from, so npm installs the optional Apollo peer as if
+      # it were required. Nothing in the tarball can change that (it has the
+      # field; pack-smoke.sh proves the tarball itself is right). So the
+      # contract asserted here is the one the registry can deliver:
+      #   1. a default install still never LOADS Apollo through /hosted
+      #   2. `--omit=peer` yields the documented Apollo-free install
+      - name: Checkout code (for scripts/release)
+        uses: actions/checkout@v7
+
+      - name: Install the published packages and assert the consumer contract
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/release/registry-smoke.sh "${{ needs.publish.outputs.version }}"

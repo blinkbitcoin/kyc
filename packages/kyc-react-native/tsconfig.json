@@ -1,0 +1,18 @@
+{
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "types": ["jest", "node"],
+    "paths": {
+      "@blinkbitcoin/kyc-core": ["../kyc-core/src/index.ts"],
+      "@blinkbitcoin/kyc-core/hosted": ["../kyc-core/src/hosted.ts"],
+      "@blinkbitcoin/kyc-core/sumsub": ["../kyc-core/src/sumsub.ts"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "__mocks__/**/*.ts",
+    "__mocks__/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "lib"]
+}

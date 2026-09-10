@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Maestro E2E on the iOS simulator: per-flow retries plus one suite-level
+# retry (a 124 timeout from maestro-bound.sh is not retried). Needs: app
+# installed on a booted simulator, Metro + backend running.
+set -uo pipefail
+HERE=$(cd "$(dirname "$0")" && pwd)
+cd "$HERE/../.." || exit 1
+export PATH="$HOME/.maestro/bin:$PATH"
+# shellcheck source=scripts/e2e/maestro-bound.sh
+. "$HERE/maestro-bound.sh"
+# shellcheck source=scripts/e2e/xcode-env.sh
+. "$HERE/xcode-env.sh"
+# The booted simulator, by UDID: with an Android emulator up as well (a
+# laptop, not CI) Maestro would otherwise pick whichever device it lists
+# first and look for the iOS bundle id on Android.
+UDID=$(/usr/bin/xcrun simctl list devices booted -j | jq -r '[.devices[][] | select(.state == "Booted")][0].udid')
+if [ -z "$UDID" ] || [ "$UDID" = "null" ]; then
+  echo "::error::no booted iOS simulator (make e2e-ios-local boots one)"
+  exit 1
+fi
+# The demo's test:e2e script appends --device from this variable (an
+# argument would be eaten by the two npm layers in between)
+export MAESTRO_DEVICE="$UDID"
+# Bounded per attempt (see maestro-bound.sh); a hung driver is not retried -
+# the second attempt would only run into the step's timeout-minutes.
+bounded_maestro test:e2e || {
+  status=$?
+  [ "$status" -eq 124 ] && exit "$status"
+  echo "::warning::Maestro suite failed after per-flow retries - rerunning the suite once"
+  bounded_maestro test:e2e
+}

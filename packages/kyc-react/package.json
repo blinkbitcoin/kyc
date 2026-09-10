@@ -1,0 +1,101 @@
+{
+  "name": "@blinkbitcoin/kyc-react",
+  "version": "0.0.0-development",
+  "description": "Plug-and-play identity-verification (KYC) flow component for React web apps",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./hosted": {
+      "import": {
+        "types": "./dist/hosted.d.mts",
+        "default": "./dist/hosted.mjs"
+      },
+      "require": {
+        "types": "./dist/hosted.d.ts",
+        "default": "./dist/hosted.cjs"
+      }
+    },
+    "./sumsub": {
+      "import": {
+        "types": "./dist/sumsub.d.mts",
+        "default": "./dist/sumsub.mjs"
+      },
+      "require": {
+        "types": "./dist/sumsub.d.ts",
+        "default": "./dist/sumsub.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["src", "dist", "!**/__tests__"],
+  "sideEffects": false,
+  "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsup",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["react", "kyc", "identity-verification", "sumsub"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@apollo/client": "^4.0.0",
+    "graphql": "^16.8.0 || ^17.0.0",
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@apollo/client": "^4.2.12",
+    "@babel/preset-env": "^7.29.7",
+    "@babel/preset-react": "^8.0.1",
+    "@babel/preset-typescript": "^7.29.0",
+    "@graphql-codegen/cli": "^7.3.1",
+    "@graphql-codegen/typescript": "^6.0.2",
+    "@graphql-codegen/typescript-operations": "^6.0.5",
+    "@testing-library/react": "^16.3.3",
+    "@types/jest": "^30.0.0",
+    "@types/react": "^19.2.18",
+    "graphql": "^16.14.2",
+    "jest": "^30.5.0",
+    "jest-environment-jsdom": "^30.5.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tsup": "^8.5.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@blinkbitcoin/kyc-core": "0.0.0-development"
+  },
+  "peerDependenciesMeta": {
+    "@apollo/client": {
+      "optional": true
+    },
+    "graphql": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blinkbitcoin/kyc.git",
+    "directory": "packages/kyc-react"
+  },
+  "homepage": "https://github.com/blinkbitcoin/kyc#readme",
+  "bugs": { "url": "https://github.com/blinkbitcoin/kyc/issues" },
+  "type": "commonjs",
+  "engines": {
+    "node": ">= 18"
+  }
+}

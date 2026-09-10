@@ -1,0 +1,97 @@
+{
+  "name": "@blinkbitcoin/kyc-core",
+  "version": "0.0.0-development",
+  "description": "Platform-agnostic core (VerificationSource abstraction, capability guards, bridge protocol, error-code contract, the Sumsub mapping on ./sumsub) shared by the KYC React and React Native packages",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
+  "react-native": "./src/index.ts",
+  "exports": {
+    ".": {
+      "react-native": "./src/index.ts",
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": { "types": "./dist/index.d.ts", "default": "./dist/index.cjs" }
+    },
+    "./hosted": {
+      "react-native": "./src/hosted.ts",
+      "import": {
+        "types": "./dist/hosted.d.mts",
+        "default": "./dist/hosted.mjs"
+      },
+      "require": {
+        "types": "./dist/hosted.d.ts",
+        "default": "./dist/hosted.cjs"
+      }
+    },
+    "./testing": {
+      "react-native": "./src/testing.ts",
+      "import": {
+        "types": "./dist/testing.d.mts",
+        "default": "./dist/testing.mjs"
+      },
+      "require": {
+        "types": "./dist/testing.d.ts",
+        "default": "./dist/testing.cjs"
+      }
+    },
+    "./sumsub": {
+      "react-native": "./src/sumsub.ts",
+      "import": {
+        "types": "./dist/sumsub.d.mts",
+        "default": "./dist/sumsub.mjs"
+      },
+      "require": {
+        "types": "./dist/sumsub.d.ts",
+        "default": "./dist/sumsub.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["src", "dist", "!**/__tests__"],
+  "sideEffects": false,
+  "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "codegen": "graphql-codegen --config codegen.ts"
+  },
+  "keywords": ["kyc", "identity-verification", "sumsub"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@apollo/client": "^4.0.0",
+    "graphql": "^16.8.0 || ^17.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@apollo/client": { "optional": true },
+    "graphql": { "optional": true }
+  },
+  "devDependencies": {
+    "@apollo/client": "^4.2.12",
+    "@babel/preset-env": "^7.29.7",
+    "@babel/preset-typescript": "^7.29.0",
+    "@graphql-codegen/cli": "^7.3.1",
+    "@graphql-codegen/typescript": "^6.0.2",
+    "@graphql-codegen/typescript-operations": "^6.0.5",
+    "@types/jest": "^30.0.0",
+    "graphql": "^16.14.2",
+    "jest": "^30.5.0",
+    "tsup": "^8.5.0",
+    "typescript": "^6.0.3"
+  },
+  "publishConfig": { "registry": "https://npm.pkg.github.com" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blinkbitcoin/kyc.git",
+    "directory": "packages/kyc-core"
+  },
+  "homepage": "https://github.com/blinkbitcoin/kyc#readme",
+  "bugs": { "url": "https://github.com/blinkbitcoin/kyc/issues" },
+  "type": "commonjs",
+  "engines": { "node": ">= 18" }
+}

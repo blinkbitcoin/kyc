@@ -1,0 +1,53 @@
+{
+  "name": "kyc-react-native-example",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Example integration app for @blinkbitcoin/kyc-react-native (manual + Maestro E2E testing host)",
+  "scripts": {
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:e2e": "maestro test .maestro/ --exclude-tags=fake-native -e APP_ID=org.reactjs.native.example.ReactNativeSandbox ${MAESTRO_DEVICE:+--device $MAESTRO_DEVICE}",
+    "test:e2e:record": "maestro record .maestro/",
+    "test:e2e:studio": "maestro studio",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:e2e:android": "maestro test .maestro/ --exclude-tags=fake-native -e APP_ID=com.reactnativesandbox ${MAESTRO_DEVICE:+--device $MAESTRO_DEVICE}",
+    "test:e2e:fake-native": "maestro test .maestro/ --include-tags=fake-native -e APP_ID=com.reactnativesandbox ${MAESTRO_DEVICE:+--device $MAESTRO_DEVICE}"
+  },
+  "dependencies": {
+    "@apollo/client": "^4.2.12",
+    "@blinkbitcoin/kyc-react-native": "0.0.0-development",
+    "@react-native-community/netinfo": "^12.0.1",
+    "@react-native/new-app-screen": "0.86.3",
+    "graphql": "^16.14.2",
+    "react": "19.2.8",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "^5.9.1",
+    "react-native-webview": "^14.0.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "@babel/runtime": "^7.29.7",
+    "@react-native-community/cli": "20.2.0",
+    "@react-native-community/cli-platform-android": "20.2.0",
+    "@react-native-community/cli-platform-ios": "20.2.0",
+    "@react-native/babel-preset": "0.86.3",
+    "@react-native/jest-preset": "^0.86.3",
+    "@react-native/metro-config": "0.86.3",
+    "@react-native/typescript-config": "0.86.3",
+    "@types/jest": "^30.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-test-renderer": "^19.1.0",
+    "babel-plugin-transform-inline-environment-variables": "^0.4.4",
+    "jest": "^30.5.0",
+    "react-test-renderer": "19.2.8",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">= 22.11.0"
+  },
+  "license": "MIT"
+}

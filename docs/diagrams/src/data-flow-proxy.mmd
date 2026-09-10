@@ -1,0 +1,41 @@
+flowchart LR
+    U((User))
+
+    subgraph P1["1.0 Host app"]
+        direction TB
+        p1a[Render IdentityVerification]
+        p1b[Run the shared state machine]
+    end
+
+    subgraph P2["2.0 examples/full-service-demo"]
+        direction TB
+        p2a[verificationSessionStart]
+        p2b[verificationSessionRefresh]
+        p2c[handleWebhookEvent]
+    end
+
+    subgraph P3["3.0 Sumsub"]
+        direction TB
+        p3a[POST /resources/accessTokens]
+        p3b[applicantReviewed callback]
+    end
+
+    D1[(VerificationSession)]
+    D2[(AuditLog)]
+
+    U -- "taps Verify identity" --> P1
+    P1 -- "createProxySource.start" --> p2a
+    p2a -- "app-token HMAC" --> p3a
+    p3a -- "accessToken + applicantId" --> p2a
+    p2a -- "insert row, status initial" --> D1
+    p2a -- "session_created" --> D2
+    p2a -- "VerificationSession" --> P1
+    P1 -- "documents and selfie" --> P3
+    p2b -- "token_refreshed" --> D2
+    p3b -- "signed payload" --> p2c
+    p2c -- "updateSessionStatus" --> D1
+    p2c -- "status_updated" --> D2
+    P1 -- "onComplete with status" --> U
+
+    style D1 fill:#e7f5ff
+    style D2 fill:#e7f5ff

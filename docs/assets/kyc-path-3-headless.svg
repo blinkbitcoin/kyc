@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 748" width="400" height="748" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Bring your own UI: the library keeps only the state machine, the host draws everything">
+<rect width="400" height="748" fill="#FFFFFF"/>
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L9,5 L0,9 Z" fill="#1C2230"/></marker>
+<marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L9,5 L0,9 Z" fill="#B8BFC9"/></marker>
+</defs>
+<text x="20" y="30" font-size="11" font-weight="600" letter-spacing="0.08em" fill="#5B6472">3 · HEADLESS</text>
+<text x="20" y="54" font-size="17" font-weight="700" fill="#1C2230">Bring your own UI</text>
+<text x="20" y="74" font-size="12" fill="#5B6472">Library keeps only the state machine.</text>
+<!-- phone: the host's own onboarding screen with a verification step -->
+<g transform="translate(110 96)">
+<rect x="0" y="0" width="180" height="300" rx="22" fill="#1C2230"/>
+<rect x="7" y="7" width="166" height="286" rx="16" fill="#FFFFFF"/>
+<rect x="66" y="12" width="48" height="6" rx="3" fill="#1C2230"/>
+<text x="22" y="52" font-size="9" font-weight="700" fill="#1C2230">Open your account</text>
+<text x="22" y="66" font-size="8" fill="#666666">Step 3 of 4 · identity</text>
+<!-- checklist -->
+<g font-size="8" fill="#1C2230">
+<circle cx="28" cy="88" r="5" fill="#16A34A"/><text x="40" y="91">Phone number</text>
+<circle cx="28" cy="106" r="5" fill="#16A34A"/><text x="40" y="109">Email</text>
+<circle cx="28" cy="124" r="5" fill="none" stroke="#F7931A" stroke-width="1.5"/><text x="40" y="127" font-weight="700">Identity check</text>
+<circle cx="28" cy="142" r="5" fill="none" stroke="#B8BFC9"/><text x="40" y="145" fill="#666666">Fund the wallet</text>
+</g>
+<!-- the host's own camera frame -->
+<rect x="22" y="160" width="136" height="64" rx="6" fill="#0F1115"/>
+<ellipse cx="90" cy="192" rx="14" ry="18" fill="none" stroke="#F7931A" stroke-width="1.5" stroke-dasharray="3 2"/>
+<text x="90" y="220" font-size="6.5" fill="#B8BFC9" text-anchor="middle">status: pending</text>
+<rect x="30" y="238" width="120" height="24" rx="12" fill="#F7931A"/>
+<text x="90" y="254" font-size="9.5" font-weight="700" fill="#1C2230" text-anchor="middle">Continue</text>
+<text x="90" y="280" font-size="9" fill="#F7931A" text-anchor="middle">Do this later</text>
+</g>
+<!-- ownership ladder -->
+<g font-size="12.5">
+<rect x="20" y="420" width="360" height="48" rx="8" fill="#F3F5F8" stroke="#B8BFC9"/>
+<text x="32" y="438" font-weight="600" fill="#1C2230">Host app</text>
+<text x="32" y="453" font-size="10.5" fill="#5B6472">own buttons, own layout, own copy - reads the hook's state</text>
+<line x1="200" y1="468" x2="200" y2="480" stroke="#1C2230" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="210" y="474" font-size="10" fill="#5B6472">status · start() · retry() · cancel() …</text>
+<rect x="20" y="480" width="360" height="48" rx="8" fill="#FFFFFF" stroke="#B8BFC9" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="32" y="498" font-weight="600" fill="#B8BFC9">IdentityVerification</text>
+<text x="32" y="513" font-size="10.5" fill="#5B6472">not used: the host draws the screens</text>
+<line x1="200" y1="528" x2="200" y2="540" stroke="#B8BFC9" stroke-width="1.5" marker-end="url(#g)"/>
+<rect x="20" y="540" width="360" height="48" rx="8" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.5"/>
+<text x="32" y="558" font-weight="600" fill="#1C2230">useIdentityVerification</text>
+<text x="32" y="573" font-size="10.5" fill="#5B6472">state machine, renders nothing; hands back the embed props</text>
+<line x1="200" y1="588" x2="200" y2="600" stroke="#1C2230" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="210" y="594" font-size="10" fill="#5B6472">handleMessage · createHostedWebViewProps</text>
+<rect x="20" y="600" width="360" height="48" rx="8" fill="#F3F5F8" stroke="#B8BFC9"/>
+<text x="32" y="618" font-weight="600" fill="#1C2230">WebView / iframe / native SDK</text>
+<text x="32" y="633" font-size="10.5" fill="#5B6472">placed by the host, anywhere in its own layout</text>
+<line x1="200" y1="648" x2="200" y2="660" stroke="#1C2230" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="20" y="660" width="360" height="48" rx="8" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.5"/>
+<text x="32" y="678" font-weight="600" fill="#1C2230">VerificationSource</text>
+<text x="32" y="693" font-size="10.5" fill="#5B6472">hosted · native SDK · proxy - the only thing that changes</text>
+</g>
+<g transform="translate(20 732)" font-size="10" fill="#5B6472">
+<rect x="0" y="-9" width="12" height="12" rx="3" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.5"/><text x="20" y="0">library owns</text>
+<rect x="100" y="-9" width="12" height="12" rx="3" fill="#F3F5F8" stroke="#B8BFC9" stroke-width="1.5"/><text x="120" y="0">host owns</text>
+</g>
+</svg>

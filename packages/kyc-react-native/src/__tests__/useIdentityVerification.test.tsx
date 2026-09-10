@@ -1,0 +1,976 @@
+import React from 'react';
+import ReactTestRenderer from 'react-test-renderer';
+import NetInfo from '@react-native-community/netinfo';
+import {
+  resetMockNetworkState,
+  setMockNetworkState,
+} from '../../__mocks__/@react-native-community/netinfo';
+import { ClientErrorCodes } from '@blinkbitcoin/kyc-core/hosted';
+import { createFakeLaunchableSource } from '@blinkbitcoin/kyc-core/testing';
+
+import { useIdentityVerification } from '../useIdentityVerification';
+
+import type {
+  VerificationEvent,
+  VerificationSession,
+  VerificationSource,
+} from '@blinkbitcoin/kyc-core/hosted';
+import type {
+  UseIdentityVerification,
+  UseIdentityVerificationOptions,
+} from '../useIdentityVerification';
+
+const session: VerificationSession = {
+  provider: 'mock',
+  sessionId: 'sess-1',
+  url: 'https://kyc.example.com/hosted/sess-1',
+  allowedOrigin: 'https://kyc.example.com',
+};
+
+const hostedSource = (
+  overrides: Partial<VerificationSource> = {},
+): VerificationSource => ({
+  start: jest.fn(async () => session),
+  interpret: jest.fn(
+    (raw: unknown) => (raw as { event?: VerificationEvent }).event ?? null,
+  ),
+  ...overrides,
+});
+
+let latest: UseIdentityVerification;
+
+const Harness: React.FC<{
+  source: VerificationSource;
+  options: UseIdentityVerificationOptions;
+}> = ({ source, options }) => {
+  latest = useIdentityVerification(source, options);
+  return null;
+};
+
+const handlers = (): jest.Mocked<UseIdentityVerificationOptions> =>
+  ({
+    onComplete: jest.fn(),
+    onError: jest.fn(),
+    onCancel: jest.fn(),
+    onStatusChange: jest.fn(),
+  }) as unknown as jest.Mocked<UseIdentityVerificationOptions>;
+
+const render = async (
+  source: VerificationSource,
+  options: UseIdentityVerificationOptions,
+): Promise<ReactTestRenderer.ReactTestRenderer> => {
+  let renderer!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(
+      <Harness source={source} options={options} />,
+    );
+  });
+  return renderer;
+};
+
+beforeEach(() => {
+  resetMockNetworkState();
+  jest.clearAllMocks();
+});
+
+describe('useIdentityVerification - acquiring a session', () => {
+  it('starts idle and reaches verifying through loading', async () => {
+    const source = hostedSource();
+    const options = handlers();
+    await render(source, options);
+    expect(latest.status).toBe('idle');
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(source.start).toHaveBeenCalledTimes(1);
+    expect(latest.status).toBe('verifying');
+    expect(latest.session).toEqual(session);
+    expect(options.onError).not.toHaveBeenCalled();
+  });
+
+  it('maps a rejecting start() to an error state and onError', async () => {
+    const source = hostedSource({
+      start: jest.fn(async () => {
+        throw { code: 'SESSION_CREATION_FAILED', message: 'nope' };
+      }),
+    });
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('error');
+    expect(latest.error?.code).toBe('SESSION_CREATION_FAILED');
+    expect(options.onError).toHaveBeenCalledWith(latest.error);
+  });
+
+  it('falls back to UNKNOWN_ERROR when the rejection carries no code', async () => {
+    const source = hostedSource({
+      start: jest.fn(async () => {
+        throw new Error('boom');
+      }),
+    });
+    await render(source, handlers());
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.error).toEqual({ code: 'UNKNOWN_ERROR', message: 'boom' });
+  });
+});
+
+describe('useIdentityVerification - preflight', () => {
+  it('parks on permissionDenied without calling onError', async () => {
+    const source = hostedSource();
+    const options = handlers();
+    await render(source, {
+      ...options,
+      checkPermissions: async () => 'blocked',
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('permissionDenied');
+    expect(latest.permissionReason).toBe('blocked');
+    expect(source.start).not.toHaveBeenCalled();
+    expect(options.onError).not.toHaveBeenCalled();
+  });
+
+  it('continues when permission is granted', async () => {
+    const source = hostedSource();
+    await render(source, {
+      ...handlers(),
+      checkPermissions: async () => 'granted',
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('verifying');
+  });
+
+  it('parks on offline when disconnected, and again when unreachable', async () => {
+    const source = hostedSource();
+    const options = handlers();
+    await render(source, options);
+
+    setMockNetworkState(false);
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    expect(latest.status).toBe('offline');
+
+    setMockNetworkState(true, false);
+    await ReactTestRenderer.act(async () => {
+      latest.retry();
+    });
+    expect(latest.status).toBe('offline');
+    expect(options.onError).not.toHaveBeenCalled();
+    expect(source.start).not.toHaveBeenCalled();
+  });
+
+  it('retry() recovers when the connection is back', async () => {
+    const source = hostedSource();
+    await render(source, handlers());
+
+    setMockNetworkState(false);
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    expect(latest.status).toBe('offline');
+
+    setMockNetworkState(true);
+    await ReactTestRenderer.act(async () => {
+      latest.retry();
+    });
+    expect(latest.status).toBe('verifying');
+  });
+
+  it('reports why the preflight refused so the UI can offer the right way out', async () => {
+    await render(hostedSource(), {
+      ...handlers(),
+      checkPermissions: async () => 'denied',
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.permissionReason).toBe('denied');
+  });
+});
+
+describe('useIdentityVerification - one run at a time', () => {
+  it('ignores a second start() while the first is still in flight', async () => {
+    let resolveStart!: (value: VerificationSession) => void;
+    const source = hostedSource({
+      start: jest.fn(
+        () =>
+          new Promise<VerificationSession>(resolve => {
+            resolveStart = resolve;
+          }),
+      ),
+    });
+    await render(source, handlers());
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+      latest.start();
+    });
+    expect(source.start).toHaveBeenCalledTimes(1);
+
+    await ReactTestRenderer.act(async () => {
+      resolveStart(session);
+    });
+    expect(latest.status).toBe('verifying');
+
+    // The guard lifts once the run has settled.
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    expect(source.start).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores a second retry() while the first is still in flight', async () => {
+    let resolveStart!: (value: VerificationSession) => void;
+    const source = hostedSource({
+      start: jest.fn(
+        () =>
+          new Promise<VerificationSession>(resolve => {
+            resolveStart = resolve;
+          }),
+      ),
+    });
+    await render(source, handlers());
+
+    await ReactTestRenderer.act(async () => {
+      latest.retry();
+      latest.retry();
+    });
+    expect(source.start).toHaveBeenCalledTimes(1);
+
+    await ReactTestRenderer.act(async () => {
+      resolveStart(session);
+    });
+    expect(latest.status).toBe('verifying');
+  });
+
+  it('ignores a second restart() while the first is still in flight', async () => {
+    let resolveStart!: (value: VerificationSession) => void;
+    const source = hostedSource({
+      start: jest.fn(
+        () =>
+          new Promise<VerificationSession>(resolve => {
+            resolveStart = resolve;
+          }),
+      ),
+    });
+    await render(source, handlers());
+
+    await ReactTestRenderer.act(async () => {
+      latest.restart();
+      latest.restart();
+    });
+    expect(source.start).toHaveBeenCalledTimes(1);
+
+    await ReactTestRenderer.act(async () => {
+      resolveStart(session);
+    });
+    expect(latest.status).toBe('verifying');
+  });
+
+  it('retires the delayed onComplete of the run it replaces', async () => {
+    jest.useFakeTimers();
+    const source = createFakeLaunchableSource({ outcome: 'approved' });
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    expect(latest.status).toBe('success');
+
+    // The next run parks offline, so nothing but the retired timer could
+    // still call onComplete.
+    setMockNetworkState(false);
+    await ReactTestRenderer.act(async () => {
+      latest.restart();
+    });
+    await ReactTestRenderer.act(async () => {
+      jest.runAllTimers();
+    });
+
+    expect(latest.status).toBe('offline');
+    expect(options.onComplete).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('retires the delayed onComplete on cancel', async () => {
+    jest.useFakeTimers();
+    const source = createFakeLaunchableSource({ outcome: 'approved' });
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    await ReactTestRenderer.act(async () => {
+      latest.cancel();
+    });
+    await ReactTestRenderer.act(async () => {
+      jest.runAllTimers();
+    });
+
+    expect(latest.status).toBe('idle');
+    expect(options.onComplete).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+});
+
+describe('useIdentityVerification - a host callback that throws', () => {
+  it('surfaces it as the error state, not an unhandled rejection', async () => {
+    const options = handlers();
+    await render(hostedSource(), {
+      ...options,
+      checkPermissions: async () => {
+        throw new Error('permission library exploded');
+      },
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('error');
+    expect(latest.error).toEqual({
+      code: 'UNKNOWN_ERROR',
+      message: 'permission library exploded',
+    });
+    expect(options.onError).toHaveBeenCalledWith(latest.error);
+  });
+
+  it('falls back to the generic copy when the thrown value carries no message', async () => {
+    await render(hostedSource(), {
+      ...handlers(),
+      checkPermissions: async () => {
+        throw undefined;
+      },
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.error?.code).toBe('UNKNOWN_ERROR');
+    expect(latest.error?.message).toEqual(expect.any(String));
+  });
+
+  it('calls onError exactly once and does not reject begin() when onError itself throws', async () => {
+    const onError = jest.fn(() => {
+      throw new Error('host onError exploded');
+    });
+    const options = { ...handlers(), onError };
+    const source = hostedSource({
+      start: jest.fn(async () => {
+        throw { code: 'SESSION_CREATION_FAILED', message: 'nope' };
+      }),
+    });
+    await render(source, options);
+
+    const unhandled = jest.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      await ReactTestRenderer.act(async () => {
+        latest.start();
+      });
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+
+    expect(latest.status).toBe('error');
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(unhandled).not.toHaveBeenCalled();
+  });
+
+  it('drops a host-callback rejection that arrives after unmount', async () => {
+    let rejectPermission!: (cause: unknown) => void;
+    const options = handlers();
+    const renderer = await render(hostedSource(), {
+      ...options,
+      checkPermissions: () =>
+        new Promise<'granted'>((_resolve, reject) => {
+          rejectPermission = reject;
+        }),
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    await ReactTestRenderer.act(async () => {
+      renderer.unmount();
+    });
+    await ReactTestRenderer.act(async () => {
+      rejectPermission(new Error('late'));
+    });
+
+    expect(options.onError).not.toHaveBeenCalled();
+  });
+});
+
+describe('useIdentityVerification - the launchable (native SDK) path', () => {
+  it('launches instead of rendering a page and completes', async () => {
+    jest.useFakeTimers();
+    const source = createFakeLaunchableSource({ outcome: 'approved' });
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('success');
+    expect(latest.result).toEqual({
+      status: 'approved',
+      applicantId: 'fake-applicant',
+    });
+    expect(options.onStatusChange).toHaveBeenCalledWith('approved');
+    expect(options.onComplete).not.toHaveBeenCalled();
+
+    await ReactTestRenderer.act(async () => {
+      jest.runAllTimers();
+    });
+    expect(options.onComplete).toHaveBeenCalledWith({
+      status: 'approved',
+      applicantId: 'fake-applicant',
+    });
+    jest.useRealTimers();
+  });
+
+  it('treats a cancel event during launch as an abort', async () => {
+    const source = createFakeLaunchableSource({ outcome: 'cancel' });
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('idle');
+    expect(latest.session).toBeNull();
+    expect(options.onCancel).toHaveBeenCalledTimes(1);
+    expect(options.onComplete).not.toHaveBeenCalled();
+  });
+
+  it('synthesizes the terminal complete when launch resolves silently', async () => {
+    const source: VerificationSource = {
+      start: async () => ({ provider: 'silent' }),
+      interpret: () => null,
+      launch: async () => ({ status: 'incomplete', applicantId: 'app-7' }),
+    } as VerificationSource;
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('pending');
+    expect(options.onComplete).toHaveBeenCalledWith({
+      status: 'incomplete',
+      applicantId: 'app-7',
+    });
+  });
+
+  it('synthesizes a complete with no applicant id when the SDK reports none', async () => {
+    const source: VerificationSource = {
+      start: async () => ({ provider: 'silent' }),
+      interpret: () => null,
+      launch: async () => ({ status: 'declined' }),
+    } as VerificationSource;
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(options.onComplete).toHaveBeenCalledWith({ status: 'declined' });
+  });
+
+  it('maps a rejecting launch() to an error state, reporting onError exactly once', async () => {
+    // The fake source's 'error' outcome both emits an `error` event AND
+    // rejects launch() - the real contract for a launch failure. onError
+    // must fire once, not once per signal.
+    const source = createFakeLaunchableSource({ outcome: 'error' });
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('error');
+    expect(latest.error?.code).toBe(ClientErrorCodes.SDK_UNAVAILABLE);
+    expect(options.onError).toHaveBeenCalledTimes(1);
+    expect(options.onError).toHaveBeenCalledWith(latest.error);
+  });
+
+  it('falls back to a generic message when a rejecting launch carries none, reporting onError once', async () => {
+    const source: VerificationSource = {
+      start: async () => ({ provider: 'silent' }),
+      interpret: () => null,
+      launch: async () => {
+        throw { code: 'PROVIDER_UNAVAILABLE' };
+      },
+    } as VerificationSource;
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('error');
+    expect(latest.error?.code).toBe('PROVIDER_UNAVAILABLE');
+    expect(options.onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats a cancel event followed by a launch rejection as an abort, not an error', async () => {
+    const source: VerificationSource = {
+      start: async () => ({ provider: 'silent' }),
+      interpret: () => null,
+      launch: async (
+        _s: VerificationSession,
+        onEvent: (event: VerificationEvent) => void,
+      ) => {
+        onEvent({ type: 'cancel' });
+        throw { code: 'SDK_UNAVAILABLE', message: 'torn down after cancel' };
+      },
+    } as VerificationSource;
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.status).toBe('idle');
+    expect(options.onCancel).toHaveBeenCalledTimes(1);
+    expect(options.onError).not.toHaveBeenCalled();
+  });
+
+  it('falls back to UNKNOWN_ERROR when a rejecting launch carries no code', async () => {
+    const source: VerificationSource = {
+      start: async () => ({ provider: 'silent' }),
+      interpret: () => null,
+      launch: async () => {
+        throw new Error('boom');
+      },
+    } as VerificationSource;
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.error).toEqual({ code: 'UNKNOWN_ERROR', message: 'boom' });
+  });
+
+  it('does not overwrite an error the launch already reported', async () => {
+    const source: VerificationSource = {
+      start: async () => ({ provider: 'silent' }),
+      interpret: () => null,
+      launch: async (
+        _s: VerificationSession,
+        onEvent: (event: VerificationEvent) => void,
+      ) => {
+        onEvent({ type: 'error', code: 'PROVIDER_UNAVAILABLE' });
+        return { status: 'incomplete' };
+      },
+    } as VerificationSource;
+    const options = handlers();
+    await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    expect(latest.error?.code).toBe('PROVIDER_UNAVAILABLE');
+    expect(options.onComplete).not.toHaveBeenCalled();
+  });
+});
+
+describe('useIdentityVerification - bridge messages', () => {
+  const messageOf = (event: VerificationEvent) => ({ event });
+
+  const started = async (options: UseIdentityVerificationOptions) => {
+    const source = hostedSource();
+    await render(source, options);
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    return source;
+  };
+
+  it('ignores a message the source does not recognise', async () => {
+    const options = handlers();
+    await started(options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage({ nothing: true });
+    });
+
+    expect(latest.status).toBe('verifying');
+    expect(options.onStatusChange).not.toHaveBeenCalled();
+  });
+
+  it('records the applicant id, then the submission, then the outcome', async () => {
+    const options = handlers();
+    await started(options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage(
+        messageOf({ type: 'applicantLoaded', applicantId: 'app-3' }),
+      );
+    });
+    expect(latest.session?.applicantId).toBe('app-3');
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage(messageOf({ type: 'submitted' }));
+    });
+    expect(latest.status).toBe('pending');
+    expect(options.onStatusChange).toHaveBeenCalledWith('pending');
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage(messageOf({ type: 'complete', status: 'pending' }));
+    });
+    expect(options.onComplete).toHaveBeenCalledWith({
+      status: 'pending',
+      applicantId: 'app-3',
+    });
+  });
+
+  it('reports a page error and clears the session', async () => {
+    const options = handlers();
+    await started(options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage(
+        messageOf({ type: 'error', code: ClientErrorCodes.NETWORK_ERROR }),
+      );
+    });
+
+    expect(latest.status).toBe('error');
+    expect(latest.session).toBeNull();
+    expect(options.onError).toHaveBeenCalledWith(latest.error);
+  });
+
+  it('does not throw out of handleMessage when onError itself throws on a bridge error event', async () => {
+    const onError = jest.fn(() => {
+      throw new Error('host onError exploded');
+    });
+    const options = { ...handlers(), onError };
+    await started(options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage(
+        messageOf({ type: 'error', code: ClientErrorCodes.NETWORK_ERROR }),
+      );
+    });
+
+    expect(latest.status).toBe('error');
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancel() resets and calls back', async () => {
+    const options = handlers();
+    await started(options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.cancel();
+    });
+
+    expect(latest.status).toBe('idle');
+    expect(options.onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes the token in place when the source can, and keeps verifying', async () => {
+    const refreshToken = jest.fn(async () => 'tok-2');
+    const source = { ...hostedSource(), refreshToken };
+    const options = handlers();
+    await render(source, options);
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    const injectJavaScript = jest.fn();
+    latest.webViewRef.current = { injectJavaScript };
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage({ event: { type: 'tokenExpired' } });
+    });
+
+    expect(refreshToken).toHaveBeenCalledWith(session);
+    expect(injectJavaScript).toHaveBeenCalledTimes(1);
+    expect(latest.status).toBe('verifying');
+    expect(options.onError).not.toHaveBeenCalled();
+  });
+
+  it('fails a non-refreshable source with TOKEN_EXPIRED and keeps the session', async () => {
+    const options = handlers();
+    await started(options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage(messageOf({ type: 'tokenExpired' }));
+    });
+
+    expect(latest.status).toBe('error');
+    expect(latest.error?.code).toBe(ClientErrorCodes.TOKEN_EXPIRED);
+    expect(latest.session).toEqual(session);
+  });
+
+  it('fails a rejected refresh with TOKEN_REFRESH_FAILED and keeps the session', async () => {
+    const source = {
+      ...hostedSource(),
+      refreshToken: jest.fn(async () => {
+        throw { code: 'PROVIDER_UNAVAILABLE' };
+      }),
+    };
+    const options = handlers();
+    await render(source, options);
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage({ event: { type: 'tokenExpired' } });
+    });
+
+    expect(latest.status).toBe('error');
+    expect(latest.error?.code).toBe(ClientErrorCodes.TOKEN_REFRESH_FAILED);
+    expect(latest.session).toEqual(session);
+    expect(options.onError).toHaveBeenCalledWith(latest.error);
+  });
+
+  it('keeps the session for restart on sessionExpired and mints a new one', async () => {
+    const options = handlers();
+    const source = await started(options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage(messageOf({ type: 'sessionExpired' }));
+    });
+    expect(latest.status).toBe('error');
+    expect(latest.session).toEqual(session);
+
+    await ReactTestRenderer.act(async () => {
+      latest.restart();
+    });
+    expect(source.start).toHaveBeenCalledTimes(2);
+    expect(latest.status).toBe('verifying');
+  });
+});
+
+describe('useIdentityVerification - unmount safety', () => {
+  it('drops a late session, a late launch and a late message', async () => {
+    let resolveStart!: (session: VerificationSession) => void;
+    const source = hostedSource({
+      start: jest.fn(
+        () =>
+          new Promise<VerificationSession>(resolve => {
+            resolveStart = resolve;
+          }),
+      ),
+    });
+    const options = handlers();
+    const renderer = await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    await ReactTestRenderer.act(async () => {
+      renderer.unmount();
+    });
+    await ReactTestRenderer.act(async () => {
+      resolveStart(session);
+    });
+
+    // No state update, no callback after unmount.
+    await ReactTestRenderer.act(async () => {
+      latest.handleMessage({ event: { type: 'cancel' } });
+    });
+    expect(options.onCancel).not.toHaveBeenCalled();
+  });
+
+  it('drops a late rejection and a late connectivity check', async () => {
+    let rejectStart!: (error: unknown) => void;
+    const source = hostedSource({
+      start: jest.fn(
+        () =>
+          new Promise<VerificationSession>((_resolve, reject) => {
+            rejectStart = reject;
+          }),
+      ),
+    });
+    const options = handlers();
+    const renderer = await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.retry();
+    });
+    await ReactTestRenderer.act(async () => {
+      renderer.unmount();
+    });
+    await ReactTestRenderer.act(async () => {
+      rejectStart({ code: 'PROVIDER_UNAVAILABLE' });
+    });
+
+    expect(options.onError).not.toHaveBeenCalled();
+  });
+
+  it('drops a delayed onComplete when the screen is gone', async () => {
+    jest.useFakeTimers();
+    const source = createFakeLaunchableSource({ outcome: 'approved' });
+    const options = handlers();
+    const renderer = await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    await ReactTestRenderer.act(async () => {
+      renderer.unmount();
+    });
+    jest.runAllTimers();
+
+    expect(options.onComplete).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('drops a permission answer and a launch result that arrive after unmount', async () => {
+    let resolvePermission!: (state: 'granted') => void;
+    let resolveLaunch!: (result: { status: 'approved' }) => void;
+    const source: VerificationSource = {
+      start: async () => ({ provider: 'slow' }),
+      interpret: () => null,
+      launch: () =>
+        new Promise(resolve => {
+          resolveLaunch = resolve as (result: { status: 'approved' }) => void;
+        }),
+    } as VerificationSource;
+    const options = handlers();
+    const renderer = await render(source, {
+      ...options,
+      checkPermissions: () =>
+        new Promise(resolve => {
+          resolvePermission = resolve as (state: 'granted') => void;
+        }),
+    });
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    await ReactTestRenderer.act(async () => {
+      renderer.unmount();
+    });
+    await ReactTestRenderer.act(async () => {
+      resolvePermission('granted');
+    });
+    expect(latest.status).toBe('loading');
+
+    // A second mount runs the launch to completion, then unmounts mid-flight.
+    const second = await render(source, options);
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    await ReactTestRenderer.act(async () => {
+      second.unmount();
+    });
+    await ReactTestRenderer.act(async () => {
+      resolveLaunch({ status: 'approved' });
+    });
+    expect(options.onComplete).not.toHaveBeenCalled();
+  });
+
+  it('drops a launch rejection that arrives after unmount', async () => {
+    let rejectLaunch!: (cause: unknown) => void;
+    const source: VerificationSource = {
+      start: async () => ({ provider: 'slow' }),
+      interpret: () => null,
+      launch: () =>
+        new Promise((_resolve, reject) => {
+          rejectLaunch = reject;
+        }),
+    } as VerificationSource;
+    const options = handlers();
+    const renderer = await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    await ReactTestRenderer.act(async () => {
+      renderer.unmount();
+    });
+    await ReactTestRenderer.act(async () => {
+      rejectLaunch({ code: 'PROVIDER_UNAVAILABLE' });
+    });
+
+    expect(options.onError).not.toHaveBeenCalled();
+  });
+
+  it('drops a connectivity check that resolves after unmount', async () => {
+    let resolveFetch!: (state: {
+      isConnected: boolean;
+      isInternetReachable: boolean;
+    }) => void;
+    (NetInfo.fetch as jest.Mock).mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveFetch = resolve;
+        }),
+    );
+    const source = hostedSource();
+    const options = handlers();
+    const renderer = await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    await ReactTestRenderer.act(async () => {
+      renderer.unmount();
+    });
+    await ReactTestRenderer.act(async () => {
+      resolveFetch({ isConnected: true, isInternetReachable: true });
+    });
+
+    expect(source.start).not.toHaveBeenCalled();
+  });
+
+  it('guards the delayed onComplete even if the cleanup could not cancel the timer', async () => {
+    jest.useFakeTimers();
+    const clearTimeoutSpy = jest
+      .spyOn(global, 'clearTimeout')
+      .mockImplementation(() => undefined);
+    const source = createFakeLaunchableSource({ outcome: 'approved' });
+    const options = handlers();
+    const renderer = await render(source, options);
+
+    await ReactTestRenderer.act(async () => {
+      latest.start();
+    });
+    await ReactTestRenderer.act(async () => {
+      renderer.unmount();
+    });
+    jest.runAllTimers();
+
+    expect(options.onComplete).not.toHaveBeenCalled();
+    clearTimeoutSpy.mockRestore();
+    jest.useRealTimers();
+  });
+});
