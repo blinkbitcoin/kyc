@@ -1,7 +1,15 @@
+// The service's policy around the package: helmet, CORS, rate limits, JWT
+// auth on GraphQL, and the package router mounted. The routes' own
+// semantics are tested in the package.
+
 import type { Express } from 'express';
+import type { Tracker } from 'knex-mock-client';
+import { createTracker } from 'knex-mock-client';
 import request from 'supertest';
 import { vi } from 'vitest';
 import { createApp } from '../src/app';
+import { knex } from '../src/db';
+import { signMockWebhook } from '../src/providers/mock';
 
 describe('createApp', () => {
   let app: Express;
@@ -66,249 +74,69 @@ describe('createApp', () => {
   });
 });
 
-describe('GET /hosted/:sessionId', () => {
+describe('the package router, mounted with this service policy', () => {
+  let tracker: Tracker;
+
+  beforeAll(() => {
+    tracker = createTracker(knex);
+  });
+
   afterEach(() => {
+    tracker.reset();
     vi.restoreAllMocks();
   });
 
-  it('renders the mock page with a nonce CSP and camera permissions', async () => {
-    const session = await import('../src/session');
-    const { clearApplicants } = await import('../src/providers/mock');
-    clearApplicants();
-    vi.spyOn(session, 'getSessionById').mockResolvedValue({
-      id: 'session-1',
-      userId: 'user-1',
-      provider: 'mock',
-      providerApplicantId: 'mock-applicant-1',
-      levelName: null,
-      platform: 'WEB',
-      status: 'initial',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as never);
-
-    const app = await createApp();
-    const res = await request(app).get('/hosted/session-1');
-
-    expect(res.status).toBe(200);
-    expect(res.headers['content-type']).toMatch(/html/);
-    expect(res.headers['permissions-policy']).toContain('camera=(self "https://api.sumsub.com")');
-    expect(res.headers['cache-control']).toBe('no-store');
-    expect(res.headers['x-frame-options']).toBeUndefined();
-    const nonce = res.headers['content-security-policy'].match(/'nonce-([^']+)'/)![1];
-    expect(res.text).toContain(`nonce="${nonce}"`);
-    expect(res.text).toContain('id="mock-approve"');
-    expect(res.text).toContain('X-Mock-Signature');
-  });
-
-  it('404s with the sessionExpired page for an unknown session', async () => {
-    const session = await import('../src/session');
-    vi.spyOn(session, 'getSessionById').mockResolvedValue(null);
-    const app = await createApp();
-    const res = await request(app).get('/hosted/nope');
-    expect(res.status).toBe(404);
-    expect(res.text).toContain("post('sessionExpired')");
-  });
-
-  it.each(['approved', 'finallyRejected'])(
-    'refuses to render or mint a token for a %s session',
-    async (status) => {
-      const session = await import('../src/session');
-      const providers = await import('../src/providers');
-      const refresh = vi.spyOn(providers.provider, 'refreshToken');
-      vi.spyOn(session, 'getSessionById').mockResolvedValue({
+  it('serves the hosted page for a stored session, under the page headers', async () => {
+    tracker.on.select('VerificationSession').response([
+      {
         id: 'session-1',
         userId: 'user-1',
         provider: 'mock',
         providerApplicantId: 'mock-applicant-1',
         levelName: null,
+        locale: null,
         platform: 'WEB',
-        status,
+        status: 'initial',
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as never);
-
-      const res = await request(await createApp()).get('/hosted/session-1');
-      expect(res.status).toBe(404);
-      expect(res.text).toContain("post('sessionExpired')");
-      expect(refresh).not.toHaveBeenCalled();
-    }
-  );
-
-  it('502s when the provider cannot mint a token', async () => {
-    const session = await import('../src/session');
-    const providers = await import('../src/providers');
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(session, 'getSessionById').mockResolvedValue({
-      id: 'session-1',
-      userId: 'user-1',
-      provider: 'mock',
-      providerApplicantId: null,
-      levelName: null,
-      platform: 'WEB',
-      status: 'initial',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as never);
-    vi.spyOn(providers.provider, 'refreshToken').mockRejectedValue(new Error('provider down'));
-
-    const res = await request(await createApp()).get('/hosted/session-1');
-    expect(res.status).toBe(502);
-  });
-
-  it('502s on a non-Error rejection from the provider', async () => {
-    const session = await import('../src/session');
-    const providers = await import('../src/providers');
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(session, 'getSessionById').mockResolvedValue({
-      id: 'session-1',
-      userId: 'user-1',
-      provider: 'mock',
-      providerApplicantId: null,
-      levelName: null,
-      platform: 'WEB',
-      status: 'initial',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as never);
-    vi.spyOn(providers.provider, 'refreshToken').mockRejectedValue('boom');
-
-    const res = await request(await createApp()).get('/hosted/session-1');
-    expect(res.status).toBe(502);
-  });
-
-  it('renders successfully when the session has no bound applicant yet', async () => {
-    const session = await import('../src/session');
-    const providers = await import('../src/providers');
-    const { clearApplicants } = await import('../src/providers/mock');
-    clearApplicants();
-    vi.spyOn(session, 'getSessionById').mockResolvedValue({
-      id: 'session-1',
-      userId: 'user-1',
-      provider: 'mock',
-      providerApplicantId: null,
-      levelName: null,
-      platform: 'WEB',
-      status: 'initial',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as never);
-    vi.spyOn(providers.provider, 'refreshToken').mockResolvedValue({ accessToken: 'mock-token-3' });
-
+      },
+    ]);
     const res = await request(await createApp()).get('/hosted/session-1');
     expect(res.status).toBe(200);
-    expect(res.text).toContain('var applicantId = null;');
-    expect(res.text).not.toContain('Applicant');
-  });
-});
-
-describe('POST /webhook/kyc/:provider', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  const body = JSON.stringify({ applicantId: 'mock-applicant-1', status: 'approved' });
-
-  const send = async (path: string, signature?: string) =>
-    request(await createApp())
-      .post(path)
-      .set('Content-Type', 'application/json')
-      .set(signature === undefined ? {} : { 'X-Mock-Signature': signature })
-      .send(body);
-
-  it('404s for an unknown or non-configured provider', async () => {
-    expect((await send('/webhook/kyc/docusign')).status).toBe(404);
-    expect((await send('/webhook/kyc/sumsub')).status).toBe(404);
+    expect(res.headers['content-type']).toMatch(/html/);
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(res.headers['x-frame-options']).toBeUndefined();
+    expect(res.headers['permissions-policy']).toContain('camera=');
+    const nonce = res.headers['content-security-policy'].match(/'nonce-([^']+)'/)![1];
+    expect(res.text).toContain(`nonce="${nonce}"`);
+    expect(res.text).toContain('id="mock-approve"');
   });
 
-  it('401s without a valid signature', async () => {
+  it('404s with the sessionExpired page for an unknown session', async () => {
+    tracker.on.select('VerificationSession').response([]);
+    const res = await request(await createApp()).get('/hosted/nope');
+    expect(res.status).toBe(404);
+    expect(res.text).toContain("post('sessionExpired')");
+  });
+
+  it('accepts webhooks from the configured provider only, signed', async () => {
+    const app = await createApp();
+    const body = JSON.stringify({ applicantId: 'mock-applicant-1', status: 'approved' });
+    expect((await request(app).post('/webhook/kyc/sumsub').send(body)).status).toBe(404);
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect((await send('/webhook/kyc/mock', 'bad')).status).toBe(401);
-  });
-
-  it('401s when the digest algorithm header names an inherited property', async () => {
-    const providers = await import('../src/providers');
-    const { SumsubProvider } = await import('../src/providers/sumsub');
-    process.env.SUMSUB_WEBHOOK_SECRET = 'webhook-secret';
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(providers.provider, 'verifyWebhook').mockImplementation((headers, rawBody, ip) =>
-      SumsubProvider.verifyWebhook(headers, rawBody, ip)
-    );
-
-    const res = await request(await createApp())
+    const unsigned = await request(app)
       .post('/webhook/kyc/mock')
       .set('Content-Type', 'application/json')
-      .set('X-Payload-Digest', 'deadbeef')
-      .set('X-Payload-Digest-Alg', 'constructor')
+      .set('X-Mock-Signature', 'bad')
       .send(body);
-
-    expect(res.status).toBe(401);
-    delete process.env.SUMSUB_WEBHOOK_SECRET;
-  });
-
-  it('401s rather than 500s when the verifier itself throws', async () => {
-    const providers = await import('../src/providers');
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(providers.provider, 'verifyWebhook').mockImplementation(() => {
-      throw new Error('bad header');
-    });
-    const res = await send('/webhook/kyc/mock', 'whatever');
-    expect(res.status).toBe(401);
-  });
-
-  it('401s rather than 500s on a non-Error thrown by the verifier', async () => {
-    const providers = await import('../src/providers');
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(providers.provider, 'verifyWebhook').mockImplementation(() => {
-      throw 'bad header';
-    });
-    const res = await send('/webhook/kyc/mock', 'whatever');
-    expect(res.status).toBe(401);
-  });
-
-  it('400s on a payload the provider cannot parse', async () => {
-    const { signMockWebhook } = await import('../src/providers/mock');
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    const res = await request(await createApp())
+    expect(unsigned.status).toBe(401);
+    tracker.on.select('VerificationSession').response([]);
+    const signed = await request(app)
       .post('/webhook/kyc/mock')
       .set('Content-Type', 'application/json')
-      .set('X-Mock-Signature', signMockWebhook('{'))
-      .send('{');
-    expect(res.status).toBe(400);
-  });
-
-  it('200s and reports the outcome for a valid webhook', async () => {
-    const { signMockWebhook } = await import('../src/providers/mock');
-    const webhook = await import('../src/webhook');
-    vi.spyOn(webhook, 'handleWebhookEvent').mockResolvedValue('updated');
-    const res = await send('/webhook/kyc/mock', signMockWebhook(body));
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ received: true, outcome: 'updated' });
-  });
-
-  it('500s when processing throws', async () => {
-    const { signMockWebhook } = await import('../src/providers/mock');
-    const webhook = await import('../src/webhook');
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(webhook, 'handleWebhookEvent').mockRejectedValue(new Error('db down'));
-    expect((await send('/webhook/kyc/mock', signMockWebhook(body))).status).toBe(500);
-  });
-
-  it('500s with a non-Error rejection too', async () => {
-    const { signMockWebhook } = await import('../src/providers/mock');
-    const webhook = await import('../src/webhook');
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(webhook, 'handleWebhookEvent').mockRejectedValue('db down');
-    expect((await send('/webhook/kyc/mock', signMockWebhook(body))).status).toBe(500);
-  });
-
-  it('401s when the body was not parsed as JSON text (wrong content type)', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    const res = await request(await createApp())
-      .post('/webhook/kyc/mock')
-      .set('Content-Type', 'text/plain')
-      .set('X-Mock-Signature', 'whatever')
+      .set('X-Mock-Signature', signMockWebhook(body))
       .send(body);
-    expect(res.status).toBe(401);
+    expect(signed.status).toBe(200);
+    expect(signed.body).toEqual({ received: true, outcome: 'unknown_session' });
   });
 });

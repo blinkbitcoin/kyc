@@ -22,12 +22,12 @@ the current state is [docs/index.md](docs/index.md).
 ## Project Structure
 
 ```
-├── apps/api/                    # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres); verification session/token issuance, provider port (mock + Sumsub), signed webhooks and the hosted verification page
+├── apps/api/                    # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres), composed from packages/kyc-server: this service's policy (helmet, CORS, rate limits, JWT auth, fail-closed boot) around the package's router, schema, store and adapters
 │   └── src/
-│       ├── providers/           # VerificationProvider port + mock/sumsub adapters + factory
-│       ├── session.ts           # Session repository + the atomic terminal-status guard (applyStatusTransition)
-│       ├── webhook.ts           # Signed webhook handling
-│       └── verificationPages.ts # The hosted page (kyc-bridge protocol)
+│       ├── providers/           # The registry: the package adapters wired to this service's config + tracing
+│       ├── services.ts          # createVerificationService over the provider, the Knex store and PUBLIC_BASE_URL
+│       ├── app.ts               # Apollo + the package router, under the service's middleware
+│       └── config.ts            # validateSecurityConfig (fail-closed boot)
 ├── packages/
 │   ├── kyc-server/              # 📦 server half: the verification-session domain over provider + store ports, Sumsub adapter, hosted page, Fetch handlers, /express router, /knex store (entries ., /express, /knex, /sumsub)
 │   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode; providers/sumsub/ = the one Sumsub mapping (entry /sumsub)
@@ -81,17 +81,20 @@ Underlying npm scripts (`npm test`, `npm run typecheck`, `npm run lint`,
 - Shell that CI or the Makefile runs lives in `scripts/{ci,e2e,release}/`,
   not inline in workflows; it is shellcheck'd by `make check-ci`
 - The provider boundary is `VerificationSource` (`packages/kyc-core/src/verification/types.ts`)
-  on the client side and `VerificationProvider` (`apps/api/src/providers/port.ts`) on the
-  backend - nothing Sumsub-specific outside a `providers/sumsub/` directory:
+  on the client side and `VerificationProvider` (`packages/kyc-server/src/provider.ts`) on the
+  server - nothing Sumsub-specific outside a `providers/sumsub/` directory:
   `packages/kyc-core/src/providers/sumsub/` (the one mapping),
-  `packages/kyc-react-native/src/providers/sumsub/` (the native-SDK source),
-  `packages/kyc-react/src/providers/sumsub/` (reserved) and
-  `apps/api/src/providers/sumsub/`, which imports the mapping from
-  `@blinkbitcoin/kyc-core/sumsub` rather than restating it; a package's
-  `src/sumsub.ts` is a one-line re-export of its `providers/sumsub/` surface
-  (guard tests), and generic layers never import a provider (guard tests)
+  `packages/kyc-server/src/providers/sumsub/` (the adapter, its client and
+  its hosted page), `packages/kyc-react-native/src/providers/sumsub/` (the
+  native-SDK source), `packages/kyc-react/src/providers/sumsub/` (reserved)
+  and `apps/api/src/providers/sumsub/` (the package adapter wired to the
+  service's config); a package's `src/sumsub.ts` is a one-line re-export of
+  its `providers/sumsub/` surface (guard tests), generic layers never import
+  a provider (guard tests), and hosts select one through `providerFromEnv`
+  (`KYC_PROVIDER`)
 - GraphQL error codes are a wire contract: the `ErrorCode` enum in
-  `apps/api/schema.graphql` (emitted from `src/typeDefs.ts`) and the generated
+  `apps/api/schema.graphql` (emitted from the SDL in
+  `packages/kyc-server/src/graphql.ts`, re-exported by `src/typeDefs.ts`) and the generated
   client types in `packages/kyc-core/src/generated/` - run `make codegen`
   after schema changes; drift fails tests and a CI step. Client-only codes
   (`NETWORK_ERROR`, `PERMISSION_DENIED`, `SDK_UNAVAILABLE`, `TOKEN_EXPIRED`,

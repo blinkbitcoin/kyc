@@ -20,7 +20,7 @@ db-up: ## Start the dev Postgres (port 5432)
 db-down: ## Stop the dev Postgres
 	docker compose down
 
-migrate: ## Apply Knex migrations (dev database)
+migrate: ## Apply the package's migrations (dev database)
 	npm run migrate
 
 migrate-test: ## Apply migrations to the test database (.env.test)

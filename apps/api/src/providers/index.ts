@@ -1,40 +1,49 @@
+// Provider registry + composition root. The package's providerFromEnv
+// selects an adapter from KYC_PROVIDER out of this service's registry: the
+// package adapters wired to the service's config and policy, each wrapped in
+// tracing. Consumers import the `provider` singleton (or `getProvider` for
+// tests); nothing else imports the adapters.
+
+import {
+  type ProviderRegistry,
+  providerFromEnv,
+  providerNameFromEnv,
+} from '@blinkbitcoin/kyc-server';
 import { instrumentProvider } from '../tracing';
 import { assertMockProviderAllowed, MockProvider } from './mock';
 import type { VerificationProvider } from './port';
 import { SumsubProvider, validateConfig as validateSumsubConfig } from './sumsub';
 
-export const PROVIDER_NAMES = ['mock', 'sumsub'] as const;
-export type ProviderName = (typeof PROVIDER_NAMES)[number];
+// Every adapter is wrapped in tracing spans here, so new providers are
+// instrumented by construction (see instrumentProvider in tracing.ts). The
+// entries are lazy and fail fast at startup, never per request: the mock
+// refuses to start outside insecure dev, Sumsub without its credentials.
+export const registry: ProviderRegistry = {
+  mock: () => {
+    assertMockProviderAllowed();
+    return instrumentProvider(MockProvider, 'mock');
+  },
+  sumsub: () => {
+    validateSumsubConfig();
+    return instrumentProvider(SumsubProvider, 'sumsub');
+  },
+};
 
-export const isKnownProvider = (name: string): name is ProviderName =>
-  (PROVIDER_NAMES as readonly string[]).includes(name);
+export const isKnownProvider = (name: string): boolean => Object.hasOwn(registry, name);
 
 /** The provider this process is configured for (unknown values read as mock). */
-export const getProviderName = (env: NodeJS.ProcessEnv = process.env): ProviderName => {
-  const name = env.KYC_PROVIDER ?? 'mock';
-  return isKnownProvider(name) ? name : 'mock';
-};
+export const getProviderName = (env: NodeJS.ProcessEnv = process.env): string =>
+  providerNameFromEnv(env, registry, { onUnknown: () => undefined });
 
-export const getProvider = (providerName?: string): VerificationProvider => {
-  const name = providerName ?? process.env.KYC_PROVIDER ?? 'mock';
-
-  switch (name) {
-    case 'mock':
-      // Fail fast at boot rather than on the first forged webhook.
-      assertMockProviderAllowed();
-      return instrumentProvider(MockProvider, 'mock');
-    case 'sumsub':
-      // Fail fast at boot rather than on the first session.
-      validateSumsubConfig();
-      return instrumentProvider(SumsubProvider, 'sumsub');
-    default:
-      console.warn(`Unknown KYC_PROVIDER: ${name}, falling back to mock`);
-      assertMockProviderAllowed();
-      return instrumentProvider(MockProvider, 'mock');
-  }
-};
+// Provider factory - exported for testing. An unknown name warns and falls
+// back to the mock (the package's providerFromEnv default).
+export const getProvider = (providerName?: string): VerificationProvider =>
+  providerFromEnv(
+    providerName === undefined ? process.env : { KYC_PROVIDER: providerName },
+    registry
+  );
 
 export const provider = getProvider();
 
 export type { VerificationProvider } from './port';
-export { supportsUserStatusLookup } from './port';
+export { supportsHostedPage, supportsUserStatusLookup } from './port';

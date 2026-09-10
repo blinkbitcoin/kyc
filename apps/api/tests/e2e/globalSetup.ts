@@ -6,6 +6,7 @@
 // removes. Each file still checks connectivity and truncates (tests/e2e/
 // setup.ts); only `knex.migrate.latest()` moved here.
 
+import { runKycMigrations } from '@blinkbitcoin/kyc-server/knex';
 import type { Knex } from 'knex';
 import createKnex from 'knex';
 
@@ -41,8 +42,8 @@ export default async function setup(): Promise<void> {
 
   try {
     await waitForDatabase(knex);
-    // Directory is resolved relative to process.cwd() (apps/api).
-    await knex.migrate.latest({ directory: 'migrations', extension: 'ts' });
+    // The schema is the package's programmatic migration source
+    await runKycMigrations(knex);
   } finally {
     await knex.destroy();
   }

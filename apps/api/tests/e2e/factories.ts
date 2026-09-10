@@ -1,6 +1,5 @@
+import type { SessionRecord } from '@blinkbitcoin/kyc-server';
 import { randomUUID } from 'crypto';
-
-import type { VerificationSessionRow } from '../../src/session';
 import { knex } from './setup';
 
 export const createTestSession = async (
@@ -15,8 +14,8 @@ export const createTestSession = async (
     status: string;
     createdAt: Date;
   }> = {}
-): Promise<VerificationSessionRow> => {
-  const [session] = await knex<VerificationSessionRow>('VerificationSession')
+): Promise<SessionRecord> => {
+  const [session] = await knex<SessionRecord>('VerificationSession')
     .insert({
       id: overrides.id ?? randomUUID(),
       userId: overrides.userId ?? 'e2e-user',

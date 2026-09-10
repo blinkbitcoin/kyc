@@ -1,49 +1,20 @@
-// Sumsub adapter configuration. Mirrors esign's
-// apps/api/src/providers/docusign/config.ts: pure env reading plus a
-// fail-fast validator the provider factory calls at boot.
+// Sumsub configuration for the service: the package's SUMSUB_* env mapping
+// (read on every call so tests and credential rotation see the current
+// environment) plus the service's boot-time validation.
 
-export interface SumsubConfig {
-  appToken?: string;
-  secretKey?: string;
-  webhookSecret?: string;
-  baseUrl: string;
-  levelName: string;
-  tokenTtlSecs: number;
-  requestTimeoutMs: number;
-}
+import {
+  missingSumsubConfig,
+  type SumsubConfig,
+  sumsubConfigFromEnv,
+} from '@blinkbitcoin/kyc-server';
 
-export const SUMSUB_DEFAULTS = {
-  baseUrl: 'https://api.sumsub.com',
-  /** Used whenever the GraphQL input omits levelName. */
-  levelName: 'basic-kyc-level',
-  tokenTtlSecs: 600,
-  /** Ceiling on a single Sumsub HTTP call, retries excluded. */
-  requestTimeoutMs: 10000,
-} as const;
+export const getConfig = (env: NodeJS.ProcessEnv = process.env): SumsubConfig =>
+  sumsubConfigFromEnv(env);
 
-const positiveInt = (raw: string | undefined, fallback: number): number => {
-  const parsed = Number.parseInt(raw ?? '', 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-};
-
-export const getConfig = (env: NodeJS.ProcessEnv = process.env): SumsubConfig => ({
-  appToken: env.SUMSUB_APP_TOKEN,
-  secretKey: env.SUMSUB_SECRET_KEY,
-  webhookSecret: env.SUMSUB_WEBHOOK_SECRET,
-  baseUrl: (env.SUMSUB_BASE_URL || SUMSUB_DEFAULTS.baseUrl).replace(/\/+$/, ''),
-  levelName: env.SUMSUB_LEVEL_NAME || SUMSUB_DEFAULTS.levelName,
-  tokenTtlSecs: positiveInt(env.SUMSUB_TOKEN_TTL_SECS, SUMSUB_DEFAULTS.tokenTtlSecs),
-  requestTimeoutMs: positiveInt(env.SUMSUB_REQUEST_TIMEOUT_MS, SUMSUB_DEFAULTS.requestTimeoutMs),
-});
-
+// Throws so a misconfigured server fails at startup with a clear message,
+// instead of booting fine and crashing on the first session.
 export const validateConfig = (env: NodeJS.ProcessEnv = process.env): void => {
-  const config = getConfig(env);
-  const missing: string[] = [];
-
-  if (!config.appToken) missing.push('SUMSUB_APP_TOKEN');
-  if (!config.secretKey) missing.push('SUMSUB_SECRET_KEY');
-  if (!config.webhookSecret) missing.push('SUMSUB_WEBHOOK_SECRET');
-
+  const missing = missingSumsubConfig(getConfig(env));
   if (missing.length > 0) {
     throw new Error(
       `Sumsub provider: Missing required environment variables: ${missing.join(', ')}`

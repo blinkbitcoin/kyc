@@ -1,6 +1,40 @@
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'vitest/config';
 
+const fromRoot = (relative: string): string => fileURLToPath(new URL(relative, import.meta.url));
+
 export default defineConfig({
+  resolve: {
+    // The workspace packages straight from source (no build needed for
+    // tests); the subpaths first so the bare name does not swallow them
+    alias: [
+      {
+        find: '@blinkbitcoin/kyc-server/express',
+        replacement: fromRoot('../../packages/kyc-server/src/express.ts'),
+      },
+      {
+        find: '@blinkbitcoin/kyc-server/knex',
+        replacement: fromRoot('../../packages/kyc-server/src/knex.ts'),
+      },
+      {
+        find: '@blinkbitcoin/kyc-server/sumsub',
+        replacement: fromRoot('../../packages/kyc-server/src/sumsub.ts'),
+      },
+      {
+        find: /^@blinkbitcoin\/kyc-server$/,
+        replacement: fromRoot('../../packages/kyc-server/src/index.ts'),
+      },
+      {
+        find: /^@blinkbitcoin\/kyc-core\/sumsub$/,
+        replacement: fromRoot('../../packages/kyc-core/src/sumsub.ts'),
+      },
+      {
+        find: /^@blinkbitcoin\/kyc-core\/hosted$/,
+        replacement: fromRoot('../../packages/kyc-core/src/hosted.ts'),
+      },
+    ],
+  },
   test: {
     environment: 'node',
     globals: true,

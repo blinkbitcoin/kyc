@@ -158,3 +158,18 @@ describe('instrumentProvider', () => {
     expect(inner.verifyWebhook).toHaveBeenCalledWith({}, '{}', '127.0.0.1');
   });
 });
+
+describe('instrumentProvider keeps the hosted-page capability', () => {
+  it('carries hostedPage through untouched, and omits it when the adapter has none', () => {
+    const base = {
+      createSession: vi.fn(),
+      refreshToken: vi.fn(),
+      getStatus: vi.fn(),
+      verifyWebhook: vi.fn(),
+      parseWebhookEvent: vi.fn(),
+    };
+    const hostedPage = { render: () => '<page>' };
+    expect(instrumentProvider({ ...base, hostedPage }, 'x').hostedPage).toBe(hostedPage);
+    expect(instrumentProvider(base, 'x').hostedPage).toBeUndefined();
+  });
+});

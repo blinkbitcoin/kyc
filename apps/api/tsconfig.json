@@ -8,10 +8,18 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "../..",
     "resolveJsonModule": true,
     "declaration": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@blinkbitcoin/kyc-server": ["../../packages/kyc-server/src/index.ts"],
+      "@blinkbitcoin/kyc-server/express": ["../../packages/kyc-server/src/express.ts"],
+      "@blinkbitcoin/kyc-server/knex": ["../../packages/kyc-server/src/knex.ts"],
+      "@blinkbitcoin/kyc-server/sumsub": ["../../packages/kyc-server/src/sumsub.ts"],
+      "@blinkbitcoin/kyc-core/sumsub": ["../../packages/kyc-core/src/sumsub.ts"],
+      "@blinkbitcoin/kyc-core/hosted": ["../../packages/kyc-core/src/hosted.ts"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "tests"]

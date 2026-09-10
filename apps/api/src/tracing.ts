@@ -69,6 +69,9 @@ export const instrumentProvider = (
   provider: VerificationProvider,
   name: string
 ): VerificationProvider => ({
+  // The hosted-page capability is rendering, not a provider call: it rides
+  // along untouched so supportsHostedPage() still reflects the adapter
+  ...(provider.hostedPage && { hostedPage: provider.hostedPage }),
   ...(provider.getStatusByUserId && {
     getStatusByUserId: (userId: string) =>
       withSpan(
