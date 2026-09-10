@@ -25,6 +25,19 @@ timeout_seconds() {
   esac
 }
 
+# Signal a process and everything under it, children first. npm wraps the
+# Maestro CLI (a Java process) two or three layers deep, and all of them must
+# go - but only them. A `pkill -f maestro` would also match this script's own
+# command line (android-maestro.sh, the test file) and kill the bound itself,
+# which on Linux is exactly what happened.
+signal_tree() {
+  local child
+  for child in $(pgrep -P "$1" 2> /dev/null); do
+    signal_tree "$child" "$2"
+  done
+  kill "-$2" "$1" 2> /dev/null || true
+}
+
 bounded_maestro() {
   local limit waited=0 pid status
   limit=$(timeout_seconds "$MAESTRO_SUITE_TIMEOUT")
@@ -33,12 +46,10 @@ bounded_maestro() {
   while kill -0 "$pid" 2> /dev/null; do
     if [ "$waited" -ge "$limit" ]; then
       echo "::error::Maestro suite exceeded $MAESTRO_SUITE_TIMEOUT without completing (#41)"
-      # npm wraps the Maestro CLI (a Java process): stop both, gently then hard
-      pkill -TERM -f 'maestro' 2> /dev/null || true
-      kill -TERM "$pid" 2> /dev/null || true
+      # gently, then hard
+      signal_tree "$pid" TERM
       sleep "$MAESTRO_KILL_GRACE_SECONDS"
-      pkill -KILL -f 'maestro' 2> /dev/null || true
-      kill -KILL "$pid" 2> /dev/null || true
+      signal_tree "$pid" KILL
       wait "$pid" 2> /dev/null
       return 124
     fi
