@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 **Project:** kyc
-**Updated:** 2026-09-06
+**Updated:** 2026-09-10
 
 ---
 
@@ -9,10 +9,10 @@
 
 | Attribute | Value |
 |-----------|-------|
-| **Type** | Monorepo (npm workspaces): four packages + service + two demo apps |
+| **Type** | Monorepo (npm workspaces): four packages + three server/client example hosts + the tooling workspace |
 | **Domain** | Fintech / identity verification (KYC) |
 | **Primary Language** | TypeScript |
-| **Architecture** | React and React Native packages over a shared core, with an Express/Apollo reference backend |
+| **Architecture** | React and React Native packages over a shared core; a ports-and-adapters server package that the Express/Apollo reference backend and the access-token example compose |
 
 ### Quick Reference
 
@@ -34,7 +34,11 @@
 
 - **`react-native-demo`** - React Native 0.86, `KYC_MODE` = `native` | `hosted` | `proxy` | `fake-native`, Maestro flows in `.maestro/`
 - **`access-token-demo`** - the other server shape: an existing GraphQL API adds one mutation that mints a provider access token for mode 1 (`make e2e-server-demos` boots it)
-- **`react-demo`** - Vite + React 19, `VITE_KYC_MODE` = `hosted` | `proxy`, Playwright specs in `e2e/`
+- **`react-demo`** - Vite + React 19, `VITE_KYC_MODE` = `hosted` | `proxy`, `VITE_KYC_UI` = `default` | `themed`, Playwright specs in `e2e/` on per-worktree ports
+
+#### Tooling (`scripts/`)
+
+- The `tooling` workspace the Makefile and CI run: `ci/` (docs freshness, coverage-empty, docs-tables, manifest-structural, codegen and diagram checks), `e2e/` (the E2E stack, the live Sumsub run), `release/`; the logic in `lib/*.mjs` at 100% Vitest coverage, the shell scripts driven by `__tests__/`
 
 ---
 
@@ -59,12 +63,13 @@ Organized by namespace - pick by what you are doing:
 |-----|--------|
 | [mobile.md](architecture/mobile.md) | The React Native package: the state machine, the hardened WebView, permissions, token refresh, test doubles |
 | [web.md](architecture/web.md) | The React web package: the origin-pinned iframe, the two web-specific machine rules, the mountable seam |
-| [backend.md](architecture/backend.md) | `examples/full-service-demo`: the provider port, resolvers, webhook processing, the hosted page, observability |
+| [backend.md](architecture/backend.md) | `@blinkbitcoin/kyc-server` and the service composed on it: entry points, the ports, the single write path, webhook processing, the hosted page, security, observability, the test tiers |
 | [integration.md](architecture/integration.md) | How the parts communicate: the seam, the bridge, GraphQL, webhooks, the shared error contract |
 | [api-contracts.md](architecture/api-contracts.md) | The GraphQL schema and the three HTTP routes, field by field |
 | [data-models.md](architecture/data-models.md) | The two Knex tables, their columns, the audit allow-list, the repository functions |
 | [security.md](architecture/security.md) | The threat model: fail-closed boot, auth, webhook verification, the origin pin, CSP, PII discipline, host responsibilities |
 | [source-tree.md](architecture/source-tree.md) | Annotated directory structure and the critical paths |
+| [principles.md](architecture/principles.md) | The rules the layout follows - each with its reason in a KYC library and the check that enforces it |
 
 ### Package and app READMEs
 
@@ -76,7 +81,8 @@ Organized by namespace - pick by what you are doing:
 | [../packages/kyc-react/README.md](../packages/kyc-react/README.md) | The web package: iframe/CSP requirements, origin pinning, `Verification` props |
 | [../examples/full-service-demo/README.md](../examples/full-service-demo/README.md) | Running and configuring the reference backend |
 | [../examples/react-native-demo/README.md](../examples/react-native-demo/README.md) | The four `KYC_MODE` modes, the screen/testID contract, the Maestro suite |
-| [../examples/react-demo/README.md](../examples/react-demo/README.md) | The two web modes and the Playwright suites |
+| [../examples/react-demo/README.md](../examples/react-demo/README.md) | The two web modes, the themed variant and the Playwright suites |
+| [../examples/access-token-demo/README.md](../examples/access-token-demo/README.md) | The other server shape: one mutation that mints a provider access token |
 
 ### Root
 
@@ -129,7 +135,7 @@ make e2e-android            # Maestro (see make help for prerequisites)
 ### "I want to understand the codebase"
 1. Start with the [README](../README.md) - the modes and the layout
 2. [Source tree](architecture/source-tree.md), then [integration.md](architecture/integration.md) for how the parts talk
-3. [diagrams/](./diagrams/README.md) for the same picture in eight pictures
+3. [diagrams/](./diagrams/README.md) for the same picture in nine pictures
 
 ### "I want to set up my dev environment"
 1. [Development guide](./development-guide.md)
@@ -138,14 +144,16 @@ make e2e-android            # Maestro (see make help for prerequisites)
 1. [API contracts](architecture/api-contracts.md), then [data models](architecture/data-models.md)
 
 ### "I want to run this against real Sumsub"
-1. [integration/sumsub.md](integration/sumsub.md) - dashboard setup, env wiring, and the manual device checklist
+1. [integration/sumsub.md](integration/sumsub.md) - dashboard setup, the automated tier (`make e2e-live`), and the manual device checklist
+2. [operations/live-e2e-ci.md](operations/live-e2e-ci.md) - the same run as an opt-in CI job
 
 ### "I want to review the security posture"
 1. [architecture/security.md](architecture/security.md), then [SECURITY.md](../SECURITY.md) for reporting
 
 ### "I want to add a feature or a provider"
 1. [Development guide](./development-guide.md) for the workflow and the quality gates
-2. The architecture doc for the part you are touching - a new provider means implementing `VerificationProvider` ([backend.md](architecture/backend.md)) and, on the client, a `VerificationSource` ([integration.md](architecture/integration.md))
+2. [architecture/principles.md](architecture/principles.md) for the rules and the checks that hold them
+3. The architecture doc for the part you are touching - a new provider is a `providers/<name>/` directory in core and the server (plus React Native / web if it has client code) and one registry entry ([backend.md](architecture/backend.md), the recipe in CLAUDE.md)
 
 ---
 

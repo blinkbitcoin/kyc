@@ -1,11 +1,11 @@
 # API Contracts - Backend
 
 **Part:** backend
-**Updated:** 2026-09-06
+**Updated:** 2026-09-10
 
 ## Overview
 
-`examples/full-service-demo` exposes one GraphQL endpoint and three HTTP routes. The SDL is authored in `src/typeDefs.ts` and emitted to `examples/full-service-demo/schema.graphql` by `npm run schema:emit -w examples/full-service-demo`; `make codegen` then regenerates `packages/kyc-core/src/generated/`. `make codegen-check` fails if either artifact drifts.
+`examples/full-service-demo` exposes one GraphQL endpoint and three HTTP routes; the SDL and the routes come from `@blinkbitcoin/kyc-server` (`typeDefs` in `packages/kyc-server/src/graphql.ts`, the router in `src/express.ts`), the service only mounts them. The SDL is re-exported by the service's `src/typeDefs.ts` and emitted to `examples/full-service-demo/schema.graphql` by `npm run schema:emit -w examples/full-service-demo`; `make codegen` then regenerates `packages/kyc-core/src/generated/`. `make codegen-check` fails if either artifact drifts.
 
 ## GraphQL API
 

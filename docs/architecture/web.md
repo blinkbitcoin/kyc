@@ -2,7 +2,7 @@
 
 **Part:** react
 **Type:** Publishable React web library (tsup)
-**Updated:** 2026-09-06
+**Updated:** 2026-09-10
 
 ## Technology Stack
 
@@ -25,6 +25,8 @@
 | `src/hosted/HostedFrame.tsx` | The component that applies them and owns the `message` listener |
 | `src/mountable.ts`, `src/MountPoint.tsx` | The `MountableSource` seam and the `<div>` a mountable source is handed |
 | `src/types.ts`, `src/index.ts` | Type barrel and the single entry |
+| `src/theme.ts` | The base inline styles, `DEFAULT_LABELS`, `resolveStyles` / `resolveLabels` (base < `theme` < `styles`; default < `label` < `labels`) |
+| `src/hosted.ts` | The Apollo-free `./hosted` entry - the same import a React Native host writes; the component modules import core's hosted entry, so it is Apollo-free by construction (guard-tested, pack-smoked) |
 
 **There is no `./hosted` subpath on the web, deliberately.** There is no Metro-style export condition to satisfy and no native peer to keep out of a build, so the single `.` entry re-exports the whole core and bundlers drop what a hosted-only app never imports (`"sideEffects": false`).
 

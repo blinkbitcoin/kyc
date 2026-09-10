@@ -24,13 +24,19 @@ webhook-backed status that a replayed callback cannot downgrade.
 
 | Mode | What it is | What your app installs | Backend required |
 |------|-----------|------------------------|------------------|
-| **1. Native SDK** | The provider SDK runs in-process<br>(a React Native native module);<br>your app supplies an<br>access-token callback | `kyc-react-native`<br>(its `/sumsub` entry) +<br>the Sumsub SDK peer | Any backend that<br>mints provider<br>access tokens<br>(`kyc-server` does) |
-| **2. Hosted page** | A page speaking the<br>`kyc-bridge` protocol, embedded<br>in a hardened WebView or an<br>origin-pinned iframe | One package via the<br>Apollo-free `/hosted`<br>entry - **no Apollo,<br>no GraphQL** | The page (this<br>repo's `examples/full-service-demo`,<br>or your own) |
+| **1. Hosted page** | A page speaking the<br>`kyc-bridge` protocol, embedded<br>in a hardened WebView or an<br>origin-pinned iframe | One package via the<br>Apollo-free `/hosted`<br>entry - **no Apollo,<br>no GraphQL** | The page (this<br>repo's `examples/full-service-demo`,<br>or your own) |
+| **2. Native SDK** | The provider SDK runs in-process<br>(a React Native native module);<br>your app supplies an<br>access-token callback | `kyc-react-native`<br>(its `/sumsub` entry) +<br>the Sumsub SDK peer | Any backend that<br>mints provider<br>access tokens<br>(`kyc-server` does;<br>`examples/access-token-demo`<br>shows one mutation) |
 | **3. Proxy session** | Full orchestration: session<br>creation, token refresh,<br>webhook status sync,<br>status query | The package +<br>`@apollo/client` +<br>`graphql` | This repo's backend<br>service (`examples/full-service-demo`) |
 
-The GraphQL backend, the Apollo wiring and the provider adapters in this repo
-exist for **mode 3 only**. If mode 1 or 2 covers you, none of that ships with
-you - the [Integration](#integration) section walks each mode from simplest up.
+**Which mode?** Hosted if you can serve (or point at) a page - it is the
+smallest install and the same on both platforms. Native SDK if the camera
+UX on a phone is what matters and your API can mint a provider token.
+Proxy if you want this repo's backend to own the session lifecycle and the
+webhook-backed status. The Apollo wiring and the GraphQL backend exist for
+**mode 3 only**; nothing of it ships with modes 1 and 2. Reading path: the
+[Integration](#integration) section below in order, then the package README
+for your platform, then [docs/integration/](docs/integration/consuming.md)
+for the mode you picked.
 
 ## Integration
 
@@ -163,8 +169,11 @@ Ordered by how likely you are to need each part:
 | [`packages/kyc-server/`](packages/kyc-server/README.md) | The server half a backend installs: Sumsub<br>token minting and webhook verification, the<br>session domain, the hosted page, an Express<br>router and a Knex store. This repo's<br>backend is built on it. |
 | [`packages/kyc-core/`](packages/kyc-core/README.md) | The shared core both libraries build on:<br>`VerificationSource`, the capability guards,<br>the bridge protocol, the state machine, the<br>error-code contract, and the Sumsub mapping<br>on `/sumsub`. It arrives as a dependency -<br>you never install it directly. |
 | [`examples/full-service-demo/`](examples/full-service-demo/README.md) | The reference backend on `kyc-server`:<br>Express + Apollo + Postgres, this service's<br>policy around the package. Needed for mode<br>3 only; the backend every E2E suite runs<br>against. |
-| [`examples/`](examples/README.md) | The hosts - the executable integration docs:<br>two client demos (Maestro / Playwright<br>targets) and, beside the full service, an<br>existing API that only mints access tokens. |
-| `docs/` | Documentation of how everything currently<br>works - start at [docs/index.md](docs/index.md). |
+| [`examples/access-token-demo/`](examples/access-token-demo/README.md) | The other server shape: an existing GraphQL<br>API adds one mutation that mints a provider<br>access token for the native SDK (mode 2). |
+| [`examples/react-native-demo/`](examples/react-native-demo/README.md) | The React Native host: every `KYC_MODE`,<br>the themed variant, the Maestro suite. |
+| [`examples/react-demo/`](examples/react-demo/README.md) | The web host: both `VITE_KYC_MODE`s, the<br>themed variant, the Playwright suites on<br>per-worktree ports. |
+| `scripts/` | The `tooling` workspace the Makefile and<br>CI run: `ci/`, `e2e/`, `release/`, with<br>the logic in `lib/*.mjs` at 100% coverage. |
+| `docs/` | Documentation of how everything currently<br>works - start at [docs/index.md](docs/index.md);<br>the rules behind the layout are in<br>[docs/architecture/principles.md](docs/architecture/principles.md). |
 
 ## Development
 
@@ -192,9 +201,10 @@ make start && make ios                   # RN demo (or: make android)
 make web                                 # web demo on :5173
 ```
 
-**Real Sumsub** is never exercised by CI. Point the backend at
-`KYC_PROVIDER=sumsub` with sandbox credentials and follow the manual checklist
-in [docs/integration/sumsub.md](docs/integration/sumsub.md).
+**Real Sumsub** is opt-in: `make sumsub-env` writes the sandbox credentials,
+`make e2e-live` runs the API tier against the real sandbox (in CI the
+`Live Sumsub` job, `E2E_LIVE=true` or the `e2e:live` label), and the device
+matrix stays manual - [docs/integration/sumsub.md](docs/integration/sumsub.md).
 
 `make help` lists all targets (thin wrappers over the npm workspace scripts):
 

@@ -54,7 +54,17 @@ kyc/
 │       │   ├── validation.ts        # Input rules (validateStartInput)
 │       │   ├── auth.ts              # bearerToken
 │       │   ├── log.ts               # Logger port + sanitizeForLog
-│       │   └── tracing.ts           # Tracing port + noopTracing
+│       │   ├── tracing.ts           # Tracing port + noopTracing
+│       │   ├── sessions.ts          # createVerificationService; applyStatusTransition = the single write path ⭐
+│       │   ├── store.ts             # SessionStore port + the in-memory store
+│       │   ├── knex.ts / knex/{store,migrations}.ts   # `./knex` - the Knex store and the programmatic migration source ⭐
+│       │   ├── graphql.ts           # typeDefs (the SDL) + createKycGraphQL ⭐
+│       │   ├── handlers.ts          # Fetch handlers + the *Http decision functions
+│       │   ├── express.ts           # `./express` - createKycRouter
+│       │   ├── registry.ts          # providerFromEnv / defaultRegistry (KYC_PROVIDER) ⭐
+│       │   ├── providers/mock/      # The deterministic provider + its page
+│       │   ├── providers/sumsub/    # 🪪 config, client, provider, page (entry ./sumsub)
+│       │   └── sumsub.ts            # `./sumsub` - one-line re-export of providers/sumsub
 │       └── dist/                    # tsup output (gitignored)
 │
 ├── 📦 PLATFORM PACKAGES - THE PRODUCT
@@ -97,42 +107,43 @@ kyc/
 │   │
 │   └── examples/full-service-demo/
 │       ├── src/
-│       │   ├── app.ts               # Routes + middleware ⭐
-│       │   ├── schema.ts            # Resolvers ⭐
-│       │   ├── typeDefs.ts          # SDL, import-free
+│       │   ├── app.ts               # helmet, CORS, rate limits, JWT, Apollo over createKycGraphQL, createKycRouter ⭐
+│       │   ├── services.ts / store.ts / migrate.ts   # The service instance over the Knex store; runKycMigrations
 │       │   ├── providers/
-│       │   │   ├── port.ts          # VerificationProvider ⭐
-│       │   │   ├── mock.ts
-│       │   │   └── sumsub/{index,client,config}.ts
-│       │   ├── session.ts / audit.ts
-│       │   ├── webhook.ts           # applyStatusTransition's caller; the terminal guard itself lives in session.ts ⭐
-│       │   ├── verificationPages.ts # Hosted HTML + CSP; consumes the bridge ⭐
-│       │   ├── hosted/bridgeScript.ts # The kyc-bridge page script, behaviour-tested ⭐
-│       │   ├── config.ts / signature.ts / auth.ts
-│       │   └── tracing.ts / instrumentation.ts
-│       ├── migrations/              # Knex, TypeScript
+│       │   │   ├── index.ts         # The service's registry: package adapters + policy + tracing ⭐
+│       │   │   ├── mock.ts          # assertMockProviderAllowed around the package's mock
+│       │   │   └── sumsub/{index,config}.ts   # The package adapter wired to SUMSUB_* + validateConfig
+│       │   ├── config.ts / auth.ts  # validateSecurityConfig, CORS origins, PUBLIC_BASE_URL; JWT
+│       │   ├── tracing.ts / instrumentation.ts   # withSpan, instrumentProvider, the OTel bootstrap
+│       │   ├── schema.ts / typeDefs.ts / errors.ts / types.ts   # Thin re-exports of the package
+│       │   └── server.ts / index.ts # Boot (fail-closed) and the process entry
+│       ├── scripts/                 # emit-schema.ts, sumsub-check.ts
 │       ├── schema.graphql           # Emitted artifact - the wire contract ⭐
-│       └── tests/ , tests/e2e/
+│       └── tests/ , tests/e2e/ , tests/live/   # unit (composition), real Postgres, real Sumsub sandbox (opt-in)
+│
+│   └── examples/access-token-demo/  # 🖥️ server shape 2: an existing GraphQL API adds one mint mutation (mode 2's backend)
+│       └── src/{level,session,schema,server}.ts   # tier → level, one provider.createSession call
 │
 ├── 🧪 DEMOS - executable integration docs and E2E hosts
 │   │
-│   ├── examples/react-native-demo/  # KYC_MODE native|hosted|proxy|fake-native
-│   │   ├── src/{config,apollo,source}.ts   # The whole wiring a host writes ⭐
+│   ├── examples/react-native-demo/  # KYC_MODE native|hosted|proxy|fake-native, KYC_UI default|themed
+│   │   ├── src/{config,apollo,source,theme}.ts   # The whole wiring a host writes (theme.ts: Blink's palette + Spanish copy) ⭐
 │   │   ├── App.tsx
 │   │   └── .maestro/                # 6 default flows + 2 fake-native-tagged
 │   │
-│   └── examples/react-demo/         # VITE_KYC_MODE hosted|proxy
-│       ├── src/{config,apollo,source}.ts
+│   └── examples/react-demo/         # VITE_KYC_MODE hosted|proxy, VITE_KYC_UI default|themed
+│       ├── src/{config,apollo,source,theme}.ts
 │       ├── vite.config.ts           # libs from source when serving, dist when building
 │       ├── vite/libraries.ts        # requireBuiltLibraries + sourceAliases, unit-tested ⭐
-│       └── e2e/                     # Playwright: launch, hosted, proxy
+│       └── e2e/                     # Playwright: launch, hosted, proxy; ports.ts = per-worktree ports ⭐
 │
 ├── 📚 DOCS
 │   └── docs/
 │       ├── index.md                 # The map ⭐
 │       ├── development-guide.md
-│       ├── architecture/            # This directory
+│       ├── architecture/            # This directory (principles.md = the rules behind the layout)
 │       ├── integration/             # Consumer guides
+│       ├── operations/              # For whoever runs the GitHub settings (the live Sumsub job)
 │       ├── diagrams/{src,dist}/     # .mmd sources → rendered SVGs
 │       ├── assets/readme-hero.svg
 │       └── superpowers/             # The approved design and the phase plans
@@ -143,7 +154,7 @@ kyc/
     │   ├── {ci,e2e}/ , assemble-diagrams.mjs , coverage-badge.mjs , status-badge.mjs
     │   ├── release/resolve-version.mjs  # thin CLI over scripts/lib/resolve-version.mjs
     │   ├── lib/*.mjs                # extracted, unit-tested logic behind the CLI entry scripts (semver, resolve-version, badge)
-    │   └── __tests__/*.test.mjs     # shell-script tests (changed-class.sh, docs-freshness.sh) - shell out, not V8-covered
+    │   └── __tests__/*.test.mjs     # shell-script tests (ci-scripts, maestro-bound, live-scripts) - shell out, not V8-covered
     ├── .github/workflows/           # ci → checks / test / e2e, then badges, publish, verify
     └── flake.nix , .envrc , lefthook.yml , biome.json , eslint.config.js
 ```
@@ -163,9 +174,15 @@ kyc/
 
 ### Backend
 
-- `src/providers/port.ts` - adding a provider means implementing this and nothing else.
-- `src/session.ts` (`applyStatusTransition` / `updateSessionStatus`) - the terminal-state guard is part of the conditional `UPDATE` itself, the invariant that protects an approved user from a replayed callback.
+- `packages/kyc-server/src/provider.ts` - adding a provider means implementing this (plus, optionally, the two capabilities) under `providers/<name>/` and adding one registry entry; nothing else.
+- `packages/kyc-server/src/sessions.ts` (`applyStatusTransition`) over `store.ts` / `knex/store.ts` (`updateSessionStatus`) - the terminal-state guard is part of the conditional `UPDATE` itself, the invariant that protects an approved user from a replayed callback; a guard test keeps the write path single.
 - `examples/full-service-demo/schema.graphql` - the emitted wire contract; `make codegen` regenerates the client's view of it and `make codegen-check` fails on drift.
+
+### Demos
+
+- `examples/*/src/source.ts` - one `VerificationSource` per mode: the whole integration a host writes.
+- `examples/*/src/theme.ts` - what a branded, multilingual host hands the component.
+- `examples/react-demo/e2e/ports.ts` - the per-worktree ports every Playwright config and the backend's `PUBLIC_BASE_URL` / CORS come from.
 
 ## Integration points
 

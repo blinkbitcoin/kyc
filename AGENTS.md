@@ -67,6 +67,9 @@ Underlying npm scripts (`npm test`, `npm run typecheck`, `npm run lint`,
 
 ## Rules of the Road
 
+The reasons behind these rules, and the check that holds each one, are in
+`docs/architecture/principles.md`.
+
 - Do all branch work in a git worktree (`git worktree add ../kyc-<topic> -b <branch> origin/main`),
   never by switching branches in the main clone: several agent sessions share
   that checkout, and a commit made there lands on whatever branch another

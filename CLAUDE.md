@@ -258,5 +258,15 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
 - **Safe Area**: `react-native-safe-area-context` (demo app concern)
 - **Entry points**: `examples/react-native-demo/index.js` (RN app),
   `examples/react-demo/src/main.tsx` (web app), `examples/full-service-demo/src/index.ts`
-  (service bootstrap), `packages/kyc-{core,sumsub,react-native,react}/src/index.ts`
+  (service bootstrap), `examples/access-token-demo/src/index.ts` (the
+  mint-only API), `packages/kyc-{core,server,react-native,react}/src/index.ts`
   (library APIs)
+- **Adding a provider**: a `providers/<name>/` directory in core (the
+  mapping to the normalized vocabulary) and in the server (the adapter over
+  `VerificationProvider`, optionally `getStatusByUserId` and a `hostedPage`),
+  plus React Native / web only if it ships client code (a `VerificationSource`
+  under the same directory); a `src/<name>.ts` one-line re-export per
+  package with a `./<name>` export-map entry; one `defaultRegistry` entry;
+  hosts select it with `KYC_PROVIDER=<name>`. The guard tests
+  (`*-entry`, `provider-boundary`) fail on anything named outside the
+  directory. The principles behind this: `docs/architecture/principles.md`

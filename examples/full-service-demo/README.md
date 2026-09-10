@@ -1,4 +1,4 @@
-# api
+# kyc-full-service-example
 
 Reference identity-verification backend (Express 5 + Apollo Server 5 +
 Knex/Postgres).
@@ -32,14 +32,16 @@ Knex/Postgres).
   absolute `http:`/`https:` URL - there is no localhost fallback outside
   insecure dev. Bypass for local dev only with `ALLOW_INSECURE_DEV=true`,
   which is also what `KYC_PROVIDER=mock` requires.
-- Terminal statuses (`src/session.ts`): `approved` and `finallyRejected`
+- Terminal statuses (`packages/kyc-server/src/sessions.ts` over the store's
+  conditional write): `approved` and `finallyRejected`
   never change. `declined` may move on - a Sumsub RETRY rejection lets the
   applicant resubmit. The guard is the UPDATE's own WHERE clause
   (`applyStatusTransition`), so concurrent webhook deliveries cannot race
   past it, and a terminal session mints no more tokens: `GET /hosted/:id`
   renders the not-found page and `verificationSessionRefresh` fails with
   `VALIDATION_ERROR`.
-- The audit log (`src/audit.ts`) passes metadata through a key allow-list;
+- The audit log (the package's `audit.ts` allow-list, applied by the store)
+  passes metadata through nine keys;
   applicant data never reaches it, nor the tracing spans.
 - `locale` from `verificationSessionStart` is persisted on the session and
   drives the hosted page's SDK language; accepted shapes are `en` and

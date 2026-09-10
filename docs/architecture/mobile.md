@@ -2,7 +2,7 @@
 
 **Part:** react-native
 **Type:** Publishable React Native library (react-native-builder-bob)
-**Updated:** 2026-09-06
+**Updated:** 2026-09-10
 
 ## Technology Stack
 
@@ -24,10 +24,20 @@
 | `src/useTokenRefresh.ts` | Hosted-mode token push, behind mount and sequence guards |
 | `src/hosted/webViewProps.ts` | The hardened WebView attribute set **as data**, plus `originOf`, `matchesOrigin`, `createNavigationGuard`, `BRIDGE_STUB_SCRIPT` |
 | `src/hosted/HostedWebView.tsx` | The thin component that applies them |
-| `src/types.ts` | Type-only barrel |
-| `src/index.ts` / `src/hosted.ts` | The `.` and `./hosted` entries |
+| `src/theme.ts` | The base `StyleSheet`, `DEFAULT_LABELS`, `resolveStyles` / `resolveLabels` (base < `theme` < `styles`; default < `label` < `labels`) |
+| `src/providers/sumsub/{sdk,source,entry}.ts` | `createSumsubNativeSource` over the optional Mobile SDK peer, and the `./sumsub` surface |
+| `src/types.ts` | Type-only barrel (`VerificationProps`, `VerificationStyles`, the platform's `VerificationLabels`) |
+| `src/index.ts` / `src/hosted.ts` / `src/sumsub.ts` | The `.`, `./hosted` and `./sumsub` entries |
 
-`./hosted` is the Apollo-free entry: it re-exports everything the package owns plus `export * from '@blinkbitcoin/kyc-core/hosted'`. Metro resolves the `react-native` export condition straight to `./src/hosted.ts`, so a hosted-only app never installs `@apollo/client` or `graphql`.
+## Entry points
+
+| Import | Contents | Needs Apollo? |
+|--------|----------|---------------|
+| `@blinkbitcoin/kyc-react-native` | Everything, plus core's root (`createProxySource`, the Apollo client factory) | Yes (optional peers) |
+| `@blinkbitcoin/kyc-react-native/hosted` | The component, the hook, the WebView primitives, the theme resolvers, plus `@blinkbitcoin/kyc-core/hosted` | **No** (guard-tested, pack-smoked) |
+| `@blinkbitcoin/kyc-react-native/sumsub` | The `/hosted` surface plus `createSumsubNativeSource` and core's Sumsub mapping | **No** (guard-tested); the SDK peer is optional and required lazily |
+
+Metro resolves the `react-native` export condition straight to `./src/*.ts`, so a hosted-only app never installs `@apollo/client` or `graphql`; the guard test walks each entry's import graph into core's source.
 
 ## State machine
 
@@ -107,4 +117,11 @@ OS declarations remain the host app's job: `NSCameraUsageDescription` and `NSMic
 
 - **Unit (Jest, 100%):** the machine's tests live in core; here, the hook, the token-refresh guards, the WebView props as data, the navigation guard, the component's screens, and a guard test that `./hosted` never reaches Apollo.
 - **Test doubles:** `__mocks__/react-native-webview.tsx` (exposes `getWebViewProps`, `getInjectedScripts`, `simulateWebViewMessage`, `simulateRawWebViewMessage`, `simulateWebViewError`, `simulateWebViewHttpError`, `resetWebViewMock`) and `__mocks__/@react-native-community/netinfo.ts` (`setMockNetworkState`, `resetMockNetworkState`). Both are shared with the demo's Jest config.
-- **E2E (Maestro):** six default flows plus two `fake-native`-tagged flows - see [../integration/native-sdk.md](../integration/native-sdk.md) and `examples/react-native-demo/README.md`.
+- **E2E (Maestro):** six default flows plus two `fake-native`-tagged flows - see [../integration/native-sdk.md](../integration/native-sdk.md) and `examples/react-native-demo/README.md`. Every testID is the same under `KYC_UI=themed`, so the flows run under either look.
+
+## Demo critical paths
+
+- `examples/react-native-demo/src/source.ts` - `buildSource(KYC_MODE)`: one `VerificationSource` per mode, the whole integration a host writes (hosted mode dogfoods the `/hosted` import).
+- `src/config.ts` - `KYC_MODE` / `KYC_UI`, inlined at bundle time by Babel (`resolveKycMode` / `resolveKycUi` keep the branches testable).
+- `src/theme.ts` - Blink's palette and Spanish copy, what a branded host hands the component.
+- `App.tsx` - the screen contract Maestro drives (`mode-label`, `reset-button`, `outcome`, the fake SDK overlay); at 100% coverage with the callbacks driven by a scripted fake.

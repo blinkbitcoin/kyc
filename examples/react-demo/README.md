@@ -25,6 +25,17 @@ embedded in a genuinely cross-origin iframe (built app via `vite preview`
 on the worktree's Vite port, page on its backend port), so the E2E suites
 exercise the real `postMessage` path and the origin pin.
 
+## What to look at
+
+- `src/source.ts` - `buildSource(VITE_KYC_MODE)`: one `VerificationSource`
+  per mode, the whole integration a host writes.
+- `src/config.ts` - the mode and the look, resolved from Vite's env at build
+  time; the backend origin from `VITE_API_ORIGIN` (the E2E stack sets it).
+- `src/apollo.ts` - the client factory from the package, the host's endpoint
+  and token.
+- `src/theme.ts` - what a branded, multilingual host hands the component.
+- `src/App.tsx` - the screen contract the Playwright specs drive.
+
 ## Permissions
 
 Camera/microphone access is delegated to the iframe through its `allow`

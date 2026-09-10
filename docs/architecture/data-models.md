@@ -1,7 +1,7 @@
 # Data Models - Backend
 
 **Part:** backend
-**Updated:** 2026-09-06
+**Updated:** 2026-09-10
 
 ## Overview
 
@@ -79,28 +79,27 @@ One session has many audit entries (`AuditLog.sessionId`, `ON DELETE CASCADE`).
 
 Only these nine keys are ever persisted: `userId`, `provider`, `platform`, `levelName`, `status`, `previousStatus`, `source`, `errorCode`, `reason`. Anything else is dropped before the write, so an accidental spread of a provider payload cannot leak applicant data into the audit trail.
 
-## Repository functions
+## The `SessionStore` port
 
-| Function | File | Notes |
-|----------|------|-------|
-| `createSession(data, trx)` | `src/session.ts` | Takes a transaction so the audit entry shares it; `data` includes the optional `locale` |
-| `getSessionById(id)` / `getSessionByIdForUser(id, userId)` | `src/session.ts` | The owner-scoped form is what resolvers use |
-| `getSessionByProviderApplicantId(id)` | `src/session.ts` | The webhook's primary lookup |
-| `getLatestSessionForUser(userId, provider)` | `src/session.ts` | The webhook's fallback when only `externalUserId` is known: the newest session for that user and provider that is still **unbound** (`providerApplicantId IS NULL`), ordered by `createdAt desc` |
-| `updateSessionStatus(id, status, trx)` | `src/session.ts` | The conditional write: `WHERE status NOT IN (terminal) AND status <> :status`, so the terminal guard is part of the UPDATE itself, not a check before it |
-| `bindApplicantId(id, providerApplicantId, trx)` | `src/session.ts` | Idempotent - binds only an unbound session or one already bound to the same applicant; a session bound to a *different* applicant is left untouched and returned as-is, so the caller can refuse the event |
-| `applyStatusTransition(id, status, source, opts)` | `src/session.ts` | The single write path every status change goes through: optional binding, the conditional status update and the matching audit row, all in one transaction |
-| `logAuditEvent(sessionId, action, metadata, trx)` | `src/audit.ts` | Applies the allow-list |
-| `getAuditLogsBySessionId(sessionId)` | `src/audit.ts` | Newest first |
+Persistence is a port of `@blinkbitcoin/kyc-server` (`packages/kyc-server/src/store.ts`), with two implementations: the in-memory store the unit tests and the small examples use, and the Knex store (`src/knex/store.ts`) the service composes (`examples/full-service-demo/src/store.ts`).
+
+| Method | Notes |
+|--------|-------|
+| `createSession(data)` | Writes the row and its `session_created` audit entry together; `data` includes the optional `locale` |
+| `getSessionById(id)` / `getSessionByIdForUser(id, userId)` | The owner-scoped form is what the service uses for reads |
+| `getSessionByProviderApplicantId(id)` | The webhook's primary lookup |
+| `getLatestUnboundSessionForUser(userId, provider)` | The webhook's fallback when only `externalUserId` is known: the newest session for that user and provider that is still **unbound** (`providerApplicantId IS NULL`), ordered by `createdAt desc` |
+| `updateSessionStatus(id, status)` | The conditional write: `WHERE status NOT IN (terminal) AND status <> :status`, so the terminal guard is part of the UPDATE itself, not a check before it (the Knex store locks the row `FOR UPDATE`) |
+| `bindApplicantId(id, providerApplicantId)` | Idempotent - binds only an unbound session or one already bound to the same applicant; a session bound to a *different* applicant is left untouched and returned as-is, so the caller can refuse the event |
+| `appendAuditEntry(entry)` / `listAuditEntries(sessionId)` | Applies the allow-list; newest first |
+
+`applyStatusTransition(id, status, source, opts)` in `src/sessions.ts` is the single write path every status change goes through - optional binding, the conditional status update and the matching audit row, in one transaction. A guard test fails if `updateSessionStatus` is called anywhere else.
 
 ## Migration commands
 
 ```bash
-cd examples/full-service-demo
-npx tsx "$(command -v knex)" migrate:make -x ts <name>   # create
-npm run migrate                                          # apply (dev)
-npm run migrate:test                                     # apply (test DB on 5433)
-npx tsx "$(command -v knex)" migrate:status              # inspect
+make migrate                                      # apply to the dev database
+npm run migrate:test -w examples/full-service-demo   # apply to the E2E database on 5433
 ```
 
-Migrations are TypeScript, and the `knex` CLI cannot load `.ts` files on its own - run it through `tsx`.
+Migrations are code, not files: a new one is an entry in `KYC_MIGRATIONS` (`packages/kyc-server/src/knex/migrations.ts`) with a name that sorts after the existing ones, tested in the package's `migrations.test.ts` (exact columns, foreign key, index, literal names - an existing `knex_migrations` history must keep matching). `runKycMigrations(db)` applies them through `createKycMigrationSource()`; a host that manages its own Knex migrations can instead register the source with its `knex.migrate`.
