@@ -1,6 +1,6 @@
 // The container a MountableSource is handed.
 //
-// Kept separate from Verification.tsx so the mount/cleanup lifecycle is
+// Kept separate from IdentityVerification.tsx so the mount/cleanup lifecycle is
 // testable on its own, and so the component stays a plain switch over states.
 
 import { useEffect, useRef } from 'react';

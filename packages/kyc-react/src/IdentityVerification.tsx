@@ -1,7 +1,7 @@
-// The default UI over useVerification: one screen per state and nothing else.
+// The default UI over useIdentityVerification: one screen per state and nothing else.
 // Every decision that is not "what does this state look like" lives in the
 // hook, the shared machine or frameProps - so a host that wants its own look
-// calls useVerification directly and reuses HostedFrame / MountPoint. A host
+// calls useIdentityVerification directly and reuses HostedFrame / MountPoint. A host
 // that only wants its own colors and copy recolors (`theme`), restyles
 // (`styles`) and relabels (`labels`) this one; nothing it renders is
 // hard-coded here.
@@ -22,16 +22,16 @@ import { HostedFrame } from './hosted/HostedFrame';
 import { isMountable } from './mountable';
 import { MountPoint } from './MountPoint';
 import { resolveLabels, resolveStyles } from './theme';
-import { useVerification } from './useVerification';
+import { useIdentityVerification } from './useIdentityVerification';
 
 import type { FC, ReactElement } from 'react';
 import type { VerificationSession } from '@blinkbitcoin/kyc-core/hosted';
 import type { MountableSource } from './mountable';
-import type { VerificationProps } from './types';
+import type { IdentityVerificationProps } from './types';
 
 export const DEFAULT_LABEL = 'Verify identity';
 
-export const Verification: FC<VerificationProps> = ({
+export const IdentityVerification: FC<IdentityVerificationProps> = ({
   source,
   onComplete,
   onError,
@@ -58,7 +58,7 @@ export const Verification: FC<VerificationProps> = ({
     handleMessage,
     handleEvent,
     iframeRef,
-  } = useVerification(source, {
+  } = useIdentityVerification(source, {
     onComplete,
     onError,
     onCancel,

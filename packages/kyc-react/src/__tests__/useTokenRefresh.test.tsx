@@ -149,7 +149,7 @@ describe('useTokenRefresh - posting', () => {
   });
 
   it('reports a rejected refresh as TOKEN_REFRESH_FAILED', async () => {
-    // toVerificationError attaches copy at the edge: getErrorMessage returns
+    // toIdentityVerificationError attaches copy at the edge: getErrorMessage returns
     // the fixed TOKEN_REFRESH_FAILED copy for a known code regardless of the
     // upstream provider's raw message - it never reaches the user. (Deviation
     // from the brief's literal 'upstream down' expectation, which does not

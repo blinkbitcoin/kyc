@@ -8,10 +8,13 @@
 // src/__tests__/hosted-entry.test.ts and by scripts/pack-smoke.sh.
 // Proxy-mode apps import the package root instead.
 //
-//   import { Verification, createHostedSource } from '@blinkbitcoin/kyc-react/hosted';
+//   import { IdentityVerification, createHostedSource } from '@blinkbitcoin/kyc-react/hosted';
 
-export { Verification, DEFAULT_LABEL } from './Verification';
-export { useVerification, DEFAULT_SUCCESS_DELAY_MS } from './useVerification';
+export { IdentityVerification, DEFAULT_LABEL } from './IdentityVerification';
+export {
+  useIdentityVerification,
+  DEFAULT_SUCCESS_DELAY_MS,
+} from './useIdentityVerification';
 export { useTokenRefresh } from './useTokenRefresh';
 export {
   HostedFrame,
@@ -30,7 +33,7 @@ export { isMountable } from './mountable';
 export type * from './types';
 // This package's labels extend core's under the same name; naming the
 // re-export is what resolves the clash with the core re-export below.
-export type { VerificationLabels } from './types';
+export type { IdentityVerificationLabels } from './types';
 export {
   baseStyles,
   DEFAULT_LABELS,

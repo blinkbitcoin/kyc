@@ -1,4 +1,4 @@
-// Look of the default web Verification UI: base styles, default copy, and
+// Look of the default web IdentityVerification UI: base styles, default copy, and
 // the resolvers that layer a host's theme / styles / labels on top.
 // Precedence: base style < theme-derived color < styles[key].
 // Mirrors the React Native component's StyleSheet (WCAG AA colors).
@@ -13,15 +13,15 @@ import type { CSSProperties } from 'react';
 import type {
   LabelDefaults,
   ResolvedLabels,
-  VerificationTheme,
+  IdentityVerificationTheme,
 } from '@blinkbitcoin/kyc-core/hosted';
 import type {
-  VerificationLabels,
-  VerificationStyleKey,
-  VerificationStyles,
+  IdentityVerificationLabels,
+  IdentityVerificationStyleKey,
+  IdentityVerificationStyles,
 } from './types';
 
-export const baseStyles: Record<VerificationStyleKey, CSSProperties> = {
+export const baseStyles: Record<IdentityVerificationStyleKey, CSSProperties> = {
   root: { display: 'flex', flexDirection: 'column', width: '100%' },
   embed: { display: 'block', width: '100%', flex: 1 },
   // Keeps the page's bridge alive under the pending overlay without showing
@@ -103,7 +103,7 @@ export const baseStyles: Record<VerificationStyleKey, CSSProperties> = {
 };
 
 /** Copy of the built-in screens; `title` and `start` come from `label`. */
-export const DEFAULT_LABELS: LabelDefaults<VerificationLabels> = {
+export const DEFAULT_LABELS: LabelDefaults<IdentityVerificationLabels> = {
   subtitle: 'Have your ID document ready and allow camera access.',
   cancel: 'Cancel',
   loading: 'Preparing verification...',
@@ -126,11 +126,14 @@ export const DEFAULT_LABELS: LabelDefaults<VerificationLabels> = {
 /** Defaults, then `label` for title/start, then any explicit overrides. */
 export const resolveLabels = (
   label: string,
-  labels?: VerificationLabels,
-): ResolvedLabels<VerificationLabels> =>
+  labels?: IdentityVerificationLabels,
+): ResolvedLabels<IdentityVerificationLabels> =>
   resolveLabelsWith(DEFAULT_LABELS, label, labels);
 
-export type ResolvedStyles = Record<VerificationStyleKey, CSSProperties>;
+export type ResolvedStyles = Record<
+  IdentityVerificationStyleKey,
+  CSSProperties
+>;
 
 const color = (value?: string): CSSProperties | undefined =>
   value != null ? { color: value } : undefined;
@@ -139,8 +142,8 @@ const font = (value?: string): CSSProperties | undefined =>
 
 /** Base styles, then theme colors, then per-element overrides. */
 export const resolveStyles = (
-  theme?: VerificationTheme,
-  styles?: VerificationStyles,
+  theme?: IdentityVerificationTheme,
+  styles?: IdentityVerificationStyles,
 ): ResolvedStyles => ({
   root: { ...baseStyles.root, ...styles?.root },
   embed: { ...baseStyles.embed, ...styles?.embed },

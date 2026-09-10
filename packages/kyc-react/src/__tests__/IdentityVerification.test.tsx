@@ -5,7 +5,7 @@ import {
   getErrorMessage,
 } from '@blinkbitcoin/kyc-core';
 
-import { Verification } from '../Verification';
+import { IdentityVerification } from '../IdentityVerification';
 
 import type {
   VerificationEvent,
@@ -13,7 +13,7 @@ import type {
   VerificationSource,
 } from '@blinkbitcoin/kyc-core';
 import type { MountableSource } from '../mountable';
-import type { VerificationProps } from '../types';
+import type { IdentityVerificationProps } from '../types';
 
 const ORIGIN = 'https://kyc.example.com';
 
@@ -34,7 +34,9 @@ const hostedSource = (
   ...overrides,
 });
 
-const props = (over: Partial<VerificationProps> = {}): VerificationProps => ({
+const props = (
+  over: Partial<IdentityVerificationProps> = {},
+): IdentityVerificationProps => ({
   source: hostedSource(),
   onComplete: jest.fn(),
   onError: jest.fn(),
@@ -75,10 +77,10 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe('Verification - idle', () => {
+describe('IdentityVerification - idle', () => {
   it('shows the default label and starts the flow', async () => {
     const p = props();
-    render(<Verification {...p} />);
+    render(<IdentityVerification {...p} />);
 
     expect(screen.getByTestId('verification-start-button').textContent).toBe(
       'Verify identity',
@@ -91,7 +93,7 @@ describe('Verification - idle', () => {
 
   it('honours a custom label and cancels from idle', async () => {
     const p = props({ label: 'Verify me' });
-    render(<Verification {...p} />);
+    render(<IdentityVerification {...p} />);
 
     expect(screen.getByTestId('verification-start-button').textContent).toBe(
       'Verify me',
@@ -101,7 +103,7 @@ describe('Verification - idle', () => {
   });
 });
 
-describe('Verification - loading, mounting and launching', () => {
+describe('IdentityVerification - loading, mounting and launching', () => {
   it('shows the spinner while the session is being acquired', async () => {
     let resolveStart!: (value: VerificationSession) => void;
     const p = props({
@@ -112,7 +114,7 @@ describe('Verification - loading, mounting and launching', () => {
           }),
       }),
     });
-    render(<Verification {...p} />);
+    render(<IdentityVerification {...p} />);
 
     await click('verification-start-button');
     expect(has('loading-indicator')).toBe(true);
@@ -134,7 +136,7 @@ describe('Verification - loading, mounting and launching', () => {
     );
     const source: MountableSource = { ...hostedSource(), mount };
     const p = props({ source });
-    const view = render(<Verification {...p} />);
+    const view = render(<IdentityVerification {...p} />);
 
     await click('verification-start-button');
     expect(has('verification-mount')).toBe(true);
@@ -156,7 +158,7 @@ describe('Verification - loading, mounting and launching', () => {
       },
     };
     const p = props({ source, successDelayMs: 0 });
-    render(<Verification {...p} />);
+    render(<IdentityVerification {...p} />);
 
     await click('verification-start-button');
     await act(async () => {
@@ -176,7 +178,7 @@ describe('Verification - loading, mounting and launching', () => {
           resolveLaunch = resolve as (result: { status: 'approved' }) => void;
         }),
     } as VerificationSource;
-    render(<Verification {...props({ source, successDelayMs: 0 })} />);
+    render(<IdentityVerification {...props({ source, successDelayMs: 0 })} />);
 
     await click('verification-start-button');
     expect(has('verification-iframe')).toBe(false);
@@ -189,9 +191,9 @@ describe('Verification - loading, mounting and launching', () => {
   });
 });
 
-describe('Verification - the hosted page', () => {
-  const start = async (p: VerificationProps) => {
-    render(<Verification {...p} />);
+describe('IdentityVerification - the hosted page', () => {
+  const start = async (p: IdentityVerificationProps) => {
+    render(<IdentityVerification {...p} />);
     await click('verification-start-button');
   };
 
@@ -338,10 +340,10 @@ describe('Verification - the hosted page', () => {
   });
 });
 
-describe('Verification - recovery screens', () => {
+describe('IdentityVerification - recovery screens', () => {
   it('shows the permission screen when the page reports a camera refusal', async () => {
     const p = props();
-    render(<Verification {...p} />);
+    render(<IdentityVerification {...p} />);
     await click('verification-start-button');
 
     await fromPage({ type: 'error', code: ClientErrorCodes.PERMISSION_DENIED });
@@ -361,7 +363,7 @@ describe('Verification - recovery screens', () => {
   it('shows the offline screen and recovers on Check connection', async () => {
     setNavigatorOnline(false);
     const p = props();
-    render(<Verification {...p} />);
+    render(<IdentityVerification {...p} />);
 
     await click('verification-start-button');
     expect(has('offline-screen')).toBe(true);
@@ -375,7 +377,7 @@ describe('Verification - recovery screens', () => {
   it('stays on the offline screen while the connection is still down', async () => {
     setNavigatorOnline(false);
     const p = props();
-    render(<Verification {...p} />);
+    render(<IdentityVerification {...p} />);
 
     await click('verification-start-button');
     await click('check-connection-button');
@@ -391,7 +393,7 @@ describe('Verification - recovery screens', () => {
       .mockRejectedValueOnce({ code: 'SESSION_CREATION_FAILED' })
       .mockResolvedValue(session);
     const p = props({ source: hostedSource({ start }) });
-    render(<Verification {...p} />);
+    render(<IdentityVerification {...p} />);
 
     await click('verification-start-button');
     expect(has('error-screen')).toBe(true);
@@ -417,7 +419,7 @@ describe('Verification - recovery screens', () => {
         },
       }),
     });
-    render(<Verification {...p} />);
+    render(<IdentityVerification {...p} />);
 
     await click('verification-start-button');
     await click('verification-cancel-button');
@@ -426,7 +428,7 @@ describe('Verification - recovery screens', () => {
   });
 });
 
-describe('Verification - pass-through props', () => {
+describe('IdentityVerification - pass-through props', () => {
   it('forwards style, frameTitle and onStatusChange', async () => {
     const onStatusChange = jest.fn();
     const p = props({
@@ -434,7 +436,7 @@ describe('Verification - pass-through props', () => {
       frameTitle: 'Verify your identity',
       onStatusChange,
     });
-    const view = render(<Verification {...p} />);
+    const view = render(<IdentityVerification {...p} />);
 
     // `style` lands once, on the component's single root - the same place
     // the RN component applies it.
@@ -456,7 +458,7 @@ describe('Verification - pass-through props', () => {
       ...hostedSource({ start: async () => ({ provider: 'sdk' }) }),
       launch: () => new Promise<never>(() => {}),
     } as VerificationSource;
-    render(<Verification {...props({ source })} />);
+    render(<IdentityVerification {...props({ source })} />);
 
     await click('verification-start-button');
     expect(has('launch-screen')).toBe(true);
@@ -464,10 +466,10 @@ describe('Verification - pass-through props', () => {
   });
 });
 
-describe('Verification - labels and theme', () => {
+describe('IdentityVerification - labels and theme', () => {
   it('renders the host copy and colors on the idle screen', () => {
     render(
-      <Verification
+      <IdentityVerification
         {...props({
           label: 'Verifiera',
           theme: { primaryColor: '#F7931A', primaryTextColor: '#000' },
@@ -489,7 +491,7 @@ describe('Verification - labels and theme', () => {
 
   it('uses the host error copy for a code and the outcome copy while pending', async () => {
     render(
-      <Verification
+      <IdentityVerification
         {...props({
           labels: {
             pendingTitle: 'Tack',

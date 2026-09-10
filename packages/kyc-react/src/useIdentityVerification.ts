@@ -1,6 +1,6 @@
 // The headless verification flow for the browser. Owns: connectivity,
 // session acquisition, the launch path, the hosted page's message pump and
-// the token-refresh effect. Renders nothing - Verification.tsx is the default
+// the token-refresh effect. Renders nothing - IdentityVerification.tsx is the default
 // UI over this hook, and a host can write its own.
 //
 // It is the same hook as the React Native package's, minus the permission
@@ -15,7 +15,7 @@ import {
   isLaunchable,
   machineReducer,
   planEvent,
-  toVerificationError,
+  toIdentityVerificationError,
   UNKNOWN_ERROR_CODE,
 } from '@blinkbitcoin/kyc-core/hosted';
 
@@ -27,28 +27,28 @@ import type {
   MachineAction,
   MachineState,
   VerificationEffect,
-  VerificationError,
+  IdentityVerificationError,
   VerificationEvent,
-  VerificationResult,
+  IdentityVerificationResult,
   VerificationSession,
   VerificationSource,
   VerificationSourceError,
-  VerificationStatus,
+  IdentityVerificationStatus,
 } from '@blinkbitcoin/kyc-core/hosted';
 import type { TokenPostable } from './useTokenRefresh';
 
 export type { TokenPostable } from './useTokenRefresh';
 
-export interface UseVerificationOptions {
-  onComplete: (result: VerificationResult) => void;
-  onError: (error: VerificationError) => void;
+export interface UseIdentityVerificationOptions {
+  onComplete: (result: IdentityVerificationResult) => void;
+  onError: (error: IdentityVerificationError) => void;
   onCancel: () => void;
-  onStatusChange?: (status: VerificationStatus) => void;
+  onStatusChange?: (status: IdentityVerificationStatus) => void;
   /** How long the success screen shows before onComplete (default 1500ms). */
   successDelayMs?: number;
 }
 
-export interface UseVerification extends MachineState {
+export interface UseIdentityVerification extends MachineState {
   /** Live navigator.onLine, kept current by the online/offline listeners. */
   isOnline: boolean;
   /** Ignored while a run is already in flight. */
@@ -68,10 +68,10 @@ export interface UseVerification extends MachineState {
 
 export const DEFAULT_SUCCESS_DELAY_MS = 1500;
 
-export const useVerification = (
+export const useIdentityVerification = (
   source: VerificationSource,
-  options: UseVerificationOptions,
-): UseVerification => {
+  options: UseIdentityVerificationOptions,
+): UseIdentityVerification => {
   const [state, dispatch] = useReducer(machineReducer, initialMachineState);
   const [isOnline, setIsOnline] = useState<boolean>(() => navigator.onLine);
 
@@ -147,7 +147,7 @@ export const useVerification = (
   }, [applyAction]);
 
   const failWith = useCallback(
-    (error: VerificationError, keepSession: boolean) => {
+    (error: IdentityVerificationError, keepSession: boolean) => {
       applyAction({ type: 'failed', error, keepSession });
       // A throwing host callback must not surface twice (once here, once as
       // an unhandled rejection out of begin()) - it already got the error.
@@ -297,7 +297,7 @@ export const useVerification = (
         }
         const sourceError = cause as VerificationSourceError | undefined;
         failWith(
-          toVerificationError(
+          toIdentityVerificationError(
             sourceError?.code ?? UNKNOWN_ERROR_CODE,
             sourceError?.message,
           ),
@@ -336,7 +336,7 @@ export const useVerification = (
         }
         const sourceError = cause as VerificationSourceError | undefined;
         failWith(
-          toVerificationError(
+          toIdentityVerificationError(
             sourceError?.code ?? UNKNOWN_ERROR_CODE,
             sourceError?.message,
           ),

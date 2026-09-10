@@ -17,12 +17,12 @@ import {
   ClientErrorCodes,
   createSetTokenMessage,
   isTokenRefreshable,
-  toVerificationError,
+  toIdentityVerificationError,
 } from '@blinkbitcoin/kyc-core/hosted';
 
 import type { RefObject } from 'react';
 import type {
-  VerificationError,
+  IdentityVerificationError,
   VerificationSession,
   VerificationSource,
   VerificationSourceError,
@@ -43,7 +43,7 @@ export interface UseTokenRefreshOptions {
   /** Where a fresh token is posted - the iframe showing the hosted page. */
   target: RefObject<TokenPostable | null>;
   /** TOKEN_EXPIRED (cannot refresh) or TOKEN_REFRESH_FAILED (refresh failed). */
-  onFailure: (error: VerificationError) => void;
+  onFailure: (error: IdentityVerificationError) => void;
 }
 
 /**
@@ -84,7 +84,7 @@ export const useTokenRefresh = (
     const allowedOrigin = session?.allowedOrigin;
     if (!isTokenRefreshable(current) || !session || !allowedOrigin) {
       optionsRef.current.onFailure(
-        toVerificationError(ClientErrorCodes.TOKEN_EXPIRED),
+        toIdentityVerificationError(ClientErrorCodes.TOKEN_EXPIRED),
       );
       return;
     }
@@ -113,7 +113,7 @@ export const useTokenRefresh = (
           return;
         }
         optionsRef.current.onFailure(
-          toVerificationError(
+          toIdentityVerificationError(
             ClientErrorCodes.TOKEN_REFRESH_FAILED,
             cause?.message,
           ),

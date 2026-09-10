@@ -1,14 +1,14 @@
 import { act, renderHook } from '@testing-library/react';
 import { ClientErrorCodes } from '@blinkbitcoin/kyc-core';
 
-import { useVerification } from '../useVerification';
+import { useIdentityVerification } from '../useIdentityVerification';
 
 import type {
   VerificationEvent,
   VerificationSession,
   VerificationSource,
 } from '@blinkbitcoin/kyc-core';
-import type { UseVerificationOptions } from '../useVerification';
+import type { UseIdentityVerificationOptions } from '../useIdentityVerification';
 
 const ORIGIN = 'https://kyc.example.com';
 
@@ -30,8 +30,8 @@ const hostedSource = (
 });
 
 const handlers = (
-  over: Partial<UseVerificationOptions> = {},
-): UseVerificationOptions => ({
+  over: Partial<UseIdentityVerificationOptions> = {},
+): UseIdentityVerificationOptions => ({
   onComplete: jest.fn(),
   onError: jest.fn(),
   onCancel: jest.fn(),
@@ -46,8 +46,10 @@ const setNavigatorOnline = (value: boolean): void => {
   });
 };
 
-const mount = (source: VerificationSource, options: UseVerificationOptions) =>
-  renderHook(() => useVerification(source, options));
+const mount = (
+  source: VerificationSource,
+  options: UseIdentityVerificationOptions,
+) => renderHook(() => useIdentityVerification(source, options));
 
 const messageOf = (event: VerificationEvent) => ({ event });
 
@@ -56,7 +58,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe('useVerification - acquiring a session', () => {
+describe('useIdentityVerification - acquiring a session', () => {
   it('starts idle and reaches verifying through loading', async () => {
     const source = hostedSource();
     const options = handlers();
@@ -189,7 +191,7 @@ describe('useVerification - acquiring a session', () => {
   });
 });
 
-describe('useVerification - connectivity', () => {
+describe('useIdentityVerification - connectivity', () => {
   it('parks on offline before calling start(), without onError', async () => {
     setNavigatorOnline(false);
     const source = hostedSource();
@@ -284,7 +286,7 @@ describe('useVerification - connectivity', () => {
   });
 });
 
-describe('useVerification - the launchable path', () => {
+describe('useIdentityVerification - the launchable path', () => {
   it('launches instead of embedding a page and completes', async () => {
     jest.useFakeTimers();
     const source = {
@@ -496,7 +498,7 @@ describe('useVerification - the launchable path', () => {
   });
 });
 
-describe('useVerification - a host callback that throws', () => {
+describe('useIdentityVerification - a host callback that throws', () => {
   // The package has no Node types (it is a browser library), so the runner's
   // process is reached through globalThis with just the two methods this
   // assertion needs.
@@ -555,8 +557,8 @@ describe('useVerification - a host callback that throws', () => {
   });
 });
 
-describe('useVerification - bridge messages', () => {
-  const started = async (options: UseVerificationOptions) => {
+describe('useIdentityVerification - bridge messages', () => {
+  const started = async (options: UseIdentityVerificationOptions) => {
     const source = hostedSource();
     const view = mount(source, options);
     await act(async () => {
@@ -668,7 +670,7 @@ describe('useVerification - bridge messages', () => {
   });
 });
 
-describe('useVerification - token refresh', () => {
+describe('useIdentityVerification - token refresh', () => {
   it('posts the refreshed token into the frame and keeps verifying', async () => {
     const refreshToken = jest.fn(async () => 'tok-2');
     const source = { ...hostedSource(), refreshToken };
@@ -737,7 +739,7 @@ describe('useVerification - token refresh', () => {
   });
 });
 
-describe('useVerification - unmount safety', () => {
+describe('useIdentityVerification - unmount safety', () => {
   it('drops a late session and a late message', async () => {
     let resolveStart!: (value: VerificationSession) => void;
     const source = hostedSource({

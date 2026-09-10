@@ -18,8 +18,8 @@ describe('@blinkbitcoin/kyc-react/sumsub', () => {
     );
     expect(sumsub.sumsubSession).toBe(core.sumsubSession);
     expect(sumsub.createHostedSource).toBe(root.createHostedSource);
-    expect(sumsub.Verification).toBe(root.Verification);
-    expect(sumsub.useVerification).toBe(root.useVerification);
+    expect(sumsub.IdentityVerification).toBe(root.IdentityVerification);
+    expect(sumsub.useIdentityVerification).toBe(root.useIdentityVerification);
     expect(sumsub.isMountable).toBe(root.isMountable);
     expect(sumsub).not.toHaveProperty('createProxySource');
   });

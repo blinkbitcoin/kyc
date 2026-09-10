@@ -13,19 +13,22 @@
 // component, the hook and the mountable seam - Apollo-free like ./hosted,
 // since the component modules import core's hosted entry (guard-tested).
 //
-//   import { Verification, interpretSumsubWebMessage } from '@blinkbitcoin/kyc-react/sumsub';
+//   import { IdentityVerification, interpretSumsubWebMessage } from '@blinkbitcoin/kyc-react/sumsub';
 
 export * from '@blinkbitcoin/kyc-core/sumsub';
-export { Verification, DEFAULT_LABEL } from '../../Verification';
 export {
-  useVerification,
+  IdentityVerification,
+  DEFAULT_LABEL,
+} from '../../IdentityVerification';
+export {
+  useIdentityVerification,
   DEFAULT_SUCCESS_DELAY_MS,
-} from '../../useVerification';
+} from '../../useIdentityVerification';
 export { useTokenRefresh } from '../../useTokenRefresh';
 export { MountPoint, MOUNT_POINT_TEST_ID } from '../../MountPoint';
 export { isMountable } from '../../mountable';
 export type * from '../../types';
-export type { VerificationLabels } from '../../types';
+export type { IdentityVerificationLabels } from '../../types';
 export {
   baseStyles,
   DEFAULT_LABELS,
