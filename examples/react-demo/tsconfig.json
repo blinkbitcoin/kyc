@@ -11,6 +11,7 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "types": ["vitest/globals", "node"],
     "paths": {
       "@blinkbitcoin/kyc-react": ["../../packages/kyc-react/src"],

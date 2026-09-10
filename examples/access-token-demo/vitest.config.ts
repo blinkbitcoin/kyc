@@ -9,28 +9,28 @@ export default defineConfig({
       {
         find: '@blinkbitcoin/kyc-server/sumsub',
         replacement: path.resolve(
-          __dirname,
+          import.meta.dirname,
           '../../packages/kyc-server/src/sumsub.ts',
         ),
       },
       {
         find: /^@blinkbitcoin\/kyc-server$/,
         replacement: path.resolve(
-          __dirname,
+          import.meta.dirname,
           '../../packages/kyc-server/src/index.ts',
         ),
       },
       {
         find: /^@blinkbitcoin\/kyc-core\/sumsub$/,
         replacement: path.resolve(
-          __dirname,
+          import.meta.dirname,
           '../../packages/kyc-core/src/sumsub.ts',
         ),
       },
       {
         find: /^@blinkbitcoin\/kyc-core\/hosted$/,
         replacement: path.resolve(
-          __dirname,
+          import.meta.dirname,
           '../../packages/kyc-core/src/hosted.ts',
         ),
       },
