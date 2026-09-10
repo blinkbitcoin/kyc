@@ -1,10 +1,23 @@
 # Sumsub sandbox - manual verification checklist
 
-**Updated:** 2026-09-06
+**Updated:** 2026-09-10
 
-CI never talks to Sumsub. The unit and E2E suites run entirely against the `mock` provider, and the native-launch branch is covered by `createFakeLaunchableSource`. Everything below is therefore **manual**, and should be re-run before any release that touches the WebView props, the hosted page, the bridge, the Sumsub mapping or the native source.
+The unit and E2E suites run entirely against the `mock` provider, and the native-launch branch is covered by `createFakeLaunchableSource`. What can run headless against the sandbox **API** is automated (next section); everything from section 3 on needs a camera and a human, is therefore **manual**, and should be re-run before any release that touches the WebView props, the hosted page, the bridge, the Sumsub mapping or the native source.
 
-Budget about 90 minutes for a full pass. Record the result of each numbered check.
+Budget about 90 minutes for a full manual pass. Record the result of each numbered check.
+
+## The automated tier
+
+```bash
+make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=… [LEVEL_NAME=…] [PUBLIC_BASE_URL=…]
+make sumsub-check   # app-token auth + the level: mints a throwaway token, says what is wrong otherwise
+make test-live      # the live tests alone (the service round trips need DATABASE_URL)
+make e2e-live       # check → E2E Postgres → live tests → the access-token example mints a real token
+```
+
+`make e2e-live` proves, against the real sandbox: the credentials are accepted and the level exists; the access-token contract the native SDK depends on (`{ token, userId }` echoing the external user id); a user who never opened the SDK reads as `initial`; the service starts and refreshes a session on the real provider and serves its hosted page for the real token; a webhook signed with the real secret and the configured digest algorithm (`SUMSUB_WEBHOOK_DIGEST_ALG`) is accepted, binds the applicant and approves the session; and `examples/access-token-demo` mints a real token. In CI the same run is the opt-in `E2E / Live Sumsub` job ([operations/live-e2e-ci.md](../operations/live-e2e-ci.md)). The tests live in `examples/full-service-demo/tests/live/`; the repo skill `.claude/skills/sumsub-live-verification` is the runbook.
+
+Sections 1 and 2 below are the setup the automated tier needs too (`.claude/skills/sumsub-sandbox-setup` walks them); 2.1, 2.4 and 2.5 are what the unit and E2E suites already cover.
 
 ## 0. Prerequisites
 

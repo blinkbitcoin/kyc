@@ -248,6 +248,18 @@ are genuinely cross-origin (the Vite port vs the backend port), so the
 suites exercise the real `postMessage` path and the origin pin rather than
 a same-origin shortcut.
 
+### Live Sumsub (opt-in)
+
+```bash
+make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=…   # writes examples/full-service-demo/.env
+make sumsub-check                                            # credentials + level, in one call
+make e2e-live                                                # the whole live run against the sandbox API
+```
+
+Skipped without credentials, never part of `make test`; in CI it is the
+opt-in `Live Sumsub` job (`docs/operations/live-e2e-ci.md`). The device
+matrix (`docs/integration/sumsub.md`, sections 3-5) is manual.
+
 ### Mobile E2E Tests (Maestro)
 
 ```bash

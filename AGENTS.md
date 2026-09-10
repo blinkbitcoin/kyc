@@ -128,7 +128,10 @@ suite runs by default (GitHub-hosted macOS is free on a public repo); repo
 variable `E2E_IOS=false` pauses it and PR label `e2e:ios` forces it for one PR
 while paused. Native E2E builds are cached on the inputs
 `scripts/native-deps-hash.sh` sees; bump the key's `v` suffix when an input it
-cannot see changes.
+cannot see changes. Live Sumsub checks are opt-in (`E2E_LIVE=true` / label `e2e:live`,
+secrets in the `sumsub-sandbox` environment; `docs/operations/live-e2e-ci.md`):
+the sandbox API only - CI never drives the Sumsub UI, the device matrix in
+`docs/integration/sumsub.md` is manual.
 
 ## Testing
 
@@ -136,7 +139,8 @@ cannot see changes.
 - Demo tests: `examples/react-native-demo/{__tests__,src/__tests__}/`,
   `examples/react-demo/src/__tests__/`; browser E2E in `examples/react-demo/e2e/` (Playwright)
 - Backend unit tests: `examples/full-service-demo/tests/` (DB mocked); E2E: `examples/full-service-demo/tests/e2e/`
-  (real Postgres via `docker-compose.test.yml`)
+  (real Postgres via `docker-compose.test.yml`); `tests/live/` runs only with
+  real Sumsub sandbox credentials (`make test-live`, `make e2e-live`)
 - Tooling scripts: `scripts/lib/*.test.mjs` (100% Vitest coverage) for the
   extracted logic; `scripts/__tests__/*.test.mjs` shells out to the shell
   scripts themselves; CLI entry points are excluded from coverage by design

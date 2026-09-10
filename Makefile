@@ -163,6 +163,20 @@ e2e-android: ## Maestro E2E, Android (needs: emulator, debug APK built, Metro + 
 e2e-fake-native: ## Maestro E2E, fake native SDK (MANUAL, Android emulator only: needs a `KYC_MODE=fake-native npm start` Metro, an emulator and the debug APK; no backend needed)
 	npm run test:e2e:fake-native -w examples/react-native-demo
 
+# ---------- Live Sumsub (opt-in, needs sandbox credentials) ----------
+
+sumsub-env: ## Write examples/full-service-demo/.env for a live run (APP_TOKEN= SECRET_KEY= WEBHOOK_SECRET= [LEVEL_NAME=] [PUBLIC_BASE_URL=] [FORCE=1])
+	bash scripts/e2e/sumsub-env.sh
+
+sumsub-check: ## App-token auth + the level with that .env: mints a throwaway token, says what is wrong otherwise
+	npm run sumsub:check -w examples/full-service-demo
+
+test-live: ## Live tests against the Sumsub sandbox (skip unless SUMSUB_* set; the service round trips also need DATABASE_URL)
+	npm run test:live -w examples/full-service-demo
+
+e2e-live: ## Full live run: check, E2E Postgres, live tests (token, status, hosted page, signed webhook), the access-token example mints a real token
+	bash scripts/e2e/live.sh
+
 # ---------- Housekeeping ----------
 
 clean: ## Remove build output and caches (library lib/, coverage)
@@ -180,4 +194,5 @@ help: ## List available targets
 .PHONY: install hooks pods release release-rc version registry-smoke unit coverage coverage-badge typecheck lint format format-check check-code \
 	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check start ios android backend web db-up db-down migrate \
 	diagrams test-db-up test-db-down e2e-backend e2e-web e2e-web-proxy \
-	e2e-server-demos e2e-backend-up e2e-backend-down ios-build e2e-ios e2e-android e2e-fake-native clean reset help
+	e2e-server-demos e2e-backend-up e2e-backend-down ios-build e2e-ios e2e-android e2e-fake-native \
+	sumsub-env sumsub-check test-live e2e-live clean reset help

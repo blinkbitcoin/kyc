@@ -27,6 +27,10 @@ on:
         description: vX.Y.Z tag this run releases (release-please dispatch); empty = not a release
         type: string
         default: ''
+      live:
+        description: Run the live Sumsub suite (needs the sumsub-sandbox environment secrets; docs/operations/live-e2e-ci.md)
+        type: boolean
+        default: false
     outputs:
       version:
         description: The version stamped into the packages built by Build Packages (what Publish ships)
@@ -184,6 +188,50 @@ jobs:
           retention-days: 7
           overwrite: true
           if-no-files-found: error
+
+  # Live Sumsub (opt-in, docs/operations/live-e2e-ci.md): app-token auth, a
+  # real access token through the package, the service and the access-token
+  # example, the hosted page for a real token, and a webhook signed with the
+  # real secret. Secrets come from the `sumsub-sandbox` environment; the
+  # caller decides when this runs (never for fork PRs - they get no secrets).
+  # Every run mints tokens on the sandbox, hence opt-in and serialized. CI
+  # never drives the Sumsub UI: the device matrix (docs/integration/sumsub.md)
+  # is manual.
+  live:
+    name: Live Sumsub
+    if: inputs.live
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: sumsub-sandbox
+    concurrency:
+      group: live-sumsub
+      cancel-in-progress: false
+    env:
+      SUMSUB_APP_TOKEN: ${{ secrets.SUMSUB_APP_TOKEN }}
+      SUMSUB_SECRET_KEY: ${{ secrets.SUMSUB_SECRET_KEY }}
+      SUMSUB_WEBHOOK_SECRET: ${{ secrets.SUMSUB_WEBHOOK_SECRET }}
+      SUMSUB_LEVEL_NAME: ${{ vars.SUMSUB_LEVEL_NAME }}
+      SUMSUB_WEBHOOK_DIGEST_ALG: ${{ vars.SUMSUB_WEBHOOK_DIGEST_ALG }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies (workspace root)
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Check, live tests, the access-token example against the real sandbox
+        run: bash scripts/e2e/live.sh
+
+      - name: Stop test database
+        if: always()
+        run: make test-db-down
 
   web:
     name: Web

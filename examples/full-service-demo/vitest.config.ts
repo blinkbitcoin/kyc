@@ -43,8 +43,8 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['tests/**/*.test.ts'],
-    // e2e has its own config (real Postgres)
-    exclude: ['tests/e2e/**'],
+    // e2e (real Postgres) and live (real Sumsub) have their own configs
+    exclude: ['tests/e2e/**', 'tests/live/**'],
     setupFiles: ['./tests/setup.ts'],
     coverage: {
       provider: 'v8',

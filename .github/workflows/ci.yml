@@ -114,6 +114,12 @@ jobs:
       ios: ${{ vars.E2E_IOS != 'false' || contains(github.event.pull_request.labels.*.name, 'e2e:ios') }}
       ios-runner: ${{ vars.E2E_IOS_RUNNER || 'macos-latest' }}
       release-tag: ${{ inputs.release_tag || '' }}
+      # Live Sumsub: repo variable E2E_LIVE=true, or the e2e:live label on a
+      # PR from this repository (fork PRs get no secrets, so the label is
+      # inert there); docs/operations/live-e2e-ci.md
+      live: ${{ vars.E2E_LIVE == 'true' || contains(github.event.pull_request.labels.*.name, 'e2e:live') }}
+    # The live job reads the sumsub-sandbox environment's secrets
+    secrets: inherit
 
   # Badges for this branch under gh-pages/badges/<branch>/: the measured
   # coverage badge (artifact from Unit / Coverage, or a red "failing"

@@ -220,6 +220,11 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   libraries: Web bundles the demo against its dist and Publish ships its
   tarballs unchanged. Docs-only PRs stop after Checks; `main` skips docs-only
   pushes.
+- Live Sumsub is opt-in: repo variable `E2E_LIVE=true` or PR label `e2e:live`
+  runs `scripts/e2e/live.sh` (the `Live Sumsub` job) with the `sumsub-sandbox`
+  environment's secrets - the sandbox API only, never the Sumsub UI
+  (`docs/operations/live-e2e-ci.md`). Locally: `make sumsub-env`,
+  `make sumsub-check`, `make test-live`, `make e2e-live`.
 - iOS E2E runs by default (public repo: GitHub-hosted macOS is free). Pause it
   with repo variable `E2E_IOS=false`; PR label `e2e:ios` forces it for one PR
   while paused; `E2E_IOS_RUNNER` overrides `runs-on`.

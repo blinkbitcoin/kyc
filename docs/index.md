@@ -50,7 +50,7 @@ Organized by namespace - pick by what you are doing:
 | [native-sdk.md](integration/native-sdk.md) | Mode 1: the in-process provider SDK, the `getAccessToken` seam, permissions, and the offline test double |
 | [hosted.md](integration/hosted.md) | Mode 2: the `kyc-bridge` protocol, origin pinning, token refresh, what a host page and a hosted page must each allow |
 | [proxy.md](integration/proxy.md) | Mode 3: Apollo wiring, the three operations, running the reference backend, reading status later |
-| [sumsub.md](integration/sumsub.md) | The manual sandbox checklist: dashboard setup, and the device matrix CI cannot run |
+| [sumsub.md](integration/sumsub.md) | Sumsub sandbox: dashboard setup, the automated live tier (`make e2e-live`), and the device matrix CI cannot run |
 | [error-codes.md](integration/error-codes.md) | Every `onError` code, which layer produces it, the copy it renders, and the sensible host reaction |
 
 ### `architecture/` - how the system works inside
@@ -84,6 +84,7 @@ Organized by namespace - pick by what you are doing:
 |-----|--------|
 | [development-guide.md](./development-guide.md) | Working on this repo: setup, commands, quality gates, CI, and the first release |
 | [releasing.md](./releasing.md) | How a merged PR becomes a version: release-please, the release PR, the changelog, what merging it does |
+| [operations/live-e2e-ci.md](./operations/live-e2e-ci.md) | The opt-in live Sumsub job: the `sumsub-sandbox` environment, secrets, triggers, rotation, failure modes |
 | [diagrams/](./diagrams/README.md) | All nine diagrams, pre-rendered (sources in `diagrams/src/`) |
 | [superpowers/specs/2026-09-05-kyc-design.md](./superpowers/specs/2026-09-05-kyc-design.md) | The approved design this repo implements |
 
