@@ -10,9 +10,8 @@
 //
 // Until then this entry is core's Sumsub surface (the mapping, so a host
 // that mounts the web SDK itself can normalize its events today) plus the
-// component, the hook and the mountable seam. The component modules import
-// the core root, so unlike the React Native package this entry is not
-// Apollo-free - it is the provider-scoped surface.
+// component, the hook and the mountable seam - Apollo-free like ./hosted,
+// since the component modules import core's hosted entry (guard-tested).
 //
 //   import { Verification, interpretSumsubWebMessage } from '@blinkbitcoin/kyc-react/sumsub';
 
@@ -26,3 +25,10 @@ export { useTokenRefresh } from '../../useTokenRefresh';
 export { MountPoint, MOUNT_POINT_TEST_ID } from '../../MountPoint';
 export { isMountable } from '../../mountable';
 export type * from '../../types';
+export type { VerificationLabels } from '../../types';
+export {
+  baseStyles,
+  DEFAULT_LABELS,
+  resolveLabels,
+  resolveStyles,
+} from '../../theme';

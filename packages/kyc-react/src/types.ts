@@ -3,11 +3,13 @@
 
 import type { CSSProperties } from 'react';
 import type {
+  VerificationLabels as CoreLabels,
   VerificationError,
   VerificationResult,
   VerificationSource,
   VerificationStatus,
-} from '@blinkbitcoin/kyc-core';
+  VerificationTheme,
+} from '@blinkbitcoin/kyc-core/hosted';
 
 export type { MountableSource } from './mountable';
 export type { MountPointProps } from './MountPoint';
@@ -24,6 +26,33 @@ export type {
   MessageGuardOptions,
 } from './hosted/frameProps';
 
+/** Every styled element of the default Verification UI. */
+export type VerificationStyleKey =
+  | 'root'
+  | 'embed'
+  | 'hiddenEmbed'
+  | 'actions'
+  | 'screen'
+  | 'title'
+  | 'subtitle'
+  | 'hint'
+  | 'button'
+  | 'secondaryButton'
+  | 'spinner'
+  | 'successText'
+  | 'errorTitle';
+
+/** Per-element style overrides; applied after the base styles and the theme. */
+export type VerificationStyles = Partial<
+  Record<VerificationStyleKey, CSSProperties>
+>;
+
+/** Copy overrides: the shared keys plus the one only this platform renders. */
+export interface VerificationLabels extends CoreLabels {
+  /** The browser-specific line under the permission message. */
+  permissionHint?: string;
+}
+
 /**
  * Props for the default Verification UI. The component is provider-agnostic:
  * give it the source for the mode you want (createHostedSource,
@@ -39,6 +68,12 @@ export interface VerificationProps {
   onStatusChange?: (status: VerificationStatus) => void;
   /** Idle-screen title and button label (default: "Verify identity"). */
   label?: string;
+  /** Color and font overrides for the built-in screens. */
+  theme?: VerificationTheme;
+  /** Per-element style overrides (win over `theme`). */
+  styles?: VerificationStyles;
+  /** Copy overrides for the built-in screens (win over `label`). */
+  labels?: VerificationLabels;
   /** How long the success screen shows before onComplete (default 1500ms). */
   successDelayMs?: number;
   /** Accessible name for the embedded page (default: "Identity verification"). */

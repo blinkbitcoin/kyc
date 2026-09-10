@@ -56,6 +56,7 @@ describe('proxy mode', () => {
       API_ORIGIN: 'http://localhost:4000',
       GRAPHQL_URL: 'http://localhost:4000/graphql',
       KYC_MODE: 'proxy',
+      KYC_UI: 'default',
     }));
 
     const { App: ProxyApp } = await import('../App');

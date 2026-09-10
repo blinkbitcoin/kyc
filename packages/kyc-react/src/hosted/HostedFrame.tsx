@@ -13,12 +13,12 @@
 // invoked, in the DOM as much as in jsdom.
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { ClientErrorCodes } from '@blinkbitcoin/kyc-core';
+import { ClientErrorCodes } from '@blinkbitcoin/kyc-core/hosted';
 
 import { createHostedFrameProps, createMessageGuard } from './frameProps';
 
 import type { CSSProperties, FC, RefObject } from 'react';
-import type { VerificationEvent } from '@blinkbitcoin/kyc-core';
+import type { VerificationEvent } from '@blinkbitcoin/kyc-core/hosted';
 import type { TokenPostable } from '../useTokenRefresh';
 
 export const HOSTED_FRAME_TEST_ID = 'verification-iframe';

@@ -62,6 +62,7 @@ kyc/
 │   ├── packages/kyc-react-native/
 │   │   ├── src/
 │   │   │   ├── index.ts / hosted.ts # `.` and the Apollo-free ./hosted ⭐
+│   │   │   ├── theme.ts             # baseStyles (the StyleSheet), DEFAULT_LABELS, resolveStyles / resolveLabels
 │   │   │   ├── sumsub.ts            # `./sumsub` - one-line re-export of providers/sumsub/entry
 │   │   │   ├── Verification.tsx     # One screen per state ⭐
 │   │   │   ├── useVerification.ts   # The headless flow ⭐
@@ -78,7 +79,8 @@ kyc/
 │   │
 │   └── packages/kyc-react/
 │       ├── src/
-│       │   ├── index.ts             # The root entry ⭐
+│       │   ├── index.ts / hosted.ts # `.` and the Apollo-free ./hosted, the same contract as React Native's ⭐
+│       │   ├── theme.ts             # baseStyles, DEFAULT_LABELS, resolveStyles / resolveLabels
 │       │   ├── sumsub.ts            # `./sumsub` - reserved seat of the web-SDK adapter
 │       │   ├── providers/sumsub/entry.ts
 │       │   ├── Verification.tsx

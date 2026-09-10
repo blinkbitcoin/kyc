@@ -1,6 +1,7 @@
 module.exports = {
   testEnvironment: 'jsdom',
   moduleNameMapper: {
+    '^@blinkbitcoin/kyc-core/hosted$': '<rootDir>/../kyc-core/src/hosted.ts',
     '^@blinkbitcoin/kyc-core/sumsub$': '<rootDir>/../kyc-core/src/sumsub.ts',
     '^@blinkbitcoin/kyc-core$': '<rootDir>/../kyc-core/src/index.ts',
   },
@@ -11,6 +12,7 @@ module.exports = {
     'src/generated/',
     'src/types\\.ts$',
     'src/index\\.ts$',
+    'src/hosted\\.ts$',
     'src/sumsub\\.ts$',
     'src/providers/sumsub/entry\\.ts$',
   ],

@@ -41,4 +41,4 @@ Provider-specific failures that map to none of the above arrive as `SUMSUB_<ERRO
 - **Offline is not an error.** `navigator.onLine` being false, or NetInfo reporting no connectivity, parks on the offline screen with a retry affordance and never calls `onError`.
 - **A denied permission is not an error.** Same reasoning: it is a recoverable user state with its own screen.
 
-Message copy for every code lives in `getErrorMessage` (`@blinkbitcoin/kyc-core`), which hosts can call directly to render their own error surfaces consistently.
+Message copy for every code lives in `getErrorMessage` (`@blinkbitcoin/kyc-core`), which hosts can call directly to render their own error surfaces consistently. A host that keeps the built-in error screen but needs its own language passes `labels.errorMessages` (a table by code) to `Verification`; `failureLabel` reads it and falls back to the message the error carries.

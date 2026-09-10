@@ -22,7 +22,12 @@ export default defineConfig(({ command }) => {
         provider: 'v8',
         include: ['src/**/*.{ts,tsx}', 'vite/**/*.ts'],
         exclude: ['src/main.tsx', 'src/**/*.test.*', 'vite/**/*.test.*'],
-        thresholds: { statements: 80, branches: 80, functions: 80, lines: 80 },
+        thresholds: {
+          statements: 100,
+          branches: 100,
+          functions: 100,
+          lines: 100,
+        },
       },
     },
   };

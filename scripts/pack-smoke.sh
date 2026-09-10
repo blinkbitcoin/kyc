@@ -109,6 +109,7 @@ if (resolvable('@blinkbitcoin/kyc-react-native')) {
   assert.ok(require('node:fs').existsSync(`${rnDir}/__mocks__/@sumsub/react-native-mobilesdk-module.ts`), 'the Sumsub SDK test double ships with the RN package');
 }
 if (resolvable('@blinkbitcoin/kyc-react')) {
+  assert.match(require.resolve('@blinkbitcoin/kyc-react/hosted'), /dist[\\/]hosted\.cjs$/);
   assert.match(require.resolve('@blinkbitcoin/kyc-react/sumsub'), /dist[\\/]sumsub\.cjs$/);
 }
 console.log('pack smoke: /hosted + /testing + /sumsub and the server package resolve Apollo-free; full entry correctly needs Apollo');

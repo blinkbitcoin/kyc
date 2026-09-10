@@ -17,7 +17,7 @@ import {
   planEvent,
   toVerificationError,
   UNKNOWN_ERROR_CODE,
-} from '@blinkbitcoin/kyc-core';
+} from '@blinkbitcoin/kyc-core/hosted';
 
 import { useTokenRefresh } from './useTokenRefresh';
 
@@ -34,7 +34,7 @@ import type {
   VerificationSource,
   VerificationSourceError,
   VerificationStatus,
-} from '@blinkbitcoin/kyc-core';
+} from '@blinkbitcoin/kyc-core/hosted';
 import type { TokenPostable } from './useTokenRefresh';
 
 export type { TokenPostable } from './useTokenRefresh';

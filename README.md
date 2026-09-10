@@ -145,9 +145,10 @@ downgrade an `approved` user.
 ### Web apps
 
 Everything above applies to `@blinkbitcoin/kyc-react`, with an origin-pinned
-`<iframe>` in place of the WebView and `navigator.onLine` in place of NetInfo.
-There is no `/hosted` subpath on the web and none is needed - the single entry
-is side-effect-free, so a bundler drops what a hosted-only app never imports.
+`<iframe>` in place of the WebView and `navigator.onLine` in place of NetInfo,
+and the same Apollo-free `/hosted` entry, so a host that ships both platforms
+writes the same import on both. Both components take `theme`, `styles` and
+`labels`, so a branded, multilingual host never renders the built-in copy.
 Start at [packages/kyc-react/README.md](packages/kyc-react/README.md) and
 [docs/integration/hosted.md](docs/integration/hosted.md).
 

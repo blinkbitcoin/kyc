@@ -3,7 +3,7 @@
 // Plug-and-play identity verification for React web apps. The component is
 // provider-agnostic: give it the VerificationSource for the mode you want.
 //
-//   // Hosted page (a page speaking the kyc-bridge protocol, in an iframe):
+//   // Hosted page (Apollo-free - import from '/hosted' instead):
 //   const source = createHostedSource({ getSession, refreshToken });
 //
 //   // Proxy session (this repo's backend does the orchestration):
@@ -35,12 +35,21 @@ export {
 export { MountPoint, MOUNT_POINT_TEST_ID } from './MountPoint';
 export { isMountable } from './mountable';
 export type * from './types';
+// This package's labels extend core's under the same name; naming the
+// re-export is what resolves the clash with the core re-export below.
+export type { VerificationLabels } from './types';
+export {
+  baseStyles,
+  DEFAULT_LABELS,
+  resolveLabels,
+  resolveStyles,
+} from './theme';
 
 // The whole platform-agnostic core, re-exported for convenience - including
 // the shared state machine, the bridge protocol, the Apollo-backed proxy
-// source and the client factory. Unlike the React Native package there is no
-// Apollo-free subpath: on the web there is no Metro export condition and no
-// native peer to keep out of a build, so one entry plus "sideEffects": false
-// lets a bundler drop whatever a hosted-only app never imports. This mirrors
-// @blinkbitcoin/esign-react, which has no subpath either.
+// source and the client factory. Hosted-only apps import ./hosted instead:
+// a bundler would tree-shake the Apollo pieces out of this entry too
+// ("sideEffects": false), but the subpath makes the Apollo-free contract a
+// tested guarantee rather than a bundler property, and gives both
+// platforms the same import.
 export * from '@blinkbitcoin/kyc-core';

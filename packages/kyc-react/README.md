@@ -3,6 +3,8 @@
 Plug-and-play identity verification (KYC) for React web apps. One component,
 one hook, an origin-pinned iframe — the app never learns a provider name.
 
+## Install
+
 ```sh
 npm install @blinkbitcoin/kyc-react
 ```
@@ -12,11 +14,11 @@ npm install @blinkbitcoin/kyc-react
 | `react` | ≥18 | always |
 | `@apollo/client` + `graphql` | ^4 / ^16‖^17 | **proxy mode only** (optional) |
 
-There is a single entry point. The React Native package has an Apollo-free
-`/hosted` subpath because Metro resolves the `react-native` export condition
-straight to source; on the web a bundler simply tree-shakes what you never
-import (`"sideEffects": false`), so hosted-only apps never need the GraphQL
-peers installed.
+Import from `@blinkbitcoin/kyc-react/hosted` unless you use proxy mode:
+that entry is Apollo-free by construction (guarded by a test that walks its
+import graph, and by the packed-tarball smoke), so the GraphQL peers never
+have to be installed — the same import a React Native host writes. The
+root entry adds `createProxySource` and the Apollo client factory.
 
 ## Modes
 
@@ -140,6 +142,9 @@ allowedOrigin)` — never with `'*'`.
 | `onCancel` | `() => void` | — | User aborted. |
 | `onStatusChange` | `(status: VerificationStatus) => void` | — | Every intermediate status. |
 | `label` | `string` | `'Verify identity'` | Idle-screen title and button. |
+| `theme` | `VerificationTheme` | — | Color and font overrides for the built-in screens<br>(see Labels and theme). |
+| `styles` | `VerificationStyles` | — | Per-element style overrides; win over `theme`. |
+| `labels` | `VerificationLabels` | — | Copy overrides for the built-in screens; win over `label`. |
 | `successDelayMs` | `number` | `1500` | Success screen before `onComplete` (approvals only). |
 | `frameTitle` | `string` | `'Identity verification'` | Accessible name for the embedded page. |
 | `style` | `CSSProperties` | — | Applied once, to the component's single root element. |
@@ -172,6 +177,44 @@ response, so only a network-level failure — DNS, TLS, a connection that never
 completes — surfaces as `NETWORK_ERROR`. Serve the bridge's `sessionExpired` /
 `error` envelope from a 200 page (as `examples/full-service-demo` does) if you need the flow to
 react.
+
+## Labels and theme
+
+Blink is multilingual and branded, so nothing the built-in screens render
+is fixed: every string is a `VerificationLabels` key and every color a
+`VerificationTheme` key, and both are plain props.
+
+```tsx
+<Verification
+  source={source}
+  label="Verificar identidad"
+  theme={{ primaryColor: '#F7931A', primaryTextColor: '#000' }}
+  labels={{
+    subtitle: 'Ten tu documento a mano y permite el acceso a la cámara.',
+    cancel: 'Cancelar',
+    outcomeReviewing: 'Estamos revisando tus documentos.',
+    errorMessages: { NETWORK_ERROR: 'Sin conexión. Inténtalo de nuevo.' },
+  }}
+  onComplete={...} onError={...} onCancel={...}
+/>
+```
+
+Precedence: base style < `theme` color < `styles[key]`, and default copy <
+`label` (title and start button) < `labels`. `null` / `undefined` in
+`labels` keep the default. The keys: `title`, `subtitle`, `start`, `cancel`,
+`loading`, `inProgressTitle`, `inProgressSubtitle`, `pendingTitle`,
+`permissionTitle`, `permissionMessage`, `permissionHint`, `retry`,
+`restart`, `offlineTitle`, `offlineMessage`, `checkConnection`,
+`errorTitle`, one `outcome*` per decision (`Approved`, `Declined`,
+`FinallyRejected`, `Incomplete`, `Reviewing`) and `errorMessages`, a table
+by error code
+([docs/integration/error-codes.md](../../docs/integration/error-codes.md))
+over the message the error carries. `VerificationStyleKey` lists the
+styled elements (`root`, `embed`, `hiddenEmbed`, `actions`, `screen`,
+`title`, `subtitle`, `hint`, `button`, `secondaryButton`, `spinner`,
+`successText`, `errorTitle`); the styles are inline `CSSProperties`, so
+the package still ships no stylesheet. A host that wants a different
+layout altogether calls `useVerification` instead.
 
 ## `useVerification(source, options)`
 
@@ -218,3 +261,18 @@ const {
   `describeFailure`, `isRestartableError`) lives in `@blinkbitcoin/kyc-core`
   and is shared with `@blinkbitcoin/kyc-react-native`, so both platforms
   behave identically.
+
+## Development (in this monorepo)
+
+```sh
+npm test -w packages/kyc-react            # Jest + jsdom, 100% coverage enforced
+npm run typecheck -w packages/kyc-react
+npm run build -w packages/kyc-react       # tsup → dist/{index,hosted,sumsub}.{cjs,mjs,d.ts}
+```
+
+`src/__tests__/hosted-entry.test.ts` walks the import graph of the
+`/hosted` and `/sumsub` entries (into core's source too) and fails if either
+reaches Apollo; `scripts/pack-smoke.sh` at the repo root installs the packed
+tarball and checks the export map from the consumer's side. The web demo
+(`examples/react-demo`) resolves this package from source while serving and
+from `dist` when building, so `make e2e-web` proves what a consumer gets.

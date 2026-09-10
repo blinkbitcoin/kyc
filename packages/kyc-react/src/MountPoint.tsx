@@ -4,14 +4,14 @@
 // testable on its own, and so the component stays a plain switch over states.
 
 import { useEffect, useRef } from 'react';
-import { ClientErrorCodes } from '@blinkbitcoin/kyc-core';
+import { ClientErrorCodes } from '@blinkbitcoin/kyc-core/hosted';
 
 import type { CSSProperties, FC } from 'react';
 import type {
   VerificationEvent,
   VerificationSession,
   VerificationSourceError,
-} from '@blinkbitcoin/kyc-core';
+} from '@blinkbitcoin/kyc-core/hosted';
 import type { MountableSource } from './mountable';
 
 export const MOUNT_POINT_TEST_ID = 'verification-mount';

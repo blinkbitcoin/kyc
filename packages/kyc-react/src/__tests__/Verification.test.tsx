@@ -465,3 +465,52 @@ describe('Verification - pass-through props', () => {
     expect(has('verification-iframe')).toBe(false);
   });
 });
+
+describe('Verification - labels and theme', () => {
+  it('renders the host copy and colors on the idle screen', () => {
+    render(
+      <Verification
+        {...props({
+          label: 'Verifiera',
+          theme: { primaryColor: '#F7931A', primaryTextColor: '#000' },
+          styles: { subtitle: { letterSpacing: 2 } },
+          labels: { subtitle: 'Ha din legitimation redo.', cancel: 'Avbryt' },
+        })}
+      />,
+    );
+
+    const startButton = screen.getByTestId('verification-start-button');
+    expect(startButton.getAttribute('aria-label')).toBe('Verifiera');
+    expect(startButton.style.backgroundColor).toBe('rgb(247, 147, 26)');
+    expect(screen.getByTestId('verification-cancel-button').textContent).toBe(
+      'Avbryt',
+    );
+    const subtitle = screen.getByText('Ha din legitimation redo.');
+    expect(subtitle.style.letterSpacing).toBe('2px');
+  });
+
+  it('uses the host error copy for a code and the outcome copy while pending', async () => {
+    render(
+      <Verification
+        {...props({
+          labels: {
+            pendingTitle: 'Tack',
+            outcomeReviewing: 'Vi granskar dina dokument.',
+            errorMessages: { MOCK_ERROR: 'Något gick fel.' },
+          },
+        })}
+      />,
+    );
+    await click('verification-start-button');
+
+    await fromPage({ type: 'submitted' });
+    expect(screen.getByTestId('pending-message').textContent).toBe(
+      'Vi granskar dina dokument.',
+    );
+
+    await fromPage({ type: 'error', code: 'MOCK_ERROR', message: 'built-in' });
+    expect(screen.getByTestId('error-message').textContent).toBe(
+      'Något gick fel.',
+    );
+  });
+});

@@ -11,7 +11,13 @@ Playwright E2E target. `VITE_KYC_MODE` selects the mode at build time.
 ```bash
 make web                          # repo root, hosted mode on :5173
 VITE_KYC_MODE=proxy npm run dev   # here, proxy mode
+VITE_KYC_UI=themed npm run dev    # the same flow under Blink's palette and Spanish copy
 ```
+
+`VITE_KYC_UI` picks the look: `default` is the component's own copy and
+colors, `themed` hands it the `theme` and `labels` props from
+`src/theme.ts` - what a branded, multilingual host writes. The testids are
+the same in both, so every Playwright spec runs under either.
 
 The screen mirrors the React Native demo: `mode-label`, `reset-button`,
 `outcome`, around the library's `<Verification />`. The verification page is

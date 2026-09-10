@@ -1,7 +1,7 @@
 // The ./sumsub subpath is the provider-scoped surface: core's Sumsub mapping
 // plus the component, the hook and the mountable seam - the same objects the
 // root exports, reached through one import. Its entry file only names the
-// provider directory.
+// provider directory. That it stays Apollo-free is hosted-entry.test.ts.
 
 import * as fs from 'fs';
 import * as path from 'path';

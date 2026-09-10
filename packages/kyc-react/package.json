@@ -16,6 +16,16 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./hosted": {
+      "import": {
+        "types": "./dist/hosted.d.mts",
+        "default": "./dist/hosted.mjs"
+      },
+      "require": {
+        "types": "./dist/hosted.d.ts",
+        "default": "./dist/hosted.cjs"
+      }
+    },
     "./sumsub": {
       "import": {
         "types": "./dist/sumsub.d.mts",

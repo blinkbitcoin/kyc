@@ -1,14 +1,16 @@
 // Demo host for the @blinkbitcoin/kyc-react web package. Mirrors the React
 // Native demo: mode-driven source + result reporting around the library
-// component. The toolbar and the outcome line exist for the Playwright
+// component; VITE_KYC_UI=themed shows the same flow under a host's own
+// palette and copy (src/theme.ts). The toolbar and the outcome line exist for the Playwright
 // suite - a product screen would not need them.
 import { ApolloProvider } from '@apollo/client/react';
 import { Verification } from '@blinkbitcoin/kyc-react';
 import { useState } from 'react';
 
 import { apolloClient } from './apollo';
-import { KYC_MODE } from './config';
+import { KYC_MODE, KYC_UI } from './config';
 import { buildSource } from './source';
+import { uiProps } from './theme';
 
 import type {
   VerificationError,
@@ -50,6 +52,7 @@ export const VerificationScreen = ({
       onError={error => onOutcome({ kind: 'error', error })}
       onCancel={() => onOutcome({ kind: 'cancelled' })}
       successDelayMs={4000}
+      {...uiProps(KYC_UI)}
     />
   );
 };

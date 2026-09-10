@@ -13,7 +13,7 @@ import type {
   VerificationEvent,
   VerificationSession,
   VerificationSource,
-} from '@blinkbitcoin/kyc-core';
+} from '@blinkbitcoin/kyc-core/hosted';
 
 /**
  * Web-only capability: a source that renders itself into a container instead

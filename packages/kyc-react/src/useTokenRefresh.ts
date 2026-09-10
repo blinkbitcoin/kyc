@@ -18,7 +18,7 @@ import {
   createSetTokenMessage,
   isTokenRefreshable,
   toVerificationError,
-} from '@blinkbitcoin/kyc-core';
+} from '@blinkbitcoin/kyc-core/hosted';
 
 import type { RefObject } from 'react';
 import type {
@@ -26,7 +26,7 @@ import type {
   VerificationSession,
   VerificationSource,
   VerificationSourceError,
-} from '@blinkbitcoin/kyc-core';
+} from '@blinkbitcoin/kyc-core/hosted';
 
 /**
  * The slice of an HTMLIFrameElement this package needs. Declared structurally

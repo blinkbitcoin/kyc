@@ -45,6 +45,9 @@ The eight states, the outcome copy and the Restart rule come from `@blinkbitcoin
 | `onCancel` | `() => void` | - | The user aborted |
 | `onStatusChange` | `(status: VerificationStatus) => void` | - | Every intermediate status |
 | `label` | `string` | `'Verify identity'` | Idle title and button |
+| `theme` | `VerificationTheme` | - | Colors and font for the built-in screens (`src/theme.ts` resolves base < theme < `styles`) |
+| `styles` | `VerificationStyles` | - | Per-element inline-style overrides by `VerificationStyleKey` |
+| `labels` | `VerificationLabels` | - | Every string the screens render, resolved by core's `resolveLabelsWith` over `DEFAULT_LABELS` |
 | `successDelayMs` | `number` | `1500` | Success screen before `onComplete` |
 | `frameTitle` | `string` | `'Identity verification'` | Accessible name for the embedded page |
 | `style` | `CSSProperties` | - | Applied to every screen and to the frame / mount container |
