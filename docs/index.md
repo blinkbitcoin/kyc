@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 **Project:** kyc
-**Updated:** 2026-09-10
+**Updated:** 2026-09-11
 
 ---
 
@@ -91,6 +91,7 @@ Organized by namespace - pick by what you are doing:
 |-----|--------|
 | [development-guide.md](./development-guide.md) | Working on this repo: setup, commands, quality gates, CI, and the first release |
 | [releasing.md](./releasing.md) | How a merged PR becomes a version: release-please, the release PR, the changelog, what merging it does |
+| [operations/production.md](./operations/production.md) | Taking it live: the two backend tiers, Sumsub go-live, the environment the boot guard demands, what runs in front of the service, the checklist, failure modes |
 | [operations/live-e2e-ci.md](./operations/live-e2e-ci.md) | The opt-in live Sumsub job: the `sumsub-sandbox` environment, secrets, triggers, rotation, failure modes |
 | [diagrams/](./diagrams/README.md) | All nine diagrams, pre-rendered (sources in `diagrams/src/`) |
 | [superpowers/specs/2026-09-05-kyc-design.md](./superpowers/specs/2026-09-05-kyc-design.md) | The approved design this repo implements |
@@ -147,6 +148,11 @@ make e2e-android            # Maestro (see make help for prerequisites)
 ### "I want to run this against real Sumsub"
 1. [integration/sumsub.md](integration/sumsub.md) - dashboard setup, the automated tier (`make e2e-live`), and the manual device checklist
 2. [operations/live-e2e-ci.md](operations/live-e2e-ci.md) - the same run as an opt-in CI job
+
+### "I want to deploy this"
+1. [operations/production.md](operations/production.md) - pick a tier, configure, put a proxy in front, run the checklist
+2. [../examples/full-service-demo/README.md](../examples/full-service-demo/README.md) - the reference service itself
+3. [architecture/security.md](architecture/security.md) - what the service enforces and what the host must
 
 ### "I want to review the security posture"
 1. [architecture/security.md](architecture/security.md), then [SECURITY.md](../SECURITY.md) for reporting
