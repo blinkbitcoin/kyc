@@ -3,12 +3,14 @@
 # three secrets (App Token, its secret key, the webhook secret key) and the
 # level name - docs/integration/sumsub.md, section 1.
 #   make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=… \
-#        [LEVEL_NAME=basic-kyc-level] [PUBLIC_BASE_URL=http://localhost:5100] \
+#        [LEVEL_NAME=basic-kyc-level] [PUBLIC_BASE_URL=http://localhost:<KYC_API_PORT>] \
 #        [WEBHOOK_DIGEST_ALG=HMAC_SHA256_HEX] [JWT_SECRET=…] [FORCE=1]
 # Refuses to overwrite an existing .env unless FORCE=1. Local only, never CI
 # (CI reads the same names from the sumsub-sandbox environment).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
+# shellcheck source=scripts/e2e/ports-env.sh
+. scripts/e2e/ports-env.sh
 : "${APP_TOKEN:?Sumsub app token}" "${SECRET_KEY:?the app-token secret key}" \
   "${WEBHOOK_SECRET:?the webhook secret key}"
 OUT="${OUT:-examples/full-service-demo/.env}"
@@ -17,7 +19,7 @@ if [ -f "$OUT" ] && [ -z "${FORCE:-}" ]; then
 fi
 {
   echo "# Written by make sumsub-env ($(date -u +%Y-%m-%dT%H:%M:%SZ)); local only, never commit"
-  echo "PORT=${PORT:-5100}"
+  echo "PORT=${PORT:-$KYC_API_PORT}"
   echo "DATABASE_URL=${DATABASE_URL:-postgresql://dev:dev@localhost:5432/kyc}"
   # No JWT_SECRET unless asked: with ALLOW_INSECURE_DEV the bearer token is
   # the user id, which is what the live tests and the demos send.
@@ -30,7 +32,7 @@ fi
   echo "SUMSUB_WEBHOOK_DIGEST_ALG=${WEBHOOK_DIGEST_ALG:-HMAC_SHA256_HEX}"
   echo "SUMSUB_LEVEL_NAME=${LEVEL_NAME:-basic-kyc-level}"
   echo "SUMSUB_BASE_URL=${SUMSUB_BASE_URL:-https://api.sumsub.com}"
-  echo "PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:${PORT:-5100}}"
+  echo "PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:${PORT:-$KYC_API_PORT}}"
 } > "$OUT"
 chmod 600 "$OUT"
 echo "wrote $OUT (level ${LEVEL_NAME:-basic-kyc-level})"

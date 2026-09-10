@@ -216,7 +216,7 @@ matrix stays manual - [docs/integration/sumsub.md](docs/integration/sumsub.md).
 | `make diagrams`<br>`make diagrams-check` | Render `docs/diagrams/dist/*.svg` and reassemble the page / fail on drift |
 | `make docs-check` | Warn on architecture changes without docs; fail on a stale diagram SVG |
 | `make e2e-backend` | Backend E2E with a dockerized Postgres |
-| `make e2e-web`<br>`make e2e-web-proxy` | Playwright, hosted and proxy - both build the libraries first<br>and bundle the demo against their dist. Ports come from<br>`KYC_API_PORT` / `KYC_WEB_PORT` / `KYC_WEB_PROXY_PORT`<br>(`5100` / `5101` / `5102`), so worktrees never clash |
+| `make e2e-web`<br>`make e2e-web-proxy` | Playwright, hosted and proxy - both build the libraries first<br>and bundle the demo against their dist. Every service is<br>`KYC_PORT_BASE` (5100) + its offset, so one variable moves a<br>worktree (`KYC_PORT_BASE=5300 make e2e-web`) |
 | `make e2e-android`<br>`make e2e-ios`<br>`make e2e-fake-native` | Maestro suites (see `make help` for the prerequisites) |
 | `make version`<br>`make release` | What CI would publish / merge the release PR release-please<br>maintains ([docs/releasing.md](docs/releasing.md)) |
 

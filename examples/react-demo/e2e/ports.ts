@@ -1,11 +1,15 @@
 // Ports of the web E2E stack (backend + Vite demo per mode), from the
-// environment. Every service in this repo runs on a custom port so repos
-// and worktrees never clash: set the three variables per worktree (direnv,
-// a shell export) and the whole stack moves.
+// environment. Every service in this repo listens on KYC_PORT_BASE (default
+// 5100) plus its own offset, so one variable moves the whole stack and
+// sibling worktrees never fight over a port (a foreign server on a shared
+// port is reused by Playwright and every test fails on the first request):
+// `KYC_PORT_BASE=5300 make e2e-web`. Each service's own variable overrides
+// its port alone. The table is scripts/lib/ports.mjs; ports.test.ts keeps
+// this copy on it.
 //
-//   KYC_API_PORT        the reference backend         default 5100
-//   KYC_WEB_PORT        the web demo, hosted mode     default 5101
-//   KYC_WEB_PROXY_PORT  the web demo, proxy mode      default 5102
+//   KYC_API_PORT        the backend              base + 0
+//   KYC_WEB_PORT        the demo, hosted mode    base + 1
+//   KYC_WEB_PROXY_PORT  the demo, proxy mode     base + 2
 //
 // Runs under Node (Playwright config) but is typechecked with the demo's
 // browser tsconfig, so no node imports.
@@ -15,17 +19,22 @@ declare const process: { env: Record<string, string | undefined> };
 export const MODES = ['hosted', 'proxy'] as const;
 export type Mode = (typeof MODES)[number];
 
+export const BASE_VAR = 'KYC_PORT_BASE';
+export const BASE_DEFAULT = 5100;
+export const API_VAR = 'KYC_API_PORT';
+export const API_OFFSET = 0;
+export const WEB_VARS: Record<Mode, string> = {
+  hosted: 'KYC_WEB_PORT',
+  proxy: 'KYC_WEB_PROXY_PORT',
+};
+export const WEB_OFFSETS: Record<Mode, number> = { hosted: 1, proxy: 2 };
+
 export interface E2EPorts {
   api: number;
   web: Record<Mode, number>;
 }
 
-export const DEFAULT_PORTS: E2EPorts = {
-  api: 5100,
-  web: { hosted: 5101, proxy: 5102 },
-};
-
-// A port from one variable: unset or empty means the default; anything
+// A port from one variable: unset or empty means the fallback; anything
 // else must be a real port number, so a typo fails here and not as a
 // server that never comes up
 export const portFrom = (
@@ -46,22 +55,20 @@ export const portFrom = (
 
 export const portsFrom = (
   env: Record<string, string | undefined>,
-): E2EPorts => ({
-  api: portFrom('KYC_API_PORT', env.KYC_API_PORT, DEFAULT_PORTS.api),
-  web: {
-    hosted: portFrom(
-      'KYC_WEB_PORT',
-      env.KYC_WEB_PORT,
-      DEFAULT_PORTS.web.hosted,
-    ),
-    proxy: portFrom(
-      'KYC_WEB_PROXY_PORT',
-      env.KYC_WEB_PROXY_PORT,
-      DEFAULT_PORTS.web.proxy,
-    ),
-  },
-});
+): E2EPorts => {
+  const base = portFrom(BASE_VAR, env[BASE_VAR], BASE_DEFAULT);
+  const web = {} as Record<Mode, number>;
+  for (const mode of MODES) {
+    web[mode] = portFrom(
+      WEB_VARS[mode],
+      env[WEB_VARS[mode]],
+      base + WEB_OFFSETS[mode],
+    );
+  }
+  return { api: portFrom(API_VAR, env[API_VAR], base + API_OFFSET), web };
+};
 
+export const DEFAULT_PORTS = portsFrom({});
 export const PORTS = portsFrom(process.env);
 export const API_ORIGIN = `http://localhost:${PORTS.api}`;
 const webOrigin = (mode: Mode): string => `http://localhost:${PORTS.web[mode]}`;

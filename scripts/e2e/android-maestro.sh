@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Maestro E2E on a running Android emulator: installs the debug APK, wires
-# Metro (8081) and the backend (KYC_API_PORT, 5100) into the emulator via adb
+# Metro (8081) and the backend (KYC_API_PORT) into the emulator via adb
 # reverse (the WebView loads localhost:<port> URLs minted by the mock provider), runs
 # the suite and keeps device forensics (logcat) when it fails.
 # Needs: emulator up, debug APK built, Metro + backend running (metro-start.sh,
@@ -8,6 +8,8 @@
 # runner, which executes each line as its own `sh -c` - hence a file, not
 # inline shell. Local: make e2e-android.
 set -uo pipefail
+# shellcheck source=scripts/e2e/ports-env.sh
+. "$(dirname "$0")/ports-env.sh"
 
 APK=examples/react-native-demo/android/app/build/outputs/apk/debug/app-debug.apk
 LOGS="${RUNNER_TEMP:-/tmp}/android-logs"
@@ -16,7 +18,7 @@ LOGS="${RUNNER_TEMP:-/tmp}/android-logs"
 adb install "$APK"
 # Metro + backend: the WebView loads localhost:<port> URLs minted by the
 # mock provider - reverse both into the emulator.
-API_PORT="${KYC_API_PORT:-5100}"
+API_PORT="$KYC_API_PORT"
 adb reverse tcp:8081 tcp:8081
 adb reverse "tcp:$API_PORT" "tcp:$API_PORT"
 # A starved CI emulator throws "X isn't responding" dialogs (even for the

@@ -36,7 +36,7 @@ the current state is [docs/index.md](docs/index.md).
 │   │       └── config.ts            # validateSecurityConfig (fail-closed boot)
 │   ├── access-token-demo/       # 🖥️ the other server shape: an existing GraphQL API adds one mutation that mints a provider access token (mode 1)
 │   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native, KYC_UI default|themed; Maestro suite (.maestro/)
-│   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy, VITE_KYC_UI default|themed; Playwright suites (e2e/)
+│   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy, VITE_KYC_UI default|themed; Playwright suites (e2e/; ports from KYC_PORT_BASE)
 ├── docs/                        # Current-state documentation (hand-maintained): architecture/, integration/, diagrams/ (sources in src/*.mmd), index.md is the map
 ├── scripts/                     # the `tooling` npm workspace: ci/, e2e/, release/ shell + node used by the Makefile and CI; lib/*.mjs is Vitest-covered at 100%, __tests__/ covers the shell scripts
 ├── Makefile                     # Root flows; packages/, examples/ and each workspace have their own
@@ -120,10 +120,17 @@ The reasons behind these rules, and the check that holds each one, are in
   core's `resolveLabelsWith` so both platforms agree); a host that needs
   a different layout calls `useVerification`
 - `graphql` stays on 16.x repo-wide (Apollo Server 5 peer range)
-- Every service runs on a custom port so repos and worktrees never clash:
-  the backend `PORT` / `KYC_API_PORT` (5100), the web demo `KYC_WEB_PORT`
-  (5101) and `KYC_WEB_PROXY_PORT` (5102), the access-token example `PORT`
-  (5103); nothing hard-codes a port outside those defaults
+- Every service listens on `KYC_PORT_BASE` (default 5100 - 5000 is
+  everybody's, 4100 is esign's) plus its offset: the backend +0, the web demo
+  +1 (hosted) / +2 (proxy), the access-token example +3. The table is
+  `scripts/lib/ports.mjs`; shell reads it through `scripts/e2e/ports-env.sh`
+  (`$KYC_API_PORT`, `$KYC_WEB_PORT`, `$TOKEN_PORT`, ...), the Playwright
+  configs through `examples/react-demo/e2e/ports.ts`, and each service
+  declares its own offset (`ports.test.mjs` checks the literal against the
+  table). A second worktree sets one variable (`KYC_PORT_BASE=5300 make
+  e2e-web`); a service's own variable (`PORT`, `KYC_WEB_PORT`, `TOKEN_PORT`,
+  ...) overrides just that service. Nothing hard-codes a port outside those
+  defaults
 - A CodeQL false positive is suppressed where it sits: a
   `// codeql[<rule-id>]` comment alone on the line above the flagged line
   (`.github/codeql/codeql-config.yml` runs the pack's AlertSuppression

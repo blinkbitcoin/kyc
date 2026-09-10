@@ -7,15 +7,30 @@ import { Platform } from 'react-native';
 // KYC_MODE is inlined at bundle time by babel (see babel.config.js); declare
 // the shape we read without pulling in full @types/node.
 declare const process: {
-  env: { KYC_MODE?: string; KYC_UI?: string; KYC_API_PORT?: string };
+  env: {
+    KYC_MODE?: string;
+    KYC_UI?: string;
+    KYC_PORT_BASE?: string;
+    KYC_API_PORT?: string;
+  };
 };
 
-// Every service in this repo runs on a custom port so repos and worktrees
-// never clash: KYC_API_PORT (inlined at bundle time like KYC_MODE) says
-// where the backend listens; 5100 is the repo default.
-export const resolveBackendPort = (raw?: string): number =>
-  raw !== undefined && /^\d+$/.test(raw) ? Number(raw) : 5100;
-const BACKEND_PORT = resolveBackendPort(process.env.KYC_API_PORT);
+// The backend port: KYC_API_PORT, else the repo's KYC_PORT_BASE + the
+// backend's offset (table: scripts/lib/ports.mjs), else 5100 - both
+// inlined at bundle time like KYC_MODE, so one variable moves a worktree
+export const PORT_BASE_DEFAULT = 5100;
+const API_OFFSET = 0;
+const digits = (value: string | undefined): number | undefined =>
+  /^\d+$/.test(value ?? '') ? Number(value) : undefined;
+export const resolveBackendPort = (
+  override: string | undefined,
+  base?: string,
+): number =>
+  digits(override) ?? (digits(base) ?? PORT_BASE_DEFAULT) + API_OFFSET;
+const BACKEND_PORT = resolveBackendPort(
+  process.env.KYC_API_PORT,
+  process.env.KYC_PORT_BASE,
+);
 
 // The Android emulator reaches the host machine through 10.0.2.2. The E2E
 // runner additionally does `adb reverse tcp:<port> tcp:<port>`

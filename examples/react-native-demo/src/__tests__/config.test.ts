@@ -21,11 +21,15 @@ describe('getDevBackendHost', () => {
 });
 
 describe('resolveBackendPort', () => {
-  it('defaults to 5100 and reads KYC_API_PORT', () => {
+  it('defaults to the repo base port (offset 0)', () => {
     expect(resolveBackendPort(undefined)).toBe(5100);
-    expect(resolveBackendPort('')).toBe(5100);
-    expect(resolveBackendPort('abc')).toBe(5100);
-    expect(resolveBackendPort('5110')).toBe(5110);
+    expect(resolveBackendPort('', '')).toBe(5100);
+    expect(resolveBackendPort('abc', 'x')).toBe(5100);
+  });
+
+  it('moves with KYC_PORT_BASE and takes KYC_API_PORT over it', () => {
+    expect(resolveBackendPort(undefined, '5300')).toBe(5300);
+    expect(resolveBackendPort('5010', '5300')).toBe(5010);
   });
 });
 

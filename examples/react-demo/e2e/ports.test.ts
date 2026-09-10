@@ -1,10 +1,21 @@
-// The env-driven port scheme the Playwright configs rely on.
+// The port scheme the Playwright configs rely on: KYC_PORT_BASE + offset per
+// service, each service's own variable overriding. The table lives in
+// scripts/lib/ports.mjs; this file's copy must match it.
 
 import { describe, expect, it } from 'vitest';
 
 import {
+  BASE_DEFAULT as TABLE_BASE_DEFAULT,
+  resolvePorts,
+  SERVICES,
+} from '../../../scripts/lib/ports.mjs';
+import {
+  API_OFFSET,
   API_ORIGIN,
+  API_VAR,
   backendServer,
+  BASE_DEFAULT,
+  BASE_VAR,
   baseURL,
   ciPolicy,
   DEFAULT_PORTS,
@@ -13,7 +24,36 @@ import {
   portFrom,
   portsFrom,
   vitePreviewServer,
+  WEB_OFFSETS,
+  WEB_VARS,
 } from './ports';
+
+describe('the port table', () => {
+  it('is the repo table (scripts/lib/ports.mjs)', () => {
+    expect(BASE_DEFAULT).toBe(TABLE_BASE_DEFAULT);
+    expect(API_OFFSET).toBe(SERVICES.api.offset);
+    expect(API_VAR).toBe(SERVICES.api.env);
+    expect(WEB_OFFSETS).toEqual({
+      hosted: SERVICES.webHosted.offset,
+      proxy: SERVICES.webProxy.offset,
+    });
+    expect(WEB_VARS).toEqual({
+      hosted: SERVICES.webHosted.env,
+      proxy: SERVICES.webProxy.env,
+    });
+    for (const env of [
+      {},
+      { [BASE_VAR]: '5300' },
+      { [BASE_VAR]: '5300', KYC_WEB_PROXY_PORT: '5555' },
+    ]) {
+      const table = resolvePorts(env);
+      expect(portsFrom(env)).toEqual({
+        api: table.api,
+        web: { hosted: table.webHosted, proxy: table.webProxy },
+      });
+    }
+  });
+});
 
 describe('portFrom', () => {
   it('uses the default when the variable is unset or empty', () => {

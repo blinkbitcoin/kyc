@@ -236,14 +236,17 @@ docker-compose -f docker-compose.test.yml down
 npx playwright install chromium     # once per machine
 make e2e-web                        # hosted mode - what CI runs
 make e2e-web-proxy                  # proxy mode
-KYC_API_PORT=5110 KYC_WEB_PORT=5111 KYC_WEB_PROXY_PORT=5112 make e2e-web   # a second worktree
+KYC_PORT_BASE=5300 make e2e-web     # a second worktree: every service moves with the base
 ```
 
 Both targets bring up the dockerized test Postgres, migrate it, and let
-Playwright start the backend and Vite. Every service runs on a custom port
-(`examples/react-demo/e2e/ports.ts` reads `KYC_API_PORT`, `KYC_WEB_PORT`,
-`KYC_WEB_PROXY_PORT`; 5100 / 5101 / 5102 by default), so a second repo or
-worktree sets three variables and never adopts this one's servers; the
+Playwright start the backend and Vite. Every service listens on
+`KYC_PORT_BASE` (5100) plus its offset (backend +0, hosted demo +1, proxy
+demo +2, access-token example +3; the table is `scripts/lib/ports.mjs`,
+mirrored by `examples/react-demo/e2e/ports.ts` and checked against it), so
+a second repo or worktree sets one variable and never adopts this one's
+servers - a service's own variable (`KYC_API_PORT`, `KYC_WEB_PORT`, ...)
+still overrides just that service; the
 backend is told its port, the public base URL to mint on and the demo
 origins to allow. The app and the hosted page are genuinely cross-origin
 (the Vite port vs the backend port), so the suites exercise the real
@@ -406,7 +409,8 @@ npm run migrate
 | `MOCK_WEBHOOK_SECRET` | no | Secret the mock provider signs its own webhooks with, default `mock` |
 | `NODE_ENV` | no | `production` activates the fail-closed auth/webhook behavior described above |
 | `OTEL_*` | no | Standard OpenTelemetry vars; tracing is off unless set (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, `OTEL_TRACES_EXPORTER=console` for stdout) |
-| `PORT` | No | Server port (default: 5100). The E2E scripts and the demos find the backend through `KYC_API_PORT` (same default); the web demo listens on `KYC_WEB_PORT` (5101), its proxy build on `KYC_WEB_PROXY_PORT` (5102), the access-token example on its own `PORT` (5103) |
+| `PORT` | No | Server port (default: `KYC_PORT_BASE` + 0 = 5100) |
+| `KYC_PORT_BASE` | No | The repo's base port (default 5100); every service is base + offset (`scripts/lib/ports.mjs`: backend +0, hosted demo +1, proxy demo +2, access-token example +3), so one variable moves a worktree; `KYC_API_PORT` / `KYC_WEB_PORT` / `KYC_WEB_PROXY_PORT` / `TOKEN_PORT` override one service |
 | `PUBLIC_BASE_URL` | Prod | Absolute http(s) base the hosted-page url and the mock webhook target are built from; required unless `ALLOW_INSECURE_DEV=true`, default `http://localhost:5100` in insecure dev |
 | `SUMSUB_APP_TOKEN` | sumsub | Sumsub app token |
 | `SUMSUB_BASE_URL` | no | Sumsub API base (defaults to `https://api.sumsub.com`) |

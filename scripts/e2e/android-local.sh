@@ -8,6 +8,8 @@
 #   make e2e-android-local
 set -euo pipefail
 cd "$(dirname "$0")/../.."
+# shellcheck source=scripts/e2e/ports-env.sh
+. scripts/e2e/ports-env.sh
 adb get-state > /dev/null 2>&1 || { echo "::error::no emulator attached - start one first (emulator -list-avds; emulator -avd <name> &)"; exit 1; }
 command -v maestro > /dev/null 2>&1 || [ -x "$HOME/.maestro/bin/maestro" ] || { echo "::error::maestro is not installed: curl -Ls https://get.maestro.mobile.dev | bash"; exit 1; }
 
@@ -22,7 +24,7 @@ trap down EXIT
 echo "== test database"
 make test-db-up > /dev/null
 npm run --silent migrate:test -w examples/full-service-demo > /dev/null
-echo "== backend (mock provider) on :${KYC_API_PORT:-5100}"
+echo "== backend (mock provider) on :$KYC_API_PORT"
 bash scripts/e2e/backend-up.sh
 echo "== debug APK"
 bash scripts/e2e/android-build.sh

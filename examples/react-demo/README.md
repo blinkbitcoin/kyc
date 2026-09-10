@@ -50,16 +50,18 @@ page's own camera/mic prompt with no error the host can see.
 ```bash
 make e2e-web                     # hosted - what CI runs
 make e2e-web-proxy               # proxy
-KYC_API_PORT=5110 KYC_WEB_PORT=5111 KYC_WEB_PROXY_PORT=5112 make e2e-web   # another worktree
+KYC_PORT_BASE=5300 make e2e-web   # another worktree: the whole stack moves with the base
 ```
 
-Every service runs on a custom port: `e2e/ports.ts` reads `KYC_API_PORT`
-(backend, 5100), `KYC_WEB_PORT` (hosted demo, 5101) and
-`KYC_WEB_PROXY_PORT` (proxy demo, 5102), so parallel repos and worktrees
-never adopt each other's servers; the backend is started with its port,
-`PUBLIC_BASE_URL` on it and the two demo origins in `CORS_ALLOWED_ORIGINS`.
-The dev server (`make web`) listens on `KYC_WEB_PORT` too, and finds a
-backend on a custom port through `VITE_API_ORIGIN`.
+Every service listens on `KYC_PORT_BASE` (5100) plus its offset: the
+backend +0, this demo +1 (hosted) / +2 (proxy); `e2e/ports.ts` mirrors the
+table in `scripts/lib/ports.mjs` (its test pins it), so parallel repos and
+worktrees never adopt each other's servers, and a service's own variable
+(`KYC_API_PORT`, `KYC_WEB_PORT`, `KYC_WEB_PROXY_PORT`) overrides just that
+one. The backend is started with its port, `PUBLIC_BASE_URL` on it and the
+two demo origins in `CORS_ALLOWED_ORIGINS`. The dev server (`make web`)
+listens on the same hosted port and finds a backend elsewhere through
+`VITE_API_ORIGIN`.
 
 Both targets build the libraries, bring up the dockerized test Postgres,
 migrate it, and let Playwright start the backend and build + preview the
