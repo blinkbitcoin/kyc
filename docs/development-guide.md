@@ -277,6 +277,9 @@ make android-build         # debug APK for the emulator's ABI
 make e2e-metro-up          # Metro in hosted mode, bundle prewarmed
 make e2e-android
 make e2e-metro-down && make e2e-backend-down
+
+# iOS, in one command (boots the first iPhone simulator if none is booted):
+make e2e-ios-local         # test DB + backend + pods if missing + .app + install + Metro + Maestro
 ```
 
 Six flows run by default (`app-launch`, `hosted-happy-path`, `hosted-decline`,

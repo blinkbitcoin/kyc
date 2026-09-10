@@ -59,7 +59,7 @@ one-line description. The ones you will reach for:
 | `make docs-check` | Warn when architecture-relevant changes ship without a `docs/` update;<br>fail on a README table cell line wider than 72 characters (break with `<br>`) |
 | `make db-up migrate backend` | Dev Postgres, migrations, backend dev server |
 | `make e2e-backend` / `make e2e-web` | Backend E2E against real Postgres / Playwright browser E2E (`e2e-web` builds the libraries first and bundles the demo against their dist) |
-| `make e2e-android-local` | The whole Android stack on a laptop (DB, backend, APK, Metro, Maestro, teardown); needs a running emulator. `make e2e-backend-up` / `android-build` / `e2e-metro-up` / `e2e-android` are the steps |
+| `make e2e-android-local` / `make e2e-ios-local` | The whole mobile stack on a laptop (DB, backend, APK or .app, Metro, Maestro, teardown); Android needs a running emulator, iOS boots a simulator. `e2e-backend-up` / `android-build` or `ios-build` / `e2e-metro-up` / `e2e-android` or `e2e-ios` are the steps |
 | `make start` / `make ios` / `make android` / `make web` | Demo apps |
 | `make release` | Merge the open release PR that release-please maintains (tags, publishes; `docs/releasing.md`) |
 

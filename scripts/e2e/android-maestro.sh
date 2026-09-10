@@ -34,6 +34,11 @@ adb logcat -c
 status=0
 # Bounded (see maestro-bound.sh) so the logcat post-mortem below still runs
 # when Maestro hangs; a `::error::` line marks the timeout case.
+# The emulator by serial: with an iOS simulator booted as well (a laptop,
+# not CI) Maestro would otherwise pick whichever device it lists first
+# (the demo's test:e2e:android script appends --device from this variable)
+MAESTRO_DEVICE="${ANDROID_SERIAL:-$(adb get-serialno)}"
+export MAESTRO_DEVICE
 bounded_maestro test:e2e:android -w examples/react-native-demo || status=$?
 
 # Forensics: the failure screenshots show the launcher (the app process is

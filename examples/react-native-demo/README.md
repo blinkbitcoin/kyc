@@ -87,6 +87,9 @@ make e2e-metro-up                # Metro, KYC_MODE=hosted, bundle prewarmed
 make e2e-android
 make e2e-metro-down && make e2e-backend-down
 
+# iOS, one command (boots the first iPhone simulator if none is)
+make e2e-ios-local               # DB + backend + pods if missing + .app + install + Metro + Maestro
+
 # The native-launch branch, no backend needed
 KYC_MODE=fake-native npm start   # in another terminal
 make e2e-fake-native
