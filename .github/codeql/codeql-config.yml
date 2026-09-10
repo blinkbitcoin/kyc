@@ -1,0 +1,26 @@
+# CodeQL configuration for .github/workflows/codeql.yml.
+#
+# Queries: the default security suite plus the maintainability/reliability
+# queries (what GitHub's separate "Code quality" product runs).
+#
+# Query filters are the one durable way to silence a false positive here:
+# an API dismissal is keyed on the alert's fingerprint and re-opens after
+# every file move or nearby edit (esign saw the same finding three times),
+# and inline `codeql[...]` / `lgtm[...]` markers are not honoured by this
+# setup. Excluding the query removes the finding at the source, on every
+# branch, forever.
+name: kyc
+
+queries:
+  - uses: security-and-quality
+
+query-filters:
+  # js/insufficient-password-hash: a password heuristic on hashing calls.
+  # Nothing in this repo hashes a password: the HMACs are the Sumsub
+  # request / webhook signatures keyed on the app secret
+  # (packages/kyc-server/src/signature.ts, providers/sumsub/client.ts) and
+  # the demo's JWT verification (examples/full-service-demo/src/auth.ts).
+  # Excluded up front - the same query flagged esign's JWT-grant signature
+  # three times across file moves.
+  - exclude:
+      id: js/insufficient-password-hash

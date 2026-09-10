@@ -124,6 +124,10 @@ The reasons behind these rules, and the check that holds each one, are in
   the backend `PORT` / `KYC_API_PORT` (5100), the web demo `KYC_WEB_PORT`
   (5101) and `KYC_WEB_PROXY_PORT` (5102), the access-token example `PORT`
   (5103); nothing hard-codes a port outside those defaults
+- A CodeQL false positive is excluded by query id in
+  `.github/codeql/codeql-config.yml` (`query-filters`), never dismissed in
+  the UI/API (fingerprint-keyed: esign saw the same finding re-open three
+  times across file moves) and never marked inline (not honoured)
 - The git hooks (lefthook) run format, lint, commitlint and typecheck; CI is
   the authoritative gate and every workflow must be green before merge
 

@@ -220,6 +220,10 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   libraries: Web bundles the demo against its dist and Publish ships its
   tarballs unchanged. Docs-only PRs stop after Checks; `main` skips docs-only
   pushes.
+- CodeQL (`codeql.yml`, informational) reads `.github/codeql/codeql-config.yml`.
+  A false positive is silenced there with a `query-filters` exclude - never
+  by dismissing the alert (fingerprint-keyed, re-opens on every file move)
+  or an inline `codeql[...]` marker (not honoured by this setup).
 - Live Sumsub is opt-in: repo variable `E2E_LIVE=true` or PR label `e2e:live`
   runs `scripts/e2e/live.sh` (the `Live Sumsub` job) with the `sumsub-sandbox`
   environment's secrets - the sandbox API only, never the Sumsub UI
