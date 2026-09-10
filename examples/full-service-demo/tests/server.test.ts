@@ -13,6 +13,8 @@ describe('startServer', () => {
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    // validateSecurityConfig warns about ALLOW_INSECURE_DEV on every boot
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(async () => {

@@ -45,7 +45,7 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     // e2e (real Postgres) and live (real Sumsub) have their own configs
     exclude: ['tests/e2e/**', 'tests/live/**'],
-    setupFiles: ['./tests/setup.ts'],
+    setupFiles: ['./vitest.setup.ts', './tests/setup.ts'],
     coverage: {
       provider: 'v8',
       reportsDirectory: 'coverage',

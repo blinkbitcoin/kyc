@@ -228,10 +228,8 @@ describe('Verification - the hosted page', () => {
     expect(screen.getByTestId('verification-iframe')).toBe(frame);
     expect(wrapper.hasAttribute('hidden')).toBe(true);
     expect(wrapper.getAttribute('aria-hidden')).toBe('true');
-    // Only presence is asserted: React 19 normalizes the truthy string to
-    // `inert=""` while React 18 - still a supported peer, where `inert={true}`
-    // would be dropped entirely - passes `inert="true"` through. The DOM
-    // treats both as inert.
+    // Set on the DOM node (toggleAttribute), so it is present on React 18
+    // and 19 alike without either major's prop warning.
     expect(wrapper.hasAttribute('inert')).toBe(true);
     expect(wrapper.style.visibility).toBe('hidden');
 

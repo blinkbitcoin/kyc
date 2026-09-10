@@ -6,6 +6,7 @@ import { defineConfig } from 'vitest/config';
 // excluding the port-binding src/index.ts).
 export default defineConfig({
   test: {
+    setupFiles: ['./vitest.setup.mjs'],
     include: ['**/*.test.mjs'],
     exclude: ['node_modules/**'],
     coverage: {

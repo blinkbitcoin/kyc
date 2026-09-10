@@ -1,4 +1,5 @@
 module.exports = {
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   preset: '@react-native/jest-preset',
   testPathIgnorePatterns: ['/node_modules/', '/lib/'],
   // The built package carries a copy of __mocks__; without this, jest-haste-map

@@ -41,6 +41,8 @@ describe('createApp', () => {
   });
 
   it('tags the active span with the user id when a bearer token is present', async () => {
+    // No JWT_SECRET: the app warns that the bearer token is the user id
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     // Insecure-dev passthrough (tests/setup.ts): the bearer token IS the userId.
     const { trace } = await import('@opentelemetry/api');
     const setAttributes = vi.fn();
@@ -124,6 +126,8 @@ describe('the package router, mounted with this service policy', () => {
     const body = JSON.stringify({ applicantId: 'mock-applicant-1', status: 'approved' });
     expect((await request(app).post('/webhook/kyc/sumsub').send(body)).status).toBe(404);
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    // ...and warns about the webhook for a session it does not know
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     const unsigned = await request(app)
       .post('/webhook/kyc/mock')
       .set('Content-Type', 'application/json')

@@ -15,6 +15,7 @@ const build = (overrides: Partial<KycRouterOptions> = {}) => {
   const store = createMemorySessionStore();
   const provider = createMockProvider({
     publicBaseUrl: () => 'https://kyc.example.com',
+    logger: silent,
   });
   const sessions = createVerificationService({
     provider,

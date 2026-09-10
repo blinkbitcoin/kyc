@@ -98,10 +98,13 @@ describe('defaultRegistry', () => {
   it('mock: signs webhooks with MOCK_WEBHOOK_SECRET and posts to PUBLIC_BASE_URL, no SUMSUB_* needed', () => {
     const provider = providerFromEnv(
       { KYC_PROVIDER: 'mock' },
-      defaultRegistry({
-        MOCK_WEBHOOK_SECRET: 's',
-        PUBLIC_BASE_URL: 'https://kyc.example.com',
-      }),
+      defaultRegistry(
+        {
+          MOCK_WEBHOOK_SECRET: 's',
+          PUBLIC_BASE_URL: 'https://kyc.example.com',
+        },
+        { logger: silent },
+      ),
     );
     const html = provider.hostedPage!.render({
       sessionId: 's1',
@@ -111,13 +114,18 @@ describe('defaultRegistry', () => {
     });
     expect(html).toContain('https://kyc.example.com/webhook/kyc/mock');
     const body = '{}';
-    const other = defaultRegistry({}).mock();
+    const other = defaultRegistry({}, { logger: silent }).mock();
     const foreign = (
       other as unknown as { signWebhook(b: string): string }
     ).signWebhook(body);
     expect(provider.verifyWebhook({ 'x-mock-signature': foreign }, body)).toBe(
       false,
     );
+  });
+
+  it('ships exactly the two adapters, with every option defaulted', () => {
+    // No options at all: the entries exist and nothing is built yet
+    expect(Object.keys(defaultRegistry({})).sort()).toEqual(['mock', 'sumsub']);
   });
 
   it('mock: defaults the base url and secret, or takes the options', () => {

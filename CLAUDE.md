@@ -241,6 +241,15 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   ships only once the commit's main run is green (`release.yml`'s retry
   job re-runs a blocked Publish). `docs/releasing.md`.
 
+## Testing rules
+
+- Tests are silent: `jest.setup.ts` / `vitest.setup.ts` in every workspace
+  fail a test on any console output. Inject the `silent` logger instead of
+  letting a module fall back to the console; wrap every React state update
+  in an act-aware API (`fireEvent`, `waitFor`, `findBy*`,
+  `ReactTestRenderer.act`), never a raw DOM `.click()` or a bare awaited
+  promise; a test that expects a log line spies on the console method.
+
 ## Architecture Patterns
 
 - **Provider pattern**: the verification-mode boundary is

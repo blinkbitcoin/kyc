@@ -9,7 +9,7 @@
 // Plain DOM and inline styles: the package ships no CSS file, so it cannot
 // collide with a host's stylesheet or need a bundler plugin.
 
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import {
   describeFailure,
   failureLabel,
@@ -67,6 +67,15 @@ export const Verification: FC<VerificationProps> = ({
   });
   const s = useMemo(() => resolveStyles(theme, styles), [theme, styles]);
   const t = useMemo(() => resolveLabels(label, labels), [label, labels]);
+
+  // `inert` is set on the DOM node, not as a prop: no single prop value
+  // renders warning-free on both supported React majors (18 does not know
+  // the attribute and drops `inert={true}`; 19 warns on the string form).
+  // toggleAttribute is what the HTML attribute is anyway.
+  const embedRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    embedRef.current?.toggleAttribute('inert', hidden);
+  });
 
   // The embedding primitive is mounted ONCE and kept mounted across
   // 'verifying' -> 'pending': it is the same element in the same position of
@@ -266,16 +275,7 @@ export const Verification: FC<VerificationProps> = ({
         <div
           style={hidden ? s.hiddenEmbed : s.embed}
           hidden={hidden}
-          // A non-empty string, because no single value renders on both
-          // supported React majors otherwise: React 18 does not know `inert`
-          // and drops `inert={true}` as "a non-boolean attribute given
-          // `true`", while React 19 rejects `inert=""` as "an empty string for
-          // a boolean attribute ... treated as false". A truthy string is
-          // passed straight through by 18 (`inert="true"`) and normalized by
-          // 19 (`inert=""`); the HTML attribute is present either way, which
-          // is all the DOM looks at. The cast is only needed because
-          // @types/react types the prop the way React 19 accepts it.
-          inert={(hidden ? 'true' : undefined) as unknown as boolean}
+          ref={embedRef}
           aria-hidden={hidden}
         >
           {showsMount ? (

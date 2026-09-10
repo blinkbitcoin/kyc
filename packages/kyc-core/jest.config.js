@@ -1,4 +1,5 @@
 module.exports = {
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testEnvironment: 'node',
   // __tests__/support/ holds the import-graph walker the guard tests share
   testPathIgnorePatterns: ['/node_modules/', '/dist/', '/__tests__/support/'],

@@ -81,7 +81,7 @@ describe('VerificationScreen', () => {
     const onOutcome = vi.fn();
     render(<VerificationScreen onOutcome={onOutcome} />);
 
-    screen.getByTestId('verification-cancel-button').click();
+    fireEvent.click(screen.getByTestId('verification-cancel-button'));
 
     expect(onOutcome).toHaveBeenCalledWith({ kind: 'cancelled' });
   });

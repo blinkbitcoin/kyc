@@ -1,4 +1,5 @@
 module.exports = {
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testEnvironment: 'node',
   moduleNameMapper: {
     '^@blinkbitcoin/kyc-core/sumsub$': '<rootDir>/../kyc-core/src/sumsub.ts',
