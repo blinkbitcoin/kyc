@@ -24,7 +24,7 @@ Sections 1 and 2 below are the setup the automated tier needs too (`.claude/skil
 - A Sumsub **sandbox** account (never production credentials).
 - A physical iPhone and a physical Android device. Simulators and emulators have no real camera and cannot exercise the liveness step - the one class of bug this checklist exists to catch.
 - Chrome and Safari on a desktop, for the web pass.
-- A publicly reachable URL for the backend, so Sumsub can deliver webhooks (an SSH tunnel or an ngrok-style forwarder is fine). Note it as `PUBLIC_BASE_URL`.
+- A publicly reachable URL for the backend, so Sumsub can deliver webhooks (`tailscale funnel --bg 5100` on a machine with Tailscale, else an SSH tunnel or an ngrok-style forwarder). Note it as `PUBLIC_BASE_URL`. A phone finds the backend through `KYC_API_HOST` at Metro start (`examples/react-native-demo/README.md`).
 
 ## 1. Sumsub dashboard setup
 

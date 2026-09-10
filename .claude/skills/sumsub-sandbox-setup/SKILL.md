@@ -42,10 +42,15 @@ be a placeholder; the device matrix needs a real, public one.
 ## 4. A public URL (device matrix only)
 
 Real webhooks and the hosted page on a phone need the backend reachable
-from outside: an SSH tunnel or an ngrok-style forwarder to `:5100`. That
-URL is `PUBLIC_BASE_URL`; add the web demo's origin to
-`CORS_ALLOWED_ORIGINS` for the web pass. `make sumsub-check` warns when
-`PUBLIC_BASE_URL` is local.
+from outside. With Tailscale on the machine, `tailscale funnel --bg 5100`
+publishes `https://<machine>.<tailnet>.ts.net` (Funnel must be enabled on
+the tailnet; the first request waits ~20 s for the certificate;
+`tailscale funnel --https=443 off` stops it); an SSH tunnel or an
+ngrok-style forwarder to `:5100` does the same. That URL is
+`PUBLIC_BASE_URL`; add the web demo's origin to `CORS_ALLOWED_ORIGINS`
+for the web pass. `make sumsub-check` warns when `PUBLIC_BASE_URL` is
+local. A phone also needs the backend's host at bundle time:
+`KYC_API_HOST=<the Mac's tailnet or LAN address> KYC_MODE=hosted npm start`.
 
 ## 5. Write the env and verify
 
