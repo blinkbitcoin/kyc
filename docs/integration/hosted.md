@@ -1,4 +1,4 @@
-# Mode 2 - Hosted verification page
+# Mode 1 - Hosted verification page
 
 **Updated:** 2026-09-06
 

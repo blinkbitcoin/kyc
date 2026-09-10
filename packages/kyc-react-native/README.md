@@ -22,25 +22,7 @@ GraphQL peers never have to be installed.
 
 ## Modes
 
-### 1. Native provider SDK
-
-The provider SDK runs in-process; no WebView is rendered.
-
-```tsx
-import { IdentityVerification } from '@blinkbitcoin/kyc-react-native/hosted';
-import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
-
-const source = createSumsubNativeSource({ getAccessToken: fetchTokenFromYourApi });
-
-<IdentityVerification
-  source={source}
-  onComplete={(result) => console.log(result.status)}
-  onError={(error) => console.warn(error.code, error.message)}
-  onCancel={() => navigation.goBack()}
-/>;
-```
-
-### 2. Hosted page
+### 1. Hosted page
 
 A page that speaks the `kyc-bridge` protocol (this repo's `examples/full-service-demo` serves
 one) is embedded in a hardened WebView.
@@ -61,6 +43,24 @@ const source = createHostedSource({
   onComplete={onComplete}
   onError={onError}
   onCancel={onCancel}
+/>;
+```
+
+### 2. Native provider SDK
+
+The provider SDK runs in-process; no WebView is rendered.
+
+```tsx
+import { IdentityVerification } from '@blinkbitcoin/kyc-react-native/hosted';
+import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
+
+const source = createSumsubNativeSource({ getAccessToken: fetchTokenFromYourApi });
+
+<IdentityVerification
+  source={source}
+  onComplete={(result) => console.log(result.status)}
+  onError={(error) => console.warn(error.code, error.message)}
+  onCancel={() => navigation.goBack()}
 />;
 ```
 
@@ -268,7 +268,7 @@ still trusted code.
 
 ## v1 limitation
 
-A native provider SDK launch (mode 1) cannot be dismissed programmatically
+A native provider SDK launch (mode 2) cannot be dismissed programmatically
 once it is showing: `cancel()` only works before `launch()` is called or
 after it resolves. The SDK owns its own screen and its own back/close
 button; there is no cross-platform API to close it from JS mid-flight.

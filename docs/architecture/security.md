@@ -6,7 +6,7 @@ This is the threat model and the controls, across the packages and the reference
 
 ## What this library handles
 
-Identity documents, selfies and liveness video - the highest-sensitivity personal data most apps will ever touch. The architectural answer is that **none of it flows through this repo**: the applicant's camera stream and documents go from the device or browser straight to the provider, either in-process (mode 1) or inside the provider's own SDK on the hosted page (mode 2). `examples/full-service-demo` stores an applicant id and a status, never a document, an image, or a name.
+Identity documents, selfies and liveness video - the highest-sensitivity personal data most apps will ever touch. The architectural answer is that **none of it flows through this repo**: the applicant's camera stream and documents go from the device or browser straight to the provider, either inside the provider's own SDK on the hosted page (mode 1) or in-process (mode 2). `examples/full-service-demo` stores an applicant id and a status, never a document, an image, or a name.
 
 ## Known limitations
 
@@ -72,7 +72,7 @@ Span attributes are ids, statuses and types: `kyc.provider`, `enduser.id`, `kyc.
 
 This library cannot do these for you:
 
-1. **Mint tokens server-side.** `getAccessToken` (mode 1) must call *your* backend. A provider app token in a mobile bundle is a compromised app token.
+1. **Mint tokens server-side.** `getAccessToken` (mode 2) must call *your* backend. A provider app token in a mobile bundle is a compromised app token.
 2. **Serve over HTTPS.** Browsers do not grant `getUserMedia` on plain HTTP, and neither WebView hardening nor an origin pin substitutes for transport security.
 3. **Declare OS permissions.** `NSCameraUsageDescription`, `NSMicrophoneUsageDescription`, `android.permission.CAMERA`, `android.permission.RECORD_AUDIO`.
 4. **Keep your own `Permissions-Policy` permissive enough** that the iframe can be delegated `camera` / `microphone` - a frame can only receive a capability its embedder holds.

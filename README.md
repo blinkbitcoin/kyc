@@ -8,7 +8,7 @@
 <sub>Badges render once the first `main` run publishes them to `gh-pages`. E2E covers backend, web, Android and the iOS simulator suite, see [CI/CD](docs/development-guide.md#ios-e2e-and-the-macos-runner).</sub>
 
 <p align="center">
-  <img src="docs/assets/readme-hero.svg" alt="Your React Native or React web app renders one IdentityVerification component. The end user photographs an ID document, takes a selfie with a liveness check, and gets a verdict: approved, pending or declined. A VerificationSource picks one of three modes: the native provider SDK in-process, a hosted page embedded in a hardened WebView or origin-pinned iframe, or a proxy session on the reference backend. The two backend-backed modes go through the optional examples/full-service-demo service, and every mode ends at Sumsub." width="960">
+  <img src="docs/assets/readme-hero.svg" alt="Your React Native or React web app renders one IdentityVerification component. The end user photographs an ID document, takes a selfie with a liveness check, and gets a verdict: approved, pending or declined. A VerificationSource picks one of three modes: a hosted page embedded in a hardened WebView or origin-pinned iframe, the native provider SDK in-process, or a proxy session on the reference backend. The two backend-backed modes go through the optional examples/full-service-demo service, and every mode ends at Sumsub." width="960">
 </p>
 
 Embedded identity verification (KYC) for React Native and React web apps.

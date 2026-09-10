@@ -21,7 +21,7 @@ kyc/
 │       │   │   ├── bridge.ts        # kyc-bridge envelopes + setToken transports
 │       │   │   ├── messages.ts      # getErrorMessage copy
 │       │   │   ├── labels.ts        # IdentityVerificationLabels + resolveLabelsWith, outcomeLabel, failureLabel
-│       │   │   ├── hostedSource.ts  # createHostedSource (mode 2)
+│       │   │   ├── hostedSource.ts  # createHostedSource (mode 1)
 │       │   │   ├── proxySource.ts   # createProxySource (mode 3, Apollo)
 │       │   │   └── fakeSource.ts    # Test double for the launch branch
 │       │   ├── providers/sumsub/    # 🪪 The only Sumsub-aware code in core (entry ./sumsub)

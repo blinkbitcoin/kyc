@@ -1,6 +1,6 @@
 # examples/access-token-demo - your API adds one mutation
 
-The smallest server-side footprint for the native SDK mode (mode 1): an
+The smallest server-side footprint for the native SDK mode (mode 2): an
 existing GraphQL API (Apollo Server here, any framework works) adds one
 mutation whose resolver makes one call into `@blinkbitcoin/kyc-server`. No
 session store, no webhooks, no hosted page, no service to run - the shape

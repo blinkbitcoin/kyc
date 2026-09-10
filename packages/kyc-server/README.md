@@ -19,7 +19,7 @@ This repo's reference backend is this package plus Express, Apollo and a
 Postgres store; a backend that already exists (Blink's GraphQL API) imports
 the package instead of running that service.
 
-## Mint a token for the native SDK (mode 1)
+## Mint a token for the native SDK (mode 2)
 
 ```ts
 import { defaultRegistry, providerFromEnv } from '@blinkbitcoin/kyc-server';

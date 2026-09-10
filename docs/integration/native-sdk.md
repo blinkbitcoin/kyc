@@ -1,4 +1,4 @@
-# Mode 1 - Native provider SDK
+# Mode 2 - Native provider SDK
 
 **Updated:** 2026-09-06
 

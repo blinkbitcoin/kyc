@@ -37,10 +37,10 @@ flowchart TB
     RN --> MACHINE
     WEB --> MACHINE
     SRC --> HOSTED & PROXY
-    RN -- "mode 1: native SDK" --> NATIVE
+    RN -- "mode 2: native SDK" --> NATIVE
     NATIVE --> NATIVEMAP
     NATIVE -- "in-process" --> SDK
-    HOSTED -. "mode 2: kyc-bridge" .-> PAGE
+    HOSTED -. "mode 1: kyc-bridge" .-> PAGE
     PROXY -- "mode 3: GraphQL" --> GQL
     GQL --> PROV
     PAGE --> PROV

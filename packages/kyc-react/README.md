@@ -44,22 +44,7 @@ const source = createHostedSource({
 />;
 ```
 
-### 2. Proxy session
-
-Full orchestration against this repo's backend (needs the Apollo peers).
-
-```tsx
-import {
-  createKycApolloClient,
-  createProxySource,
-  IdentityVerification,
-} from '@blinkbitcoin/kyc-react';
-
-const client = createKycApolloClient({ uri: API_URL, getAuthToken });
-const source = createProxySource({ client, platform: 'WEB' });
-```
-
-### 3. Provider web SDK (seam only in v1)
+### 2. Provider web SDK (seam only in v1)
 
 A source that renders itself implements `MountableSource`; the component then
 hands it a `<div data-testid="verification-mount">` instead of embedding a
@@ -82,6 +67,21 @@ const source: MountableSource = {
 first (an SDK bundle, a token) belongs in `start()`, where a rejection already
 becomes a proper error state. **No adapter ships in v1** — Sumsub's web SDK is
 itself an iframe, so the hosted mode already covers the browser.
+
+### 3. Proxy session
+
+Full orchestration against this repo's backend (needs the Apollo peers).
+
+```tsx
+import {
+  createKycApolloClient,
+  createProxySource,
+  IdentityVerification,
+} from '@blinkbitcoin/kyc-react';
+
+const client = createKycApolloClient({ uri: API_URL, getAuthToken });
+const source = createProxySource({ client, platform: 'WEB' });
+```
 
 ## What the host page must allow
 

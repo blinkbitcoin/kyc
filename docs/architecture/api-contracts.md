@@ -85,7 +85,7 @@ enum ErrorCode {
 
 ### `verificationSessionStart`
 
-Creates a verification session for the authenticated user and returns everything all three modes might need: a token (mode 1), a hosted url plus its origin (mode 2), and the session id the proxy uses for refresh and status (mode 3).
+Creates a verification session for the authenticated user and returns everything all three modes might need: a hosted url plus its origin (mode 1), a token (mode 2), and the session id the proxy uses for refresh and status (mode 3).
 
 ```graphql
 mutation VerificationSessionStart($input: VerificationSessionStartInput!) {

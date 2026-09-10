@@ -33,7 +33,7 @@
 #### Demos (`examples/`)
 
 - **`react-native-demo`** - React Native 0.86, `KYC_MODE` = `native` | `hosted` | `proxy` | `fake-native`, Maestro flows in `.maestro/`
-- **`access-token-demo`** - the other server shape: an existing GraphQL API adds one mutation that mints a provider access token for mode 1 (`make e2e-server-demos` boots it)
+- **`access-token-demo`** - the other server shape: an existing GraphQL API adds one mutation that mints a provider access token for mode 2 (`make e2e-server-demos` boots it)
 - **`react-demo`** - Vite + React 19, `VITE_KYC_MODE` = `hosted` | `proxy`, `VITE_KYC_UI` = `default` | `themed`, Playwright specs in `e2e/` on per-worktree ports
 
 #### Tooling (`scripts/`)
@@ -51,8 +51,8 @@ Organized by namespace - pick by what you are doing:
 | Doc | Covers |
 |-----|--------|
 | [consuming.md](integration/consuming.md) | Registry setup (GitHub Packages), the minimal hosted-only install, peer dependencies, which mode to pick |
-| [native-sdk.md](integration/native-sdk.md) | Mode 1: the in-process provider SDK, the `getAccessToken` seam, permissions, and the offline test double |
-| [hosted.md](integration/hosted.md) | Mode 2: the `kyc-bridge` protocol, origin pinning, token refresh, what a host page and a hosted page must each allow |
+| [hosted.md](integration/hosted.md) | Mode 1: the `kyc-bridge` protocol, origin pinning, token refresh, what a host page and a hosted page must each allow |
+| [native-sdk.md](integration/native-sdk.md) | Mode 2: the in-process provider SDK, the `getAccessToken` seam, permissions, and the offline test double |
 | [proxy.md](integration/proxy.md) | Mode 3: Apollo wiring, the three operations, running the reference backend, reading status later |
 | [sumsub.md](integration/sumsub.md) | Sumsub sandbox: dashboard setup, the automated live tier (`make e2e-live`), and the device matrix CI cannot run |
 | [sumsub-lessons.md](integration/sumsub-lessons.md) | What the live passes against real Sumsub taught, per pass, with the fixes |
