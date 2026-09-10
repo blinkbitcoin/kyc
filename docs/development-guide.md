@@ -175,7 +175,7 @@ the real provider: that happens only through the manual runs described in
 npm test
 
 # Run specific test file
-npm test -- Verification.test.tsx
+npm test -- IdentityVerification.test.tsx
 
 # Watch mode
 npm test -- --watch
@@ -417,7 +417,7 @@ npm run migrate
 | `PUBLIC_BASE_URL` | Prod | Absolute http(s) base the hosted-page url and the mock webhook target are built from; required unless `ALLOW_INSECURE_DEV=true`, default `http://localhost:5100` in insecure dev |
 | `SUMSUB_APP_TOKEN` | sumsub | Sumsub app token |
 | `SUMSUB_BASE_URL` | no | Sumsub API base (defaults to `https://api.sumsub.com`) |
-| `SUMSUB_LEVEL_NAME` | no | Verification level requested when the client does not send one, default `basic-kyc-level` |
+| `SUMSUB_LEVEL_NAME` | no | IdentityVerification level requested when the client does not send one, default `basic-kyc-level` |
 | `SUMSUB_SECRET_KEY` | sumsub | Sumsub secret key |
 | `SUMSUB_TOKEN_TTL_SECS` | no | Access-token lifetime in seconds, default `600` |
 | `SUMSUB_WEBHOOK_SECRET` | sumsub | Webhook signature validation secret |
@@ -436,7 +436,7 @@ control set, and what each one is defending against, is in
 
 Both demos resolve the backend origin themselves (Android emulators reach the
 host machine via `10.0.2.2`, iOS simulators via `localhost`); the RN and web
-`Verification`/`useVerification` packages take a session/token source from
+`IdentityVerification`/`useIdentityVerification` packages take a session/token source from
 the host app rather than owning a GraphQL client directly.
 
 ## Documentation

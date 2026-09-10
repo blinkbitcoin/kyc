@@ -12,7 +12,7 @@ app ──(session token)──▶ your API ──verificationAccessToken(platfo
                                      maps its own tier to a level               ▲ app token + secret, server-held
 app ◀──── { accessToken } ◀─────────────────────────────────────────────────────┘
 app runs the Sumsub Mobile SDK with the token:
-  <Verification source={createSumsubNativeSource({ getAccessToken })} />
+  <IdentityVerification source={createSumsubNativeSource({ getAccessToken })} />
 ```
 
 - `src/level.ts` - the host's own decision: which verification level a user

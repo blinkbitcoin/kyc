@@ -39,13 +39,13 @@ npm i @blinkbitcoin/kyc-react-native react-native-webview @react-native-communit
 ```
 
 ```tsx
-import { createHostedSource, Verification } from '@blinkbitcoin/kyc-react-native/hosted';
+import { createHostedSource, IdentityVerification } from '@blinkbitcoin/kyc-react-native/hosted';
 
 const source = createHostedSource({
   getSession: async () => yourApi.startVerification(), // must return { url }
 });
 
-<Verification
+<IdentityVerification
   source={source}
   onComplete={(result) => console.log(result.status)}
   onError={(error) => console.warn(error.code, error.message)}
@@ -62,7 +62,7 @@ npm i @blinkbitcoin/kyc-react
 ```
 
 ```tsx
-import { createHostedSource, Verification } from '@blinkbitcoin/kyc-react';
+import { createHostedSource, IdentityVerification } from '@blinkbitcoin/kyc-react';
 ```
 
 Same props, same callbacks. Read [hosted.md](hosted.md) for the three things your page must allow before a browser will hand the frame a camera.

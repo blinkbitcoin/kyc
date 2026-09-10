@@ -17,7 +17,7 @@ Reference repo to mirror: `/Users/jonas/Dev/esign` (read `CLAUDE.md`, `packages/
 | esign piece | Reuse in kyc |
 |---|---|
 | `SigningSource { start(); interpret() }` + `isRestartable` capability check | Same seam, renamed `VerificationSource`, plus two extra capability interfaces (native launch, web mount) |
-| One component per platform + local status machine | `Verification` component + headless `useVerification` hook |
+| One component per platform + local status machine | `IdentityVerification` component + headless `useIdentityVerification` hook |
 | `apps/api` provider port + `mock` provider driving all E2E | `VerificationProvider` port; `mock` + `sumsub` adapters |
 | Apollo-free subpath entry (`./webform`) with import-graph guard test | `./hosted` subpath |
 | tsup (core/web), react-native-builder-bob (RN), Jest 100% thresholds, Vitest for api/web demo | identical |
@@ -33,7 +33,7 @@ Reference repo to mirror: `/Users/jonas/Dev/esign` (read `CLAUDE.md`, `packages/
 | Workspace | Path | Role |
 |---|---|---|
 | `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic: `VerificationSource` seam + capability interfaces, normalized events/statuses/error codes, hosted-bridge protocol, proxy source (Apollo), Apollo client factory, codegen from `apps/api/schema.graphql`. No React/DOM/native. |
-| `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | `Verification` component + `useVerification` hook; `createHostedSource` (hardened `react-native-webview`); `./hosted` Apollo-free entry. |
+| `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | `IdentityVerification` component + `useIdentityVerification` hook; `createHostedSource` (hardened `react-native-webview`); `./hosted` Apollo-free entry. |
 | `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Same component/hook on web; `createHostedSource` (iframe, origin-pinned). |
 | `@blinkbitcoin/kyc-sumsub` | `packages/kyc-sumsub/` | Provider adapters. Entries: `.` (shared Sumsub↔normalized mapping, pure TS), `./react-native` (wraps `@sumsub/react-native-mobilesdk-module`, optional peer), `./web` (wraps `@sumsub/websdk`, optional peer). Keeps native pods out of hosts that only use the hosted mode. |
 | `backend` | `apps/api/` | Express 5 + Apollo Server 5 + Knex/Postgres. `VerificationProvider` port; `mock` and `sumsub` adapters; token issuance; webhook; hosted HTML page that embeds a provider web SDK and relays normalized events over the bridge. |
@@ -51,14 +51,14 @@ Reference repo to mirror: `/Users/jonas/Dev/esign` (read `CLAUDE.md`, `packages/
 ### Core contracts (`packages/kyc-core/src/verification/types.ts`)
 
 ```ts
-export type VerificationStatus =
+export type IdentityVerificationStatus =
   | 'initial' | 'incomplete' | 'pending' | 'approved' | 'declined' | 'finallyRejected';
 
 export type VerificationEvent =                       // v1 vocabulary, deliberately small
   | { type: 'applicantLoaded'; applicantId: string }
   | { type: 'submitted' }
-  | { type: 'statusChanged'; status: VerificationStatus }
-  | { type: 'complete'; status: VerificationStatus; applicantId?: string }
+  | { type: 'statusChanged'; status: IdentityVerificationStatus }
+  | { type: 'complete'; status: IdentityVerificationStatus; applicantId?: string }
   | { type: 'cancel' }
   | { type: 'tokenExpired' }                          // hosted mode only; hook refreshes + re-injects
   | { type: 'sessionExpired' }                        // not refreshable → error state with Restart
@@ -73,7 +73,7 @@ export interface VerificationSession {
   applicantId?: string;
 }
 
-export interface VerificationResult { status: VerificationStatus; applicantId?: string }
+export interface IdentityVerificationResult { status: IdentityVerificationStatus; applicantId?: string }
 export interface VerificationSourceError { code: string; message?: string }
 
 /** Every mode: acquire a session, interpret raw messages (Open/Closed seam). */
@@ -86,7 +86,7 @@ export interface TokenRefreshableSource extends VerificationSource {   // hosted
   refreshToken(previous: VerificationSession): Promise<string>;
 }
 export interface LaunchableSource extends VerificationSource {          // native SDK (RN)
-  launch(session: VerificationSession, onEvent: (e: VerificationEvent) => void): Promise<VerificationResult>;
+  launch(session: VerificationSession, onEvent: (e: VerificationEvent) => void): Promise<IdentityVerificationResult>;
 }
 export const isTokenRefreshable = (s): s is TokenRefreshableSource => typeof s.refreshToken === 'function';
 export const isLaunchable = (s): s is LaunchableSource => typeof s.launch === 'function';
@@ -94,7 +94,7 @@ export const isLaunchable = (s): s is LaunchableSource => typeof s.launch === 'f
 
 `MountableSource` (web SDK mounted into a div) lives in `kyc-react` only so `HTMLElement` stays out of core, mirroring esign's `docusignWebForms.ts`. It is defined in v1 but the Sumsub web-SDK adapter that implements it is a follow-up: Sumsub's web SDK is itself an iframe, so the hosted mode already covers web.
 
-Component rule: if `isLaunchable(source)` → launch (no WebView rendered, the resolved `VerificationResult` is the terminal `complete`); else embed `session.url` (WebView/iframe) and route `onMessage` through `source.interpret`. The component never knows a provider name.
+Component rule: if `isLaunchable(source)` → launch (no WebView rendered, the resolved `IdentityVerificationResult` is the terminal `complete`); else embed `session.url` (WebView/iframe) and route `onMessage` through `source.interpret`. The component never knows a provider name.
 
 Hosted bridge protocol (`packages/kyc-core/src/verification/bridge.ts`):
 ```ts
@@ -132,8 +132,8 @@ Error codes: `ErrorCode` enum in `apps/api/schema.graphql` → codegen into core
 ### Platform packages
 
 - **RN `createHostedSource({ getSession | url, refreshToken? })`** (in `./hosted` entry) yields `session.url` + `allowedOrigin`; `interpret = interpretBridgeMessage`. The component renders the WebView with the hardened prop set encapsulated in one place (`src/hosted/webViewProps.ts`, unit-tested as a plain object): `javaScriptEnabled`, `domStorageEnabled`, `allowsInlineMediaPlayback`, `mediaPlaybackRequiresUserAction={false}`, `mediaCapturePermissionGrantType="grant"` (iOS/macOS-only; on Android react-native-webview answers `onPermissionRequest` for any origin the app hosts, so the OS-level prompt stays the host's job via `checkPermissions`), `originWhitelist=[allowedOrigin, ...allowedNavigationOrigins]` (react-native-webview consults the whitelist *before* `onShouldStartLoadWithRequest` and hands a miss to the system browser rather than blocking it, so provider frame origins must be in it), `onShouldStartLoadWithRequest` allowing only the session origin + provider frame origins, `setSupportMultipleWindows={false}`, `cacheEnabled={false}`, `allowFileAccess={false}`, `injectedJavaScriptBeforeContentLoaded` installing `window.__kycBridge`, `onMessage → source.interpret`. Optional `checkPermissions?: () => Promise<'granted'|'denied'|'blocked'>` prop lets hosts preflight with their own permission lib (default resolves `granted`, so the WebView prompts; no hard dep on `react-native-permissions`); `denied`/`blocked` → `permissionDenied` state with Retry and an `onOpenSettings?` callback.
-- **Component `Verification`** props: `source`, `onComplete(result: VerificationResult)`, `onError(error: { code, message })`, `onCancel`, `onStatusChange?`, `label?`, `successDelayMs?`, `checkPermissions?` + `onOpenSettings?` (RN). Status machine: `idle | loading | verifying | pending | success | permissionDenied | error | offline`. `pending` is new versus esign (applicant submitted, awaiting review) and ends in `onComplete` with `status: 'pending'`.
-- **Hook `useVerification(source, handlers)`** returns `{ status, session, error, start, retry }`; the component is a thin default UI over it (mirrors esign PR #60's headless hook).
+- **Component `IdentityVerification`** props: `source`, `onComplete(result: IdentityVerificationResult)`, `onError(error: { code, message })`, `onCancel`, `onStatusChange?`, `label?`, `successDelayMs?`, `checkPermissions?` + `onOpenSettings?` (RN). Status machine: `idle | loading | verifying | pending | success | permissionDenied | error | offline`. `pending` is new versus esign (applicant submitted, awaiting review) and ends in `onComplete` with `status: 'pending'`.
+- **Hook `useIdentityVerification(source, handlers)`** returns `{ status, session, error, start, retry }`; the component is a thin default UI over it (mirrors esign PR #60's headless hook).
 - Token refresh: native SDK mode needs nothing (SDK calls `getAccessToken` itself). Hosted mode: bridge `tokenExpired` → if `isTokenRefreshable(source)` the hook awaits `refreshToken(session)` and pushes the token back into the page (`setToken`); otherwise `sessionExpired` → error state with Restart, as esign does. Guards: `mountedRef` + `refreshSeq` drop stale refreshes; refresh rejection → `TOKEN_REFRESH_FAILED` keeping the session for Restart; offline (NetInfo) → `offline` state first, refresh resumes on "Check connection"; a `launch()` that rejects for expiry gets one `start()` retry, then `TOKEN_EXPIRED`.
 - Native peer deps declared like esign (`react-native-webview >=14`, `@react-native-community/netinfo >=11`, optional `@apollo/client`/`graphql`); `kyc-sumsub/react-native` has optional peer `@sumsub/react-native-mobilesdk-module`.
 

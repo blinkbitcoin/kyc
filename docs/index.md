@@ -20,7 +20,7 @@
 
 - **`packages/kyc-core`** - platform-agnostic: `VerificationSource` + capability guards, the `kyc-bridge` protocol, the shared state machine, the error-code contract, the hosted and proxy sources. Entries: `.`, `./hosted` (Apollo-free), `./testing`, `./sumsub` (Apollo-free; the one Sumsub mapping, in `providers/sumsub/`).
 - **`packages/kyc-server`** - the server half: `createVerificationService` over the provider + store ports, the Sumsub and mock adapters, the hosted page, Fetch handlers, the registry. Entries: `.`, `./express` (router), `./knex` (store + migrations), `./sumsub`.
-- **`packages/kyc-react-native`** - `Verification` + `useVerification` over a hardened `react-native-webview`, and the Sumsub native-SDK source in `providers/sumsub/`. Entries: `.`, `./hosted`, `./sumsub`.
+- **`packages/kyc-react-native`** - `IdentityVerification` + `useIdentityVerification` over a hardened `react-native-webview`, and the Sumsub native-SDK source in `providers/sumsub/`. Entries: `.`, `./hosted`, `./sumsub`.
 - **`packages/kyc-react`** - the same pair over an origin-pinned iframe, plus the `MountableSource` seam; `providers/sumsub/` is reserved for the web-SDK adapter. Entries: `.`, `./sumsub`.
 
 #### The reference backend (`examples/full-service-demo/`)
@@ -78,8 +78,8 @@ Organized by namespace - pick by what you are doing:
 |-----|--------|
 | [../packages/kyc-core/README.md](../packages/kyc-core/README.md) | The four entries, the bridge protocol, the error-code split, the state machine, the Sumsub mapping |
 | [../packages/kyc-server/README.md](../packages/kyc-server/README.md) | The server package: minting tokens for the native SDK, the domain, the Knex store, the handlers and the router |
-| [../packages/kyc-react-native/README.md](../packages/kyc-react-native/README.md) | The React Native package: modes, permission setup, `Verification` props, the hook, the native-SDK source and its test double |
-| [../packages/kyc-react/README.md](../packages/kyc-react/README.md) | The web package: iframe/CSP requirements, origin pinning, `Verification` props |
+| [../packages/kyc-react-native/README.md](../packages/kyc-react-native/README.md) | The React Native package: modes, permission setup, `IdentityVerification` props, the hook, the native-SDK source and its test double |
+| [../packages/kyc-react/README.md](../packages/kyc-react/README.md) | The web package: iframe/CSP requirements, origin pinning, `IdentityVerification` props |
 | [../examples/full-service-demo/README.md](../examples/full-service-demo/README.md) | Running and configuring the reference backend |
 | [../examples/react-native-demo/README.md](../examples/react-native-demo/README.md) | The four `KYC_MODE` modes, the screen/testID contract, the Maestro suite |
 | [../examples/react-demo/README.md](../examples/react-demo/README.md) | The two web modes, the themed variant and the Playwright suites |

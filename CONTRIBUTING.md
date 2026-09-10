@@ -79,7 +79,7 @@ area names (`commitlint.config.mjs` is the source of truth):
 Examples:
 
 ```text
-feat(rn): expose onStatusChange on Verification
+feat(rn): expose onStatusChange on IdentityVerification
 fix(api): reject webhook replays that downgrade a terminal session
 feat(sumsub): map applicantReviewed to the normalized status
 ```

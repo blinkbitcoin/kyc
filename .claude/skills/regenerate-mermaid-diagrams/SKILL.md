@@ -60,9 +60,9 @@ These keep the set readable as a progression, not a pile of unrelated pictures:
   web SDK, hosted page, proxy). Any diagram that is mode-specific says so in
   its heading; the System Architecture diagram shows where the three modes
   diverge and notes that only the proxy source touches Apollo.
-- **Same names everywhere.** A node representing `Verification`,
+- **Same names everywhere.** A node representing `IdentityVerification`,
   `VerificationSource`, a route, or a DB column uses the exact identifier
-  from code - never a paraphrase ("Verification component") that readers
+  from code - never a paraphrase ("IdentityVerification component") that readers
   must map.
 - **Consistent colors** (hex, applied via `style`):
   - `#b2f2bb` green - success / terminal-good states

@@ -72,7 +72,7 @@ CORS_ALLOWED_ORIGINS=<your web demo origin>
 | # | Check | Expected |
 |---|-------|----------|
 | 2.1 | Start the backend with one of the three `SUMSUB_*` secrets removed | It **refuses to boot** and names the missing variable |
-| 2.2 | Restore it and start again | Boot log shows `Verification provider: sumsub` |
+| 2.2 | Restore it and start again | Boot log shows `IdentityVerification provider: sumsub` |
 | 2.3 | `curl <PUBLIC_BASE_URL>/health` from outside your network | `{"status":"ok",…}` - if this fails, webhooks will fail too |
 | 2.4 | `POST <PUBLIC_BASE_URL>/webhook/kyc/mock` with any body | `404 Unknown provider` - a mock payload must never reach a Sumsub deployment |
 | 2.5 | `POST <PUBLIC_BASE_URL>/webhook/kyc/sumsub` with a body and no signature header | `401 Unauthorized` |

@@ -20,7 +20,7 @@ npm i @blinkbitcoin/kyc-react-native @apollo/client graphql \
 import {
   createKycApolloClient,
   createProxySource,
-  Verification,
+  IdentityVerification,
 } from '@blinkbitcoin/kyc-react-native';   // web: '@blinkbitcoin/kyc-react'
 
 const client = createKycApolloClient({
@@ -35,7 +35,7 @@ const source = createProxySource({
   locale: 'en',                   // optional - must look like "en" or "en-US"
 });
 
-<Verification
+<IdentityVerification
   source={source}
   onComplete={(result) => console.log(result.status)}
   onError={(error) => console.warn(error.code, error.message)}

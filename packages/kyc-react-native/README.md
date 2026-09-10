@@ -27,12 +27,12 @@ GraphQL peers never have to be installed.
 The provider SDK runs in-process; no WebView is rendered.
 
 ```tsx
-import { Verification } from '@blinkbitcoin/kyc-react-native/hosted';
+import { IdentityVerification } from '@blinkbitcoin/kyc-react-native/hosted';
 import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
 
 const source = createSumsubNativeSource({ getAccessToken: fetchTokenFromYourApi });
 
-<Verification
+<IdentityVerification
   source={source}
   onComplete={(result) => console.log(result.status)}
   onError={(error) => console.warn(error.code, error.message)}
@@ -46,7 +46,7 @@ A page that speaks the `kyc-bridge` protocol (this repo's `examples/full-service
 one) is embedded in a hardened WebView.
 
 ```tsx
-import { Verification } from '@blinkbitcoin/kyc-react-native/hosted';
+import { IdentityVerification } from '@blinkbitcoin/kyc-react-native/hosted';
 import { createHostedSource } from '@blinkbitcoin/kyc-react-native/hosted';
 
 const source = createHostedSource({
@@ -55,7 +55,7 @@ const source = createHostedSource({
   // omit refreshToken and an expired token becomes a Restart prompt
 });
 
-<Verification
+<IdentityVerification
   source={source}
   allowedNavigationOrigins={['https://*.sumsub.com']}
   onComplete={onComplete}
@@ -73,7 +73,7 @@ import from the package root).
 import {
   createKycApolloClient,
   createProxySource,
-  Verification,
+  IdentityVerification,
 } from '@blinkbitcoin/kyc-react-native';
 import { Platform } from 'react-native';
 
@@ -130,7 +130,7 @@ Optionally preflight with whatever permission library the app already uses —
 there is no hard dependency on one:
 
 ```tsx
-<Verification
+<IdentityVerification
   source={source}
   checkPermissions={async () => {
     const result = await request(PERMISSIONS.IOS.CAMERA);
@@ -146,19 +146,19 @@ actually resolve them: **Try again** for `denied` (the OS will ask again),
 without it that screen is informational. Neither is an error: `onError` is
 not called for them, exactly like the offline state.
 
-## `<Verification />` props
+## `<IdentityVerification />` props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `source` | `VerificationSource` | — | The mode. See the three factories above. |
-| `onComplete` | `(result: VerificationResult) => void` | — | Terminal outcome, including `pending`, `declined` and `finallyRejected`. |
+| `onComplete` | `(result: IdentityVerificationResult) => void` | — | Terminal outcome, including `pending`, `declined` and `finallyRejected`. |
 | `onError` | `(error: { code, message }) => void` | — | Failures only (never offline / permission-denied). |
 | `onCancel` | `() => void` | — | User aborted. |
-| `onStatusChange` | `(status: VerificationStatus) => void` | — | Every intermediate status. |
+| `onStatusChange` | `(status: IdentityVerificationStatus) => void` | — | Every intermediate status. |
 | `label` | `string` | `'Verify identity'` | Idle-screen title and button. |
-| `theme` | `VerificationTheme` | — | Color and font overrides for the built-in screens<br>(see Labels and theme). |
-| `styles` | `VerificationStyles` | — | Per-element style overrides; win over `theme`. |
-| `labels` | `VerificationLabels` | — | Copy overrides for the built-in screens; win over `label`. |
+| `theme` | `IdentityVerificationTheme` | — | Color and font overrides for the built-in screens<br>(see Labels and theme). |
+| `styles` | `IdentityVerificationStyles` | — | Per-element style overrides; win over `theme`. |
+| `labels` | `IdentityVerificationLabels` | — | Copy overrides for the built-in screens; win over `label`. |
 | `successDelayMs` | `number` | `1500` | Success screen before `onComplete` (approvals only). |
 | `checkPermissions` | `() => Promise<'granted' \| 'denied' \| 'blocked'>` | — | Camera preflight. |
 | `onOpenSettings` | `() => void` | — | Adds an "Open settings" button to the permission screen —<br>shown only when the preflight reported `'blocked'`. |
@@ -169,11 +169,11 @@ not called for them, exactly like the offline state.
 ## Labels and theme
 
 Blink is multilingual and branded, so nothing the built-in screens render
-is fixed: every string is a `VerificationLabels` key and every color a
-`VerificationTheme` key, and both are plain props.
+is fixed: every string is a `IdentityVerificationLabels` key and every color a
+`IdentityVerificationTheme` key, and both are plain props.
 
 ```tsx
-<Verification
+<IdentityVerification
   source={source}
   label="Verificar identidad"
   theme={{ primaryColor: '#F7931A', primaryTextColor: '#000' }}
@@ -196,13 +196,13 @@ Precedence: base style < `theme` color < `styles[key]`, and default copy <
 `outcome*` per decision (`Approved`, `Declined`, `FinallyRejected`,
 `Incomplete`, `Reviewing`) and `errorMessages`, a table by error code
 ([docs/integration/error-codes.md](../../docs/integration/error-codes.md))
-over the message the error carries. `VerificationStyleKey` lists the
+over the message the error carries. `IdentityVerificationStyleKey` lists the
 styled elements (`root`, `screen`, `page`, `actions`, `title`, `subtitle`,
 `button`, `buttonText`, `secondaryButton`, `secondaryButtonText`,
 `successText`, `errorTitle`, `hiddenWebView`). A host that wants a
-different layout altogether calls `useVerification` instead.
+different layout altogether calls `useIdentityVerification` instead.
 
-## `useVerification(source, options)`
+## `useIdentityVerification(source, options)`
 
 The component is a thin UI over this hook; use it directly for a custom look.
 
@@ -211,14 +211,14 @@ const {
   status,      // 'idle' | 'loading' | 'verifying' | 'pending' | 'success'
                // | 'permissionDenied' | 'error' | 'offline'
   session,     // the running VerificationSession, or null
-  result,      // the terminal VerificationResult, or null
+  result,      // the terminal IdentityVerificationResult, or null
   error,       // { code, message } | null
   permissionReason,  // 'denied' | 'blocked' | null (with 'permissionDenied')
   start, retry, restart, cancel,
   handleMessage,   // feed the WebView's raw onMessage payload in
   handleEvent,     // feed an already-normalized VerificationEvent in
   webViewRef,      // attach to <HostedWebView> so refreshes can be injected
-} = useVerification(source, { onComplete, onError, onCancel });
+} = useIdentityVerification(source, { onComplete, onError, onCancel });
 ```
 
 - `success` means **approved**. Every other terminal status renders as the

@@ -19,14 +19,14 @@
 
 | Path | Role |
 |------|------|
-| `src/Verification.tsx` | The default UI: one screen per machine state, nothing else |
-| `src/useVerification.ts` | The headless flow: permissions → connectivity → `start()` → launch or embed → the message pump |
+| `src/IdentityVerification.tsx` | The default UI: one screen per machine state, nothing else |
+| `src/useIdentityVerification.ts` | The headless flow: permissions → connectivity → `start()` → launch or embed → the message pump |
 | `src/useTokenRefresh.ts` | Hosted-mode token push, behind mount and sequence guards |
 | `src/hosted/webViewProps.ts` | The hardened WebView attribute set **as data**, plus `originOf`, `matchesOrigin`, `createNavigationGuard`, `BRIDGE_STUB_SCRIPT` |
 | `src/hosted/HostedWebView.tsx` | The thin component that applies them |
 | `src/theme.ts` | The base `StyleSheet`, `DEFAULT_LABELS`, `resolveStyles` / `resolveLabels` (base < `theme` < `styles`; default < `label` < `labels`) |
 | `src/providers/sumsub/{sdk,source,entry}.ts` | `createSumsubNativeSource` over the optional Mobile SDK peer, and the `./sumsub` surface |
-| `src/types.ts` | Type-only barrel (`VerificationProps`, `VerificationStyles`, the platform's `VerificationLabels`) |
+| `src/types.ts` | Type-only barrel (`IdentityVerificationProps`, `IdentityVerificationStyles`, the platform's `IdentityVerificationLabels`) |
 | `src/index.ts` / `src/hosted.ts` / `src/sumsub.ts` | The `.`, `./hosted` and `./sumsub` entries |
 
 ## Entry points
@@ -43,7 +43,7 @@ Metro resolves the `react-native` export condition straight to `./src/*.ts`, so 
 
 The machine is not owned here - it lives in `@blinkbitcoin/kyc-core` (`src/verification/machine.ts`) and is shared byte-for-byte with the web package.
 
-[![Verification Flow Process](../diagrams/dist/verification-flow.svg)](../diagrams/src/verification-flow.mmd)
+[![IdentityVerification Flow Process](../diagrams/dist/verification-flow.svg)](../diagrams/src/verification-flow.mmd)
 
 | State | Meaning | Entered from | Callback |
 |-------|---------|--------------|----------|
@@ -60,19 +60,19 @@ The machine is not owned here - it lives in `@blinkbitcoin/kyc-core` (`src/verif
 
 `describeOutcome(status)` is the outcome-screen copy; `isRestartableError(code)` is true only for `TOKEN_EXPIRED` and `TOKEN_REFRESH_FAILED`, and decides whether the error screen offers **Restart** (which drops the session) or **Try again**.
 
-## `<Verification />` props
+## `<IdentityVerification />` props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `source` | `VerificationSource` | - | The mode |
-| `onComplete` | `(result: VerificationResult) => void` | - | Terminal outcome, including `pending`, `declined` and `finallyRejected` |
-| `onError` | `(error: VerificationError) => void` | - | Failures only - never offline or permission-denied |
+| `onComplete` | `(result: IdentityVerificationResult) => void` | - | Terminal outcome, including `pending`, `declined` and `finallyRejected` |
+| `onError` | `(error: IdentityVerificationError) => void` | - | Failures only - never offline or permission-denied |
 | `onCancel` | `() => void` | - | The user aborted |
-| `onStatusChange` | `(status: VerificationStatus) => void` | - | Every intermediate status |
+| `onStatusChange` | `(status: IdentityVerificationStatus) => void` | - | Every intermediate status |
 | `label` | `string` | `'Verify identity'` | Idle title and button (`DEFAULT_LABEL`) |
-| `theme` | `VerificationTheme` | - | Colors and font for the built-in screens (`src/theme.ts` resolves base < theme < `styles`) |
-| `styles` | `VerificationStyles` | - | Per-element overrides by `VerificationStyleKey` |
-| `labels` | `VerificationLabels` | - | Every string the screens render, resolved by core's `resolveLabelsWith` over `DEFAULT_LABELS` |
+| `theme` | `IdentityVerificationTheme` | - | Colors and font for the built-in screens (`src/theme.ts` resolves base < theme < `styles`) |
+| `styles` | `IdentityVerificationStyles` | - | Per-element overrides by `IdentityVerificationStyleKey` |
+| `labels` | `IdentityVerificationLabels` | - | Every string the screens render, resolved by core's `resolveLabelsWith` over `DEFAULT_LABELS` |
 | `successDelayMs` | `number` | `1500` | Success screen before `onComplete` (approvals only) |
 | `checkPermissions` | `() => Promise<'granted' \| 'denied' \| 'blocked'>` | - | Optional preflight - the host's own permission library |
 | `onOpenSettings` | `() => void` | - | Renders `open-settings-button` on the permission screen, only when `permissionReason === 'blocked'` |

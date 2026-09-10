@@ -18,8 +18,8 @@
 
 | Path | Role |
 |------|------|
-| `src/Verification.tsx` | One screen per state |
-| `src/useVerification.ts` | The headless flow |
+| `src/IdentityVerification.tsx` | One screen per state |
+| `src/useIdentityVerification.ts` | The headless flow |
 | `src/useTokenRefresh.ts` | `postMessage` token push behind mount and sequence guards |
 | `src/hosted/frameProps.ts` | The hardened iframe attributes and the message guard, **as data** |
 | `src/hosted/HostedFrame.tsx` | The component that applies them and owns the `message` listener |
@@ -37,19 +37,19 @@ The eight states, the outcome copy and the Restart rule come from `@blinkbitcoin
 1. **No permission preflight.** There is no `checkPermissions` / `onOpenSettings`; browsers prompt for the camera themselves. `permissionDenied` is entered *reactively*, when a bridge `error` event carries `PERMISSION_DENIED` - intercepted in `handleEvent` before the shared planner, and `onError` is **not** called for it. The reason recorded is always `'denied'`: a browser has no way to report a permanently blocked permission, so the screen always offers **Try again**. That interception is the single web-only deviation from `planEvent`.
 2. **Connectivity is `navigator.onLine`** plus the `online` / `offline` window events, so an app that drops its connection while the page is on screen (`loading`, `verifying` or `pending`) falls back to the offline screen instead of hanging. Coming back online never resumes by itself - the user presses **Try again**.
 
-## `<Verification />` props
+## `<IdentityVerification />` props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `source` | `VerificationSource` | - | The mode |
-| `onComplete` | `(result: VerificationResult) => void` | - | Terminal outcome |
-| `onError` | `(error: VerificationError) => void` | - | Failures only |
+| `onComplete` | `(result: IdentityVerificationResult) => void` | - | Terminal outcome |
+| `onError` | `(error: IdentityVerificationError) => void` | - | Failures only |
 | `onCancel` | `() => void` | - | The user aborted |
-| `onStatusChange` | `(status: VerificationStatus) => void` | - | Every intermediate status |
+| `onStatusChange` | `(status: IdentityVerificationStatus) => void` | - | Every intermediate status |
 | `label` | `string` | `'Verify identity'` | Idle title and button |
-| `theme` | `VerificationTheme` | - | Colors and font for the built-in screens (`src/theme.ts` resolves base < theme < `styles`) |
-| `styles` | `VerificationStyles` | - | Per-element inline-style overrides by `VerificationStyleKey` |
-| `labels` | `VerificationLabels` | - | Every string the screens render, resolved by core's `resolveLabelsWith` over `DEFAULT_LABELS` |
+| `theme` | `IdentityVerificationTheme` | - | Colors and font for the built-in screens (`src/theme.ts` resolves base < theme < `styles`) |
+| `styles` | `IdentityVerificationStyles` | - | Per-element inline-style overrides by `IdentityVerificationStyleKey` |
+| `labels` | `IdentityVerificationLabels` | - | Every string the screens render, resolved by core's `resolveLabelsWith` over `DEFAULT_LABELS` |
 | `successDelayMs` | `number` | `1500` | Success screen before `onComplete` |
 | `frameTitle` | `string` | `'Identity verification'` | Accessible name for the embedded page |
 | `style` | `CSSProperties` | - | Applied to every screen and to the frame / mount container |

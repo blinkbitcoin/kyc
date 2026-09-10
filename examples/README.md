@@ -3,7 +3,7 @@
 Integration reference apps — hosts for the packages, not products. Each shows
 the minimal wiring a real host app needs per mode: `config.ts` (endpoint +
 mode literal) → `apollo.ts` (client + auth token) → `source.ts` (one
-`VerificationSource` per mode) → one screen with `<Verification />`.
+`VerificationSource` per mode) → one screen with `<IdentityVerification />`.
 
 | Example | Hosts | Modes | E2E |
 |---------|-------|-------|-----|

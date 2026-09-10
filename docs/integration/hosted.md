@@ -17,8 +17,8 @@ npm i @blinkbitcoin/kyc-react
 ## Wiring
 
 ```tsx
-import { createHostedSource, Verification } from '@blinkbitcoin/kyc-react-native/hosted';
-// web: import { createHostedSource, Verification } from '@blinkbitcoin/kyc-react';
+import { createHostedSource, IdentityVerification } from '@blinkbitcoin/kyc-react-native/hosted';
+// web: import { createHostedSource, IdentityVerification } from '@blinkbitcoin/kyc-react';
 
 const source = createHostedSource({
   getSession: async () => yourApi.startVerification(),          // must return { url }
@@ -55,8 +55,8 @@ posted through `window.ReactNativeWebView.postMessage(JSON.stringify(msg))` when
 |--------|---------|---------|
 | `applicantLoaded` | `{ applicantId: string }` | The provider identified the applicant |
 | `submitted` | - | Documents submitted; the flow moves to `pending` |
-| `statusChanged` | `{ status: VerificationStatus }` | Intermediate status |
-| `complete` | `{ status: VerificationStatus, applicantId?: string }` | Terminal outcome |
+| `statusChanged` | `{ status: IdentityVerificationStatus }` | Intermediate status |
+| `complete` | `{ status: IdentityVerificationStatus, applicantId?: string }` | Terminal outcome |
 | `cancel` | - | The user aborted inside the page |
 | `tokenExpired` | - | The access token expired and the page wants a new one |
 | `sessionExpired` | - | The session is over and cannot be refreshed |
@@ -95,7 +95,7 @@ The iframe is rendered with `allow="camera; microphone; fullscreen"`, `sandbox="
 ## Known limitations
 
 - The hosted URL has no max-age of its own: `GET /hosted/:sessionId` serves the page until the session reaches a terminal status (then it renders the expired page). Session ids are unguessable, and the provider access token inside the page still expires on the provider's schedule.
-- The `Verification` components' built-in strings (buttons, status copy, permission screens) are English only and not overridable yet; use `useVerification` and render your own UI if you need localized copy.
+- The `IdentityVerification` components' built-in strings (buttons, status copy, permission screens) are English only and not overridable yet; use `useIdentityVerification` and render your own UI if you need localized copy.
 
 ## Writing your own hosted page
 

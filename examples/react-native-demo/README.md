@@ -47,7 +47,7 @@ the WebView / native SDK prompts for itself. A real host wires its own
 permission library instead — there is no hard dependency on one:
 
 ```tsx
-<Verification
+<IdentityVerification
   source={source}
   checkPermissions={async () => {
     const result = await request(PERMISSIONS.IOS.CAMERA);

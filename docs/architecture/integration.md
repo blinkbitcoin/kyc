@@ -8,7 +8,7 @@
 | Part | Root | Type | Role |
 |------|------|------|------|
 | `core` | `packages/kyc-core/` | Publishable TS package | The vocabulary: `VerificationSource`, the capability guards, the `kyc-bridge` protocol, the shared state machine, the error-code contract, the proxy source; `providers/sumsub/` is the one Sumsub status/event mapping (`/sumsub` entry) |
-| `react-native` | `packages/kyc-react-native/` | Publishable RN library | The product on mobile: `Verification` + `useVerification` over a hardened WebView; `providers/sumsub/` is the Sumsub native-SDK source (`/sumsub` entry) |
+| `react-native` | `packages/kyc-react-native/` | Publishable RN library | The product on mobile: `IdentityVerification` + `useIdentityVerification` over a hardened WebView; `providers/sumsub/` is the Sumsub native-SDK source (`/sumsub` entry) |
 | `react` | `packages/kyc-react/` | Publishable web library | The product on the web: the same pair over an origin-pinned iframe |
 | `backend` | `examples/full-service-demo/` | Express 5 + Apollo Server 5 | The reference service: session issuance, token refresh, provider webhooks, the hosted page |
 | `demos` | `examples/react-native-demo/`, `examples/react-demo/` | Host apps | Executable integration docs and the Maestro / Playwright E2E targets |
@@ -20,7 +20,7 @@
 ### 1. Host app → package: one component, one source
 
 - **From:** the host's own screen
-- **To:** `Verification` (`packages/kyc-react-native/src/Verification.tsx`, `packages/kyc-react/src/Verification.tsx`)
+- **To:** `IdentityVerification` (`packages/kyc-react-native/src/IdentityVerification.tsx`, `packages/kyc-react/src/IdentityVerification.tsx`)
 - **Contract:** `source`, `onComplete`, `onError`, `onCancel`, plus optional `onStatusChange`, `label`, `successDelayMs`, `style`
 - **Invariant:** the component never learns a provider name. Which mode runs is decided entirely by the `VerificationSource` the host passes in, detected structurally: `isLaunchable(source)` → run `launch()` with no embed; otherwise (web only) `isMountable(source)` → hand it a `<div>`; otherwise embed `session.url`.
 - The embedding primitive is mounted once and kept mounted across `verifying` → `pending`, rather than unmounted: on React Native it is hidden with `pointerEvents="none"` plus `accessibilityElementsHidden` / `importantForAccessibility="no-hide-descendants"`; on the web with `hidden` + `inert` + `aria-hidden` (kept in the layout at zero size so the bridge stays alive). A cancel affordance stays available while a hosted session is `verifying`, using the same `verification-cancel-button` testID as the idle screen.
@@ -29,7 +29,7 @@
 
 - **From:** `kyc-react-native`, `kyc-react` (and the backend, for the Sumsub mapping on `/sumsub`)
 - **To:** `@blinkbitcoin/kyc-core` (a hard `dependency` of all three, pinned to the exact same version when E2E / Build Packages builds them)
-- **Shared:** `VerificationStatus`, `VerificationEvent`, `VerificationSession`, `VerificationResult`, `VerificationSource` and its two capability sub-interfaces, `isTokenRefreshable` / `isLaunchable`, the bridge module, `ErrorCodes` / `ClientErrorCodes` / `getErrorMessage`, and the state machine (`machineReducer`, `planEvent`, `describeOutcome`, `isRestartableError`).
+- **Shared:** `IdentityVerificationStatus`, `VerificationEvent`, `VerificationSession`, `IdentityVerificationResult`, `VerificationSource` and its two capability sub-interfaces, `isTokenRefreshable` / `isLaunchable`, the bridge module, `ErrorCodes` / `ClientErrorCodes` / `getErrorMessage`, and the state machine (`machineReducer`, `planEvent`, `describeOutcome`, `isRestartableError`).
 - **Why the machine lives in core:** it is pure TypeScript over core's own vocabulary - no React, no React Native, no DOM, no Apollo - and both platform packages need byte-identical semantics for the eight states, the outcome copy and the Restart affordance. A copy per platform would create two sources of truth for the one thing they must never disagree about.
 - **Where the two platforms genuinely diverge:** the web hook intercepts a bridge `error` event carrying `PERMISSION_DENIED` into `permissionDenied` *before* the shared planner runs (`onError` is not called); React Native has no such interception; a denied `checkPermissions()` preflight is what drives `permissionDenied` there instead. This is a documented, deliberate divergence, not drift - see [mobile.md](mobile.md) and [web.md](web.md).
 

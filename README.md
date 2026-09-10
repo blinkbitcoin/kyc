@@ -8,11 +8,11 @@
 <sub>Badges render once the first `main` run publishes them to `gh-pages`. E2E covers backend, web, Android and the iOS simulator suite, see [CI/CD](docs/development-guide.md#ios-e2e-and-the-macos-runner).</sub>
 
 <p align="center">
-  <img src="docs/assets/readme-hero.svg" alt="Your React Native or React web app renders one Verification component. A VerificationSource picks one of three modes: the native provider SDK in-process, a hosted page embedded in a hardened WebView or origin-pinned iframe, or a proxy session on the reference backend. The two backend-backed modes go through the optional examples/full-service-demo service, and every mode ends at Sumsub." width="960">
+  <img src="docs/assets/readme-hero.svg" alt="Your React Native or React web app renders one IdentityVerification component. The end user photographs an ID document, takes a selfie with a liveness check, and gets a verdict: approved, pending or declined. A VerificationSource picks one of three modes: the native provider SDK in-process, a hosted page embedded in a hardened WebView or origin-pinned iframe, or a proxy session on the reference backend. The two backend-backed modes go through the optional examples/full-service-demo service, and every mode ends at Sumsub." width="960">
 </p>
 
 Embedded identity verification (KYC) for React Native and React web apps.
-One `Verification` component, one `useVerification` hook, provider-agnostic -
+One `IdentityVerification` component, one `useIdentityVerification` hook, provider-agnostic -
 Sumsub is the default provider and the only one implemented, and the app
 never learns its name.
 
@@ -44,7 +44,7 @@ Every mode drives the **same component with the same callbacks** - the only
 thing that changes is the `VerificationSource` you pass in:
 
 ```tsx
-<Verification source={source} onComplete={…} onError={…} onCancel={…} />
+<IdentityVerification source={source} onComplete={…} onError={…} onCancel={…} />
 ```
 
 The modes below go from simplest to most capable. **Start with the first one
@@ -62,14 +62,14 @@ npm i @blinkbitcoin/kyc-react-native react-native-webview @react-native-communit
 ```
 
 ```tsx
-import { createHostedSource, Verification } from '@blinkbitcoin/kyc-react-native/hosted';
+import { createHostedSource, IdentityVerification } from '@blinkbitcoin/kyc-react-native/hosted';
 
 const source = createHostedSource({
   getSession: async () => yourApi.startVerification(),   // -> { url }
   refreshToken: async (s) => yourApi.refreshToken(s.sessionId),   // optional
 });
 
-<Verification
+<IdentityVerification
   source={source}
   onComplete={(result) => console.log(result.status)}
   onError={(error) => console.warn(error.code, error.message)}
@@ -98,7 +98,7 @@ cd ios && bundle exec pod install
 ```
 
 ```tsx
-import { Verification } from '@blinkbitcoin/kyc-react-native';
+import { IdentityVerification } from '@blinkbitcoin/kyc-react-native';
 import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
 
 const source = createSumsubNativeSource({
@@ -136,7 +136,7 @@ make db-up migrate backend      # dev Postgres, migrations, server on :5100
 import {
   createKycApolloClient,
   createProxySource,
-  Verification,
+  IdentityVerification,
 } from '@blinkbitcoin/kyc-react-native';
 
 const client = createKycApolloClient({ uri: API_URL, getAuthToken });
@@ -164,7 +164,7 @@ Ordered by how likely you are to need each part:
 
 | Path | What lives there |
 |------|------------------|
-| [`packages/kyc-react-native/`](packages/kyc-react-native/README.md) | The React Native library you install:<br>`Verification`, `useVerification`, the<br>hardened hosted WebView, and the Sumsub<br>native-SDK source on its `/sumsub` entry. |
+| [`packages/kyc-react-native/`](packages/kyc-react-native/README.md) | The React Native library you install:<br>`IdentityVerification`, `useIdentityVerification`, the<br>hardened hosted WebView, and the Sumsub<br>native-SDK source on its `/sumsub` entry. |
 | [`packages/kyc-react/`](packages/kyc-react/README.md) | The same pair for React web, over an<br>origin-pinned iframe. |
 | [`packages/kyc-server/`](packages/kyc-server/README.md) | The server half a backend installs: Sumsub<br>token minting and webhook verification, the<br>session domain, the hosted page, an Express<br>router and a Knex store. This repo's<br>backend is built on it. |
 | [`packages/kyc-core/`](packages/kyc-core/README.md) | The shared core both libraries build on:<br>`VerificationSource`, the capability guards,<br>the bridge protocol, the state machine, the<br>error-code contract, and the Sumsub mapping<br>on `/sumsub`. It arrives as a dependency -<br>you never install it directly. |
@@ -190,7 +190,7 @@ direnv allow . && direnv allow examples/full-service-demo  # once per machine (l
 ```sh
 make test                                # unit suites + lint + typecheck + format check
 make coverage                            # 100% on the four packages, examples/full-service-demo, and scripts/lib
-npm test -w @blinkbitcoin/kyc-react -- useVerification    # one suite
+npm test -w @blinkbitcoin/kyc-react -- useIdentityVerification    # one suite
 ```
 
 **Running the demos**

@@ -1053,7 +1053,7 @@ export const startServer = async (port: number): Promise<http.Server> => {
   const boundPort = (httpServer.address() as AddressInfo).port;
   console.log(`🚀 Server ready at http://localhost:${boundPort}/graphql`);
   console.log(`🏥 Health check at http://localhost:${boundPort}/health`);
-  console.log(`🪪 Verification provider: ${process.env.KYC_PROVIDER || 'mock'}`);
+  console.log(`🪪 IdentityVerification provider: ${process.env.KYC_PROVIDER || 'mock'}`);
 
   return httpServer;
 };
@@ -1130,7 +1130,7 @@ describe('createApp', () => {
 });
 ```
 
-`tests/server.test.ts`: copy from esign and apply `sed -i '' -e 's/ESIGN_PROVIDER/KYC_PROVIDER/g; s/E-signature provider: mock/Verification provider: mock/g' tests/server.test.ts`.
+`tests/server.test.ts`: copy from esign and apply `sed -i '' -e 's/ESIGN_PROVIDER/KYC_PROVIDER/g; s/E-signature provider: mock/IdentityVerification provider: mock/g' tests/server.test.ts`.
 
 Run: `direnv exec . npm test -w apps/api -- tests/app.test.ts tests/server.test.ts`. Expected: PASS. Then `direnv exec . npm test -w apps/api -- --coverage`. Expected: all suites pass, thresholds 100% met (if `instrumentation.ts` or `auth.ts` branches are uncovered, the copied esign tests already cover them; investigate any gap rather than lowering the threshold).
 
@@ -1237,7 +1237,7 @@ git add -A && git commit -m "feat(api): health-only reference backend with the E
 - Test: `packages/kyc-core/src/verification/__tests__/guards.test.ts`, `packages/kyc-core/src/__tests__/{hosted-entry,wire-contract}.test.ts`
 
 **Interfaces:**
-- Produces (exact exports of both `.` and `./hosted`): types `VerificationStatus`, `VerificationEvent`, `VerificationSession`, `VerificationResult`, `VerificationSourceError`, `VerificationSource`, `TokenRefreshableSource`, `LaunchableSource`; guards `isTokenRefreshable(source)`, `isLaunchable(source)`; `ErrorCodes` const + `ErrorCode` enum.
+- Produces (exact exports of both `.` and `./hosted`): types `IdentityVerificationStatus`, `VerificationEvent`, `VerificationSession`, `IdentityVerificationResult`, `VerificationSourceError`, `VerificationSource`, `TokenRefreshableSource`, `LaunchableSource`; guards `isTokenRefreshable(source)`, `isLaunchable(source)`; `ErrorCodes` const + `ErrorCode` enum.
 
 - [ ] **Step 1: Package config files**
 
@@ -1363,7 +1363,7 @@ Run: `cd "$WT" && direnv exec . npm test -w packages/kyc-core`. Expected: FAIL (
 
 `src/verification/types.ts`:
 ```ts
-// The verification-source abstraction: the seam that lets one <Verification>
+// The verification-source abstraction: the seam that lets one <IdentityVerification>
 // component drive any provider in any mode (native SDK, hosted page, proxy).
 //
 // Platform-agnostic (no React, no WebView/iframe, no native module) -
@@ -1371,7 +1371,7 @@ Run: `cd "$WT" && direnv exec . npm test -w packages/kyc-core`. Expected: FAIL (
 // embeds/launches differs per platform.
 
 /** Normalized applicant status, regardless of provider. */
-export type VerificationStatus =
+export type IdentityVerificationStatus =
   | 'initial'
   | 'incomplete'
   | 'pending'
@@ -1383,8 +1383,8 @@ export type VerificationStatus =
 export type VerificationEvent =
   | { type: 'applicantLoaded'; applicantId: string }
   | { type: 'submitted' }
-  | { type: 'statusChanged'; status: VerificationStatus }
-  | { type: 'complete'; status: VerificationStatus; applicantId?: string }
+  | { type: 'statusChanged'; status: IdentityVerificationStatus }
+  | { type: 'complete'; status: IdentityVerificationStatus; applicantId?: string }
   | { type: 'cancel' }
   /** Hosted mode only: the page's token expired; a refreshable source can mint a new one. */
   | { type: 'tokenExpired' }
@@ -1408,8 +1408,8 @@ export interface VerificationSession {
 }
 
 /** Terminal outcome handed to onComplete. */
-export interface VerificationResult {
-  status: VerificationStatus;
+export interface IdentityVerificationResult {
+  status: IdentityVerificationStatus;
   applicantId?: string;
 }
 
@@ -1440,7 +1440,7 @@ export interface LaunchableSource extends VerificationSource {
   launch(
     session: VerificationSession,
     onEvent: (event: VerificationEvent) => void,
-  ): Promise<VerificationResult>;
+  ): Promise<IdentityVerificationResult>;
 }
 
 /** Capability checks - structural, like esign's isRestartable. */
@@ -1462,11 +1462,11 @@ export type {
   LaunchableSource,
   TokenRefreshableSource,
   VerificationEvent,
-  VerificationResult,
+  IdentityVerificationResult,
   VerificationSession,
   VerificationSource,
   VerificationSourceError,
-  VerificationStatus,
+  IdentityVerificationStatus,
 } from './types';
 ```
 
@@ -1632,7 +1632,7 @@ module.exports = {
 
 Identity-verification (KYC) flow component for React Native. Bootstrap
 status: the package builds, publishes and re-exports `@blinkbitcoin/kyc-core`;
-the `Verification` component, `useVerification` hook and the hardened hosted
+the `IdentityVerification` component, `useIdentityVerification` hook and the hardened hosted
 WebView source arrive in the React Native phase (see
 `docs/superpowers/specs/2026-09-05-kyc-design.md`).
 
@@ -1664,7 +1664,7 @@ Run: `cd "$WT" && direnv exec . npm test -w packages/kyc-react-native`. Expected
 `src/packageInfo.ts`:
 ```ts
 // Bootstrap placeholder so the package has a covered module and the demo
-// has something to render. Replaced by the Verification component.
+// has something to render. Replaced by the IdentityVerification component.
 export const PACKAGE_NAME = '@blinkbitcoin/kyc-react-native';
 
 export const describePackage = (): string => `${PACKAGE_NAME} (bootstrap)`;
@@ -1748,7 +1748,7 @@ module.exports = {
 
 Identity-verification (KYC) flow component for React web apps. Bootstrap
 status: builds, publishes and re-exports `@blinkbitcoin/kyc-core`; the
-`Verification` component, `useVerification` hook and the origin-pinned
+`IdentityVerification` component, `useIdentityVerification` hook and the origin-pinned
 hosted iframe source arrive in the web phase.
 ```
 
@@ -1771,7 +1771,7 @@ describe('packageInfo', () => {
 
 `src/packageInfo.ts`:
 ```ts
-// Bootstrap placeholder; replaced by the Verification component.
+// Bootstrap placeholder; replaced by the IdentityVerification component.
 export const PACKAGE_NAME = '@blinkbitcoin/kyc-react';
 
 export const describePackage = (): string => `${PACKAGE_NAME} (bootstrap)`;
@@ -2553,8 +2553,8 @@ Run: `cd "$WT" && direnv exec . make check-ci`. Expected: actionlint + shellchec
 ```mermaid
 flowchart TB
   subgraph host["Your app"]
-    RN["@blinkbitcoin/kyc-react-native<br/>Verification + useVerification"]
-    WEB["@blinkbitcoin/kyc-react<br/>Verification + useVerification"]
+    RN["@blinkbitcoin/kyc-react-native<br/>IdentityVerification + useIdentityVerification"]
+    WEB["@blinkbitcoin/kyc-react<br/>IdentityVerification + useIdentityVerification"]
   end
   CORE["@blinkbitcoin/kyc-core<br/>VerificationSource + guards + bridge + ErrorCode"]
   SUMSUB["@blinkbitcoin/kyc-sumsub<br/>mapping · /react-native · /web"]
@@ -2607,7 +2607,7 @@ Run: `cd "$WT" && direnv exec . make diagrams && direnv exec . make diagrams-che
 <sub>E2E covers backend, web and Android; the iOS simulator suite is opt-in (macOS runners), see [CI/CD](docs/development-guide.md#ios-e2e-is-opt-in).</sub>
 
 Embedded identity verification (KYC) for React Native and React web apps.
-One `Verification` component, provider-agnostic; Sumsub is the default
+One `IdentityVerification` component, provider-agnostic; Sumsub is the default
 provider. **Status: bootstrap** — the packages build and publish, the
 pipeline is green, and the verification flow lands phase by phase
 (see [the design](docs/superpowers/specs/2026-09-05-kyc-design.md)).
@@ -2623,8 +2623,8 @@ pipeline is green, and the verification flow lands phase by phase
 | Path | Role |
 |------|------|
 | `packages/kyc-core` | Platform-agnostic core: `VerificationSource` + capability guards, bridge protocol, `ErrorCode` contract |
-| `packages/kyc-react-native` | React Native `Verification` component + `useVerification` (hardened WebView for hosted mode) |
-| `packages/kyc-react` | React web `Verification` component + `useVerification` (iframe for hosted mode) |
+| `packages/kyc-react-native` | React Native `IdentityVerification` component + `useIdentityVerification` (hardened WebView for hosted mode) |
+| `packages/kyc-react` | React web `IdentityVerification` component + `useIdentityVerification` (iframe for hosted mode) |
 | `packages/kyc-sumsub` | Sumsub adapters: shared mapping, `/react-native` (native SDK), `/web` (web SDK) |
 | `apps/api` | Reference backend: provider port, mock + Sumsub adapters, webhook, hosted page |
 | `examples/react-native-demo`, `examples/react-demo` | Demo hosts (Maestro / Playwright E2E targets) |
@@ -2678,7 +2678,7 @@ Documentation is maintained by hand alongside code changes — update the
 relevant doc in the same change.
 ```
 
-`docs/development-guide.md`: copy `$ESIGN/docs/development-guide.md`, then `sed -i '' -e 's/\*\*Project:\*\* esign/**Project:** kyc/; s/\*\*Updated:\*\* 2026-07-02/**Updated:** 2026-09-05/; s#cd esign#cd kyc#; s/esign-core/kyc-core/g; s/esign-react-native/kyc-react-native/g; s/esign-react/kyc-react/g; s/ESIGN_PROVIDER/KYC_PROVIDER/g; s/ESIGN_MODE/KYC_MODE/g; s/esign_test/kyc_test/g; s/DocuSign/the provider/g; s/docusign/sumsub/g; s#/webform#/hosted#g; s/ESignature/Verification/g; s/e-signature/identity verification/g; s/E-signature/Identity verification/g' docs/development-guide.md`, then read it top to bottom and delete any paragraph that describes an esign-only feature (Web Forms, envelopes, live DocuSign tests, `make test-live`, the `e2e-web-webform`/`e2e-web-publicurl` targets). Add `- Sumsub sandbox credentials are only needed once the Sumsub adapter lands.` under Prerequisites.
+`docs/development-guide.md`: copy `$ESIGN/docs/development-guide.md`, then `sed -i '' -e 's/\*\*Project:\*\* esign/**Project:** kyc/; s/\*\*Updated:\*\* 2026-07-02/**Updated:** 2026-09-05/; s#cd esign#cd kyc#; s/esign-core/kyc-core/g; s/esign-react-native/kyc-react-native/g; s/esign-react/kyc-react/g; s/ESIGN_PROVIDER/KYC_PROVIDER/g; s/ESIGN_MODE/KYC_MODE/g; s/esign_test/kyc_test/g; s/DocuSign/the provider/g; s/docusign/sumsub/g; s#/webform#/hosted#g; s/ESignature/IdentityVerification/g; s/e-signature/identity verification/g; s/E-signature/Identity verification/g' docs/development-guide.md`, then read it top to bottom and delete any paragraph that describes an esign-only feature (Web Forms, envelopes, live DocuSign tests, `make test-live`, the `e2e-web-webform`/`e2e-web-publicurl` targets). Add `- Sumsub sandbox credentials are only needed once the Sumsub adapter lands.` under Prerequisites.
 
 - [ ] **Step 6: Agent guidance and policy docs**
 
@@ -2687,7 +2687,7 @@ relevant doc in the same change.
 - In `CLAUDE.md`'s workspace table add the row `| \`@blinkbitcoin/kyc-sumsub\` | \`packages/kyc-sumsub/\` | Sumsub adapters: shared mapping + \`/react-native\` + \`/web\` entries |` and delete rows/lines about Web Forms, envelopes, `test:live`.
 - `AGENTS.md` project tree: replace the `packages/` block with `kyc-core/`, `kyc-sumsub/`, `kyc-react-native/`, `kyc-react/` lines and the descriptions from the README layout table.
 - `SECURITY.md` scope: `@blinkbitcoin/kyc-core`, `@blinkbitcoin/kyc-sumsub`, `@blinkbitcoin/kyc-react-native`, `@blinkbitcoin/kyc-react`; the security-model paragraph points at `docs/superpowers/specs/2026-09-05-kyc-design.md` until `docs/architecture/security.md` exists.
-- `CONTRIBUTING.md` example commits: `feat(rn): expose onStatusChange on Verification`, `fix(api): reject webhook replays that downgrade a terminal session`, `feat(sumsub): map applicantReviewed to the normalized status`.
+- `CONTRIBUTING.md` example commits: `feat(rn): expose onStatusChange on IdentityVerification`, `fix(api): reject webhook replays that downgrade a terminal session`, `feat(sumsub): map applicantReviewed to the normalized status`.
 
 `packages/README.md`, `apps/README.md`, `examples/README.md`: copy from `$ESIGN` and apply the Step 5 sed; add a `kyc-sumsub` row to `packages/README.md` mirroring the README layout table.
 

@@ -66,9 +66,9 @@ only check the mapping.
 
 ## Hosts own copy and styling
 
-Every string the default UI renders is a `VerificationLabels` key and
-every color a `VerificationTheme` key; a host that wants another layout
-calls `useVerification`.
+Every string the default UI renders is a `IdentityVerificationLabels` key and
+every color a `IdentityVerificationTheme` key; a host that wants another layout
+calls `useIdentityVerification`.
 
 **Why:** Blink is multilingual and branded; hard-coded English and iOS blue
 would not ship.

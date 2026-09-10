@@ -25,8 +25,8 @@ the current state is [docs/index.md](docs/index.md).
 ├── packages/
 │   ├── kyc-server/              # 📦 server half: the verification-session domain over provider + store ports, Sumsub adapter, hosted page, Fetch handlers, /express router, /knex store (entries ., /express, /knex, /sumsub)
 │   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode; providers/sumsub/ = the one Sumsub mapping (entry /sumsub)
-│   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (Verification + useVerification + hardened HostedWebView; entries ., /hosted and /sumsub = the native-SDK source in providers/sumsub/)
-│   └── kyc-react/               # 📦 THE PRODUCT - web (Verification + useVerification + origin-pinned HostedFrame; entries ., /hosted (Apollo-free, same contract as RN) and /sumsub, the reserved web-SDK seat)
+│   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (IdentityVerification + useIdentityVerification + hardened HostedWebView; entries ., /hosted and /sumsub = the native-SDK source in providers/sumsub/)
+│   └── kyc-react/               # 📦 THE PRODUCT - web (IdentityVerification + useIdentityVerification + origin-pinned HostedFrame; entries ., /hosted (Apollo-free, same contract as RN) and /sumsub, the reserved web-SDK seat)
 ├── examples/
 │   ├── full-service-demo/       # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres), composed from packages/kyc-server: this service's policy (helmet, CORS, rate limits, JWT auth, fail-closed boot) around the package's router, schema, store and adapters
 │   │   └── src/
@@ -114,13 +114,13 @@ The reasons behind these rules, and the check that holds each one, are in
   a `VerificationSource` from `@blinkbitcoin/kyc-core` (the Sumsub native
   source comes from `@blinkbitcoin/kyc-react-native/sumsub`); demo wiring
   lives in `examples/*/src/`.
-  `Verification` is provider-agnostic - adding a provider is a new
+  `IdentityVerification` is provider-agnostic - adding a provider is a new
   `VerificationSource`, the component never changes
 - The default UI renders nothing hard-coded: every string is a
-  `VerificationLabels` key and every color a `VerificationTheme` key
-  (`theme` / `styles` / `labels` props on `Verification`, resolved by
+  `IdentityVerificationLabels` key and every color a `IdentityVerificationTheme` key
+  (`theme` / `styles` / `labels` props on `IdentityVerification`, resolved by
   core's `resolveLabelsWith` so both platforms agree); a host that needs
-  a different layout calls `useVerification`
+  a different layout calls `useIdentityVerification`
 - `graphql` stays on 16.x repo-wide (Apollo Server 5 peer range)
 - Every service listens on `KYC_PORT_BASE` (default 5100 - 5000 is
   everybody's, 4100 is esign's) plus its offset: the backend +0, the web demo

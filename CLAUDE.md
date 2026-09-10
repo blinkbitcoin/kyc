@@ -17,8 +17,8 @@ release`, see [docs/releasing.md](docs/releasing.md)).
 |-----------|------|------|
 | `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: the shared verification state machine, `VerificationSource` + capability guards, `kyc-bridge` protocol, hosted + proxy sources, Apollo client factory, GraphQL operations, `ErrorCode` contract (no React/DOM); `providers/sumsub/` is the one Sumsub↔normalized mapping (used by `examples/full-service-demo` too). Entries: `.`, `/hosted` (Apollo-free), `/testing` (fake source), `/sumsub` (Apollo-free, the mapping + the hosted layer) |
 | `@blinkbitcoin/kyc-server` | `packages/kyc-server/` | Node-only server half: `createVerificationService` over the `VerificationProvider` + `SessionStore` ports, the Sumsub and mock adapters under `providers/`, the hosted page, Fetch handlers, the `/express` router, the `/knex` store with its migrations, `providerFromEnv` + `defaultRegistry`. A backend with its own API imports it (`examples/access-token-demo`); `examples/full-service-demo` is the whole service composed on it |
-| `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `Verification` component + `useVerification` hook + `HostedWebView` (hardened WebView, camera capture granted, origin-pinned); `providers/sumsub/` = `createSumsubNativeSource` over the optional Mobile SDK peer. Entries: `.`, `/hosted` (Apollo-free), `/sumsub` (Apollo-free, the native source + the hosted surface) |
-| `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Publishable React **web** library: `Verification` component + `useVerification` hook + `HostedFrame` (origin-pinned iframe, camera/microphone delegated) and the `MountableSource` seam; `providers/sumsub/` is the reserved seat of the web-SDK adapter (none in v1). Entries: `.`, `/hosted` (Apollo-free, the same import as React Native's), `/sumsub` (Apollo-free) |
+| `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `IdentityVerification` component + `useIdentityVerification` hook + `HostedWebView` (hardened WebView, camera capture granted, origin-pinned); `providers/sumsub/` = `createSumsubNativeSource` over the optional Mobile SDK peer. Entries: `.`, `/hosted` (Apollo-free), `/sumsub` (Apollo-free, the native source + the hosted surface) |
+| `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Publishable React **web** library: `IdentityVerification` component + `useIdentityVerification` hook + `HostedFrame` (origin-pinned iframe, camera/microphone delegated) and the `MountableSource` seam; `providers/sumsub/` is the reserved seat of the web-SDK adapter (none in v1). Entries: `.`, `/hosted` (Apollo-free, the same import as React Native's), `/sumsub` (Apollo-free) |
 | `kyc-full-service-example` | `examples/full-service-demo/` | The reference host: the whole service on the server package - Express 5 + Apollo Server 5 + Knex/PostgreSQL, this service's auth, CORS, rate limits and fail-closed boot around the package's router, schema and store; the backend every E2E suite runs against |
 | `kyc-access-token-example` | `examples/access-token-demo/` | An existing GraphQL API adds one mutation that mints a provider access token for the native SDK (the Blink shape); `make e2e-server-demos` boots it on the mock provider |
 | `kyc-react-native-example` | `examples/react-native-demo/` | RN demo app hosting the RN library (Maestro E2E target) |
@@ -74,7 +74,7 @@ npm run test:e2e:backend     # Backend E2E (needs: docker compose -f docker-comp
 npm run test:e2e             # Maestro mobile E2E (needs backend + simulator/emulator)
 ```
 
-Single test file: `npm test -w @blinkbitcoin/kyc-react -- useVerification` or
+Single test file: `npm test -w @blinkbitcoin/kyc-react -- useIdentityVerification` or
 `npm test -w examples/full-service-demo -- tests/schema.test.ts`.
 
 ## Backend specifics
@@ -126,8 +126,8 @@ npm run migrate:test         # Same against the .env.test database
 
 ## Library specifics
 
-- Public API is `src/index.ts`. Each platform library ships `Verification` +
-  `useVerification` over its own embedding primitive (hardened WebView on RN,
+- Public API is `src/index.ts`. Each platform library ships `IdentityVerification` +
+  `useIdentityVerification` over its own embedding primitive (hardened WebView on RN,
   origin-pinned iframe on the web) and re-exports `@blinkbitcoin/kyc-core`.
   The state machine those hooks run is in core (`src/verification/machine.ts`)
   so the two platforms cannot drift; `HTMLElement` stays out of core, which
@@ -137,7 +137,7 @@ npm run migrate:test         # Same against the .env.test database
   commit.
 - No URLs, tokens, or platform detection in the library - that's host-app
   (demo) wiring.
-- **Provider-agnostic**: `Verification` takes a `VerificationSource` (not
+- **Provider-agnostic**: `IdentityVerification` takes a `VerificationSource` (not
   session/token details). The abstraction + capability guards
   (`isLaunchable`, `isTokenRefreshable`) live in `@blinkbitcoin/kyc-core`;
   Sumsub's native source lives in `packages/kyc-react-native/src/providers/sumsub/`

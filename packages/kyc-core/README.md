@@ -26,10 +26,10 @@ both guard-tested.
 
 ```ts
 import {
-  mapSumsubStatus,            // (reviewStatus?, reviewResult?) -> VerificationStatus
-  mapSumsubWebhookType,       // (type, reviewStatus?, reviewResult?) -> VerificationStatus | null
-  mapSumsubWebhookStatus,     // (webhookPayload) -> VerificationStatus | null
-  mapSumsubMobileStatus,      // ('Approved' | ...) -> VerificationStatus | null
+  mapSumsubStatus,            // (reviewStatus?, reviewResult?) -> IdentityVerificationStatus
+  mapSumsubWebhookType,       // (type, reviewStatus?, reviewResult?) -> IdentityVerificationStatus | null
+  mapSumsubWebhookStatus,     // (webhookPayload) -> IdentityVerificationStatus | null
+  mapSumsubMobileStatus,      // ('Approved' | ...) -> IdentityVerificationStatus | null
   mapSumsubMobileResult,      // (SNSMobileSDKResult) -> VerificationEvent
   interpretSumsubWebMessage,  // (type, payload) -> VerificationEvent | null
   SUMSUB_EVENT_NAMES,
@@ -99,11 +99,11 @@ reducer. Nothing here touches React, the DOM, native modules or Apollo.
 
 ## Labels and theme
 
-Blink is multilingual and branded, so nothing the default `Verification`
-UI renders is hard-coded in the platform packages. `VerificationLabels`
+Blink is multilingual and branded, so nothing the default `IdentityVerification`
+UI renders is hard-coded in the platform packages. `IdentityVerificationLabels`
 names every string (idle title and subtitle, the buttons, the pending,
 permission, offline and error screens, one `outcome*` key per decision,
-and an `errorMessages` table keyed by error code); `VerificationTheme`
+and an `errorMessages` table keyed by error code); `IdentityVerificationTheme`
 names the colors and the font. `resolveLabelsWith(defaults, label, labels)`
 layers a host's overrides over a platform's defaults (null and undefined
 keep the default), `outcomeLabel(labels, status)` picks the outcome copy
@@ -112,7 +112,7 @@ message the error carries. The platform packages own the defaults and the
 `theme` / `styles` / `labels` props; this package only guarantees both
 resolve copy the same way.
 
-The `Verification` component and the `useVerification` hook live in the
+The `IdentityVerification` component and the `useIdentityVerification` hook live in the
 platform packages (`@blinkbitcoin/kyc-react-native`,
 `@blinkbitcoin/kyc-react`), which both run **this** package's state machine so
 they cannot drift. Consumer guides:

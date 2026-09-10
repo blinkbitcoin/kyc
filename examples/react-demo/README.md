@@ -20,7 +20,7 @@ colors, `themed` hands it the `theme` and `labels` props from
 the same in both, so every Playwright spec runs under either.
 
 The screen mirrors the React Native demo: `mode-label`, `reset-button`,
-`outcome`, around the library's `<Verification />`. The verification page is
+`outcome`, around the library's `<IdentityVerification />`. The verification page is
 embedded in a genuinely cross-origin iframe (built app via `vite preview`
 on the worktree's Vite port, page on its backend port), so the E2E suites
 exercise the real `postMessage` path and the origin pin.

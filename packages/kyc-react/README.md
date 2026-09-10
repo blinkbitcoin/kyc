@@ -28,7 +28,7 @@ A page that speaks the `kyc-bridge` protocol (this repo's `examples/full-service
 one) is embedded in an origin-pinned iframe.
 
 ```tsx
-import { createHostedSource, Verification } from '@blinkbitcoin/kyc-react';
+import { createHostedSource, IdentityVerification } from '@blinkbitcoin/kyc-react';
 
 const source = createHostedSource({
   getSession: async () => yourApi.startVerification(), // must return { url }
@@ -36,7 +36,7 @@ const source = createHostedSource({
   // omit refreshToken and an expired token becomes a Restart prompt
 });
 
-<Verification
+<IdentityVerification
   source={source}
   onComplete={(result) => console.log(result.status)}
   onError={(error) => console.warn(error.code, error.message)}
@@ -52,7 +52,7 @@ Full orchestration against this repo's backend (needs the Apollo peers).
 import {
   createKycApolloClient,
   createProxySource,
-  Verification,
+  IdentityVerification,
 } from '@blinkbitcoin/kyc-react';
 
 const client = createKycApolloClient({ uri: API_URL, getAuthToken });
@@ -132,19 +132,19 @@ ignored, token refresh is disabled, and a console warning explains why. Token
 refreshes are posted with `postMessage(createSetTokenMessage(token),
 allowedOrigin)` — never with `'*'`.
 
-## `<Verification />` props
+## `<IdentityVerification />` props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `source` | `VerificationSource` | — | The mode. See the factories above. |
-| `onComplete` | `(result: VerificationResult) => void` | — | Terminal outcome, including `pending`, `declined` and `finallyRejected`. |
+| `onComplete` | `(result: IdentityVerificationResult) => void` | — | Terminal outcome, including `pending`, `declined` and `finallyRejected`. |
 | `onError` | `(error: { code, message }) => void` | — | Failures only (never offline / permission-denied). |
 | `onCancel` | `() => void` | — | User aborted. |
-| `onStatusChange` | `(status: VerificationStatus) => void` | — | Every intermediate status. |
+| `onStatusChange` | `(status: IdentityVerificationStatus) => void` | — | Every intermediate status. |
 | `label` | `string` | `'Verify identity'` | Idle-screen title and button. |
-| `theme` | `VerificationTheme` | — | Color and font overrides for the built-in screens<br>(see Labels and theme). |
-| `styles` | `VerificationStyles` | — | Per-element style overrides; win over `theme`. |
-| `labels` | `VerificationLabels` | — | Copy overrides for the built-in screens; win over `label`. |
+| `theme` | `IdentityVerificationTheme` | — | Color and font overrides for the built-in screens<br>(see Labels and theme). |
+| `styles` | `IdentityVerificationStyles` | — | Per-element style overrides; win over `theme`. |
+| `labels` | `IdentityVerificationLabels` | — | Copy overrides for the built-in screens; win over `label`. |
 | `successDelayMs` | `number` | `1500` | Success screen before `onComplete` (approvals only). |
 | `frameTitle` | `string` | `'Identity verification'` | Accessible name for the embedded page. |
 | `style` | `CSSProperties` | — | Applied once, to the component's single root element. |
@@ -181,11 +181,11 @@ react.
 ## Labels and theme
 
 Blink is multilingual and branded, so nothing the built-in screens render
-is fixed: every string is a `VerificationLabels` key and every color a
-`VerificationTheme` key, and both are plain props.
+is fixed: every string is a `IdentityVerificationLabels` key and every color a
+`IdentityVerificationTheme` key, and both are plain props.
 
 ```tsx
-<Verification
+<IdentityVerification
   source={source}
   label="Verificar identidad"
   theme={{ primaryColor: '#F7931A', primaryTextColor: '#000' }}
@@ -209,14 +209,14 @@ Precedence: base style < `theme` color < `styles[key]`, and default copy <
 `FinallyRejected`, `Incomplete`, `Reviewing`) and `errorMessages`, a table
 by error code
 ([docs/integration/error-codes.md](../../docs/integration/error-codes.md))
-over the message the error carries. `VerificationStyleKey` lists the
+over the message the error carries. `IdentityVerificationStyleKey` lists the
 styled elements (`root`, `embed`, `hiddenEmbed`, `actions`, `screen`,
 `title`, `subtitle`, `hint`, `button`, `secondaryButton`, `spinner`,
 `successText`, `errorTitle`); the styles are inline `CSSProperties`, so
 the package still ships no stylesheet. A host that wants a different
-layout altogether calls `useVerification` instead.
+layout altogether calls `useIdentityVerification` instead.
 
-## `useVerification(source, options)`
+## `useIdentityVerification(source, options)`
 
 The component is a thin UI over this hook; use it directly for a custom look.
 
@@ -225,7 +225,7 @@ const {
   status,      // 'idle' | 'loading' | 'verifying' | 'pending' | 'success'
                // | 'permissionDenied' | 'error' | 'offline'
   session,     // the running VerificationSession, or null
-  result,      // the terminal VerificationResult, or null
+  result,      // the terminal IdentityVerificationResult, or null
   error,       // { code, message } | null
   permissionReason, // 'denied' | 'blocked' | null - always 'denied' on the web
   isOnline,    // live navigator.onLine
@@ -233,7 +233,7 @@ const {
   handleMessage,   // feed a raw page payload in
   handleEvent,     // feed an already-normalized VerificationEvent in
   iframeRef,       // attach to <HostedFrame> so refreshes can be posted
-} = useVerification(source, { onComplete, onError, onCancel });
+} = useIdentityVerification(source, { onComplete, onError, onCancel });
 ```
 
 - `success` means **approved**. Every other terminal status renders as the

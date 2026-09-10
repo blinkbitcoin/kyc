@@ -20,7 +20,7 @@ kyc/
 │       │   │   ├── machine.ts       # The shared state machine ⭐
 │       │   │   ├── bridge.ts        # kyc-bridge envelopes + setToken transports
 │       │   │   ├── messages.ts      # getErrorMessage copy
-│       │   │   ├── labels.ts        # VerificationLabels + resolveLabelsWith, outcomeLabel, failureLabel
+│       │   │   ├── labels.ts        # IdentityVerificationLabels + resolveLabelsWith, outcomeLabel, failureLabel
 │       │   │   ├── hostedSource.ts  # createHostedSource (mode 2)
 │       │   │   ├── proxySource.ts   # createProxySource (mode 3, Apollo)
 │       │   │   └── fakeSource.ts    # Test double for the launch branch
@@ -74,8 +74,8 @@ kyc/
 │   │   │   ├── index.ts / hosted.ts # `.` and the Apollo-free ./hosted ⭐
 │   │   │   ├── theme.ts             # baseStyles (the StyleSheet), DEFAULT_LABELS, resolveStyles / resolveLabels
 │   │   │   ├── sumsub.ts            # `./sumsub` - one-line re-export of providers/sumsub/entry
-│   │   │   ├── Verification.tsx     # One screen per state ⭐
-│   │   │   ├── useVerification.ts   # The headless flow ⭐
+│   │   │   ├── IdentityVerification.tsx     # One screen per state ⭐
+│   │   │   ├── useIdentityVerification.ts   # The headless flow ⭐
 │   │   │   ├── useTokenRefresh.ts
 │   │   │   └── hosted/
 │   │   │       ├── webViewProps.ts  # The hardening, as data ⭐
@@ -93,8 +93,8 @@ kyc/
 │       │   ├── theme.ts             # baseStyles, DEFAULT_LABELS, resolveStyles / resolveLabels
 │       │   ├── sumsub.ts            # `./sumsub` - reserved seat of the web-SDK adapter
 │       │   ├── providers/sumsub/entry.ts
-│       │   ├── Verification.tsx
-│       │   ├── useVerification.ts
+│       │   ├── IdentityVerification.tsx
+│       │   ├── useIdentityVerification.ts
 │       │   ├── useTokenRefresh.ts
 │       │   ├── mountable.ts         # MountableSource seam
 │       │   ├── MountPoint.tsx
@@ -188,7 +188,7 @@ kyc/
 
 | From | To | Mechanism |
 |------|----|-----------|
-| Host app | Platform package | `Verification` props |
+| Host app | Platform package | `IdentityVerification` props |
 | Platform package | Core | Direct import (exact-version dependency) |
 | Core proxy source | `examples/full-service-demo` | GraphQL over HTTP with a Bearer token |
 | Hosted page | Platform package | `kyc-bridge` envelopes over `postMessage` |

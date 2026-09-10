@@ -19,7 +19,7 @@ cd ios && bundle exec pod install
 ## Wiring
 
 ```tsx
-import { Verification } from '@blinkbitcoin/kyc-react-native';
+import { IdentityVerification } from '@blinkbitcoin/kyc-react-native';
 import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
 
 const source = createSumsubNativeSource({
@@ -30,7 +30,7 @@ const source = createSumsubNativeSource({
   locale: 'en',
 });
 
-<Verification
+<IdentityVerification
   source={source}
   onComplete={(result) => console.log(result.status, result.applicantId)}
   onError={(error) => console.warn(error.code, error.message)}
@@ -49,7 +49,7 @@ const source = createSumsubNativeSource({
 
 ## What the component does in this mode
 
-`isLaunchable(source)` is true, so **no WebView is rendered**. The component shows its `launch-screen` while `source.launch(session, onEvent)` runs and the SDK owns the screen. The resolved `VerificationResult` is the terminal `complete`. A `cancel` emitted before resolution means the user aborted and the resolved status is advisory (typically `incomplete`); a rejection is a real failure and becomes the error state.
+`isLaunchable(source)` is true, so **no WebView is rendered**. The component shows its `launch-screen` while `source.launch(session, onEvent)` runs and the SDK owns the screen. The resolved `IdentityVerificationResult` is the terminal `complete`. A `cancel` emitted before resolution means the user aborted and the resolved status is advisory (typically `incomplete`); a rejection is a real failure and becomes the error state.
 
 **Known v1 limitations:** the SDK screen cannot be dismissed programmatically once launched - the only way out is the user's own action inside it. A second `launch()` call while one is already running is rejected outright (`SDK_UNAVAILABLE`, "launch already in progress") rather than racing the first over the same screen; the component itself never issues a concurrent launch, but a host driving the source directly should be aware of it.
 
@@ -58,7 +58,7 @@ const source = createSumsubNativeSource({
 The SDK prompts for the camera itself. If you want to preflight - to show your own explainer, or to route a permanently blocked permission to Settings - pass `checkPermissions`:
 
 ```tsx
-<Verification
+<IdentityVerification
   source={source}
   checkPermissions={async () => {
     const result = await request(PERMISSIONS.IOS.CAMERA);
