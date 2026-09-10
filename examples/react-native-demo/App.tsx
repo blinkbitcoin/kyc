@@ -11,7 +11,7 @@
  */
 
 import { ApolloProvider } from '@apollo/client/react';
-import { Verification } from '@blinkbitcoin/kyc-react-native';
+import { IdentityVerification } from '@blinkbitcoin/kyc-react-native';
 import { useState } from 'react';
 import {
   StatusBar,
@@ -33,13 +33,13 @@ import { uiProps } from './src/theme';
 
 import type { FakeLaunchController } from '@blinkbitcoin/kyc-core/testing';
 import type {
-  VerificationError,
-  VerificationResult,
+  IdentityVerificationError,
+  IdentityVerificationResult,
 } from '@blinkbitcoin/kyc-react-native';
 
 export type Outcome =
-  | { kind: 'completed'; result: VerificationResult }
-  | { kind: 'error'; error: VerificationError }
+  | { kind: 'completed'; result: IdentityVerificationResult }
+  | { kind: 'error'; error: IdentityVerificationError }
   | { kind: 'cancelled' }
   | null;
 
@@ -112,7 +112,7 @@ export const FakeSdkScreen = ({
  * The flow itself. Remounted by "Start over" (key change), so the source is
  * built once per mount with a lazy useState initialiser - never per render.
  */
-export const VerificationScreen = ({
+export const IdentityVerificationScreen = ({
   onOutcome,
 }: {
   onOutcome: (outcome: Outcome) => void;
@@ -124,7 +124,7 @@ export const VerificationScreen = ({
 
   return (
     <View style={styles.flow}>
-      <Verification
+      <IdentityVerification
         source={source}
         onComplete={result => onOutcome({ kind: 'completed', result })}
         onError={error => onOutcome({ kind: 'error', error })}
@@ -163,7 +163,7 @@ const AppContent = () => {
           <Text style={styles.toolbarText}>Start over</Text>
         </TouchableOpacity>
       </View>
-      <VerificationScreen key={sessionKey} onOutcome={setOutcome} />
+      <IdentityVerificationScreen key={sessionKey} onOutcome={setOutcome} />
       <Text style={styles.outcome} testID="outcome">
         {outcomeText(outcome)}
       </Text>

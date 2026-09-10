@@ -1,4 +1,4 @@
-// The callbacks VerificationScreen wires reach onOutcome. The source is
+// The callbacks IdentityVerificationScreen wires reach onOutcome. The source is
 // mocked (buildSource is what VITE_KYC_MODE selects), so the screen is
 // driven by a scripted source instead of the backend.
 import {
@@ -10,7 +10,7 @@ import {
 } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { VerificationScreen } from '../App';
+import { IdentityVerificationScreen } from '../App';
 
 import type {
   LaunchableSource,
@@ -31,14 +31,14 @@ const session = {
 const renderAndStart = async (source: VerificationSource) => {
   mockBuildSource.mockReturnValue(source);
   const onOutcome = vi.fn();
-  render(<VerificationScreen onOutcome={onOutcome} />);
+  render(<IdentityVerificationScreen onOutcome={onOutcome} />);
   await act(async () => {
     fireEvent.click(screen.getByTestId('verification-start-button'));
   });
   return onOutcome;
 };
 
-describe('VerificationScreen outcomes', () => {
+describe('IdentityVerificationScreen outcomes', () => {
   it('a declined launch completes with its status', async () => {
     const launchable: LaunchableSource = {
       start: async () => session,

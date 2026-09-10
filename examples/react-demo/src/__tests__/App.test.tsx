@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getAuthToken } from '../apollo';
-import { App, outcomeText, VerificationScreen } from '../App';
+import { App, outcomeText, IdentityVerificationScreen } from '../App';
 
 describe('demo App', () => {
   it('boots to the idle verification screen with the mode label', () => {
@@ -76,10 +76,10 @@ describe('getAuthToken', () => {
   });
 });
 
-describe('VerificationScreen', () => {
+describe('IdentityVerificationScreen', () => {
   it('reports a cancellation from the idle screen', () => {
     const onOutcome = vi.fn();
-    render(<VerificationScreen onOutcome={onOutcome} />);
+    render(<IdentityVerificationScreen onOutcome={onOutcome} />);
 
     fireEvent.click(screen.getByTestId('verification-cancel-button'));
 

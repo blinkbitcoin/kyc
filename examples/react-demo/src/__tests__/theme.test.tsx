@@ -26,8 +26,8 @@ describe('themed UI', () => {
       KYC_UI: 'themed',
     }));
 
-    const { VerificationScreen } = await import('../App');
-    render(<VerificationScreen onOutcome={vi.fn()} />);
+    const { IdentityVerificationScreen } = await import('../App');
+    render(<IdentityVerificationScreen onOutcome={vi.fn()} />);
 
     const start = screen.getByTestId('verification-start-button');
     expect(start.textContent).toBe(BLINK_LABELS.start);

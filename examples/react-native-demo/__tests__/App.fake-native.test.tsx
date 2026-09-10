@@ -17,13 +17,13 @@ jest.mock('../src/config', () => ({
 }));
 
 // Imported after the mock above so the module picks up the mocked KYC_MODE.
-import { VerificationScreen } from '../App';
+import { IdentityVerificationScreen } from '../App';
 
 test('fake-sdk-screen mounts for the duration of a native launch', async () => {
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(() => {
     renderer = ReactTestRenderer.create(
-      <VerificationScreen onOutcome={jest.fn()} />,
+      <IdentityVerificationScreen onOutcome={jest.fn()} />,
     );
   });
 

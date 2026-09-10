@@ -4,7 +4,7 @@
 // palette and copy (src/theme.ts). The toolbar and the outcome line exist for the Playwright
 // suite - a product screen would not need them.
 import { ApolloProvider } from '@apollo/client/react';
-import { Verification } from '@blinkbitcoin/kyc-react';
+import { IdentityVerification } from '@blinkbitcoin/kyc-react';
 import { useState } from 'react';
 
 import { apolloClient } from './apollo';
@@ -13,13 +13,13 @@ import { buildSource } from './source';
 import { uiProps } from './theme';
 
 import type {
-  VerificationError,
-  VerificationResult,
+  IdentityVerificationError,
+  IdentityVerificationResult,
 } from '@blinkbitcoin/kyc-react';
 
 export type Outcome =
-  | { kind: 'completed'; result: VerificationResult }
-  | { kind: 'error'; error: VerificationError }
+  | { kind: 'completed'; result: IdentityVerificationResult }
+  | { kind: 'error'; error: IdentityVerificationError }
   | { kind: 'cancelled' }
   | null;
 
@@ -38,7 +38,7 @@ export const outcomeText = (outcome: Outcome): string => {
 
 // The flow itself. Remounted by "Start over" (key change), so the source is
 // built once per mount with a lazy useState initialiser - never per render.
-export const VerificationScreen = ({
+export const IdentityVerificationScreen = ({
   onOutcome,
 }: {
   onOutcome: (outcome: Outcome) => void;
@@ -46,7 +46,7 @@ export const VerificationScreen = ({
   const [source] = useState(() => buildSource(KYC_MODE));
 
   return (
-    <Verification
+    <IdentityVerification
       source={source}
       onComplete={result => onOutcome({ kind: 'completed', result })}
       onError={error => onOutcome({ kind: 'error', error })}
@@ -94,7 +94,7 @@ export const App = () => {
             Start over
           </button>
         </header>
-        <VerificationScreen key={sessionKey} onOutcome={setOutcome} />
+        <IdentityVerificationScreen key={sessionKey} onOutcome={setOutcome} />
         <p data-testid="outcome" role="status">
           {outcomeText(outcome)}
         </p>

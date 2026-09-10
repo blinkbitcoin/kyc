@@ -16,14 +16,14 @@ jest.mock('../src/config', () => ({
 }));
 
 // Imported after the mock above so the module picks up the mocked KYC_UI.
-import { VerificationScreen } from '../App';
+import { IdentityVerificationScreen } from '../App';
 import { BLINK_LABELS, BLINK_THEME } from '../src/theme';
 
 test('the themed UI shows Blink copy and colors on the idle screen', async () => {
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(() => {
     renderer = ReactTestRenderer.create(
-      <VerificationScreen onOutcome={jest.fn()} />,
+      <IdentityVerificationScreen onOutcome={jest.fn()} />,
     );
   });
 

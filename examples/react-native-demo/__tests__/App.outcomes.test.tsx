@@ -1,5 +1,5 @@
 /**
- * The three callbacks VerificationScreen wires reach onOutcome. The source
+ * The three callbacks IdentityVerificationScreen wires reach onOutcome. The source
  * is mocked per test file (buildSource is what KYC_MODE selects), so the
  * screen is driven by a scripted fake instead of the backend.
  *
@@ -10,7 +10,7 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import { createFakeLaunchableSource } from '@blinkbitcoin/kyc-core/testing';
 
-import { VerificationScreen } from '../App';
+import { IdentityVerificationScreen } from '../App';
 
 import type { VerificationSource } from '@blinkbitcoin/kyc-react-native';
 
@@ -25,7 +25,7 @@ const renderWith = async (source: VerificationSource) => {
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(() => {
     renderer = ReactTestRenderer.create(
-      <VerificationScreen onOutcome={onOutcome} />,
+      <IdentityVerificationScreen onOutcome={onOutcome} />,
     );
   });
   await ReactTestRenderer.act(async () => {
@@ -68,7 +68,7 @@ test('cancelling from the idle screen reports the cancellation', async () => {
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(() => {
     renderer = ReactTestRenderer.create(
-      <VerificationScreen onOutcome={onOutcome} />,
+      <IdentityVerificationScreen onOutcome={onOutcome} />,
     );
   });
   await ReactTestRenderer.act(async () => {

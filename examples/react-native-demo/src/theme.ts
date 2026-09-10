@@ -3,12 +3,12 @@
 // what is left out keeps the component's default.
 
 import type {
-  VerificationLabels,
-  VerificationTheme,
+  IdentityVerificationLabels,
+  IdentityVerificationTheme,
 } from '@blinkbitcoin/kyc-react-native';
 import type { KycUi } from './config';
 
-export const BLINK_THEME: VerificationTheme = {
+export const BLINK_THEME: IdentityVerificationTheme = {
   primaryColor: '#F7931A',
   primaryTextColor: '#000000',
   textColor: '#1D1D1D',
@@ -17,7 +17,7 @@ export const BLINK_THEME: VerificationTheme = {
   errorColor: '#C82333',
 };
 
-export const BLINK_LABELS: VerificationLabels = {
+export const BLINK_LABELS: IdentityVerificationLabels = {
   title: 'Verificar identidad',
   subtitle: 'Ten tu documento a mano y permite el acceso a la cámara.',
   start: 'Verificar identidad',
@@ -51,5 +51,7 @@ export const BLINK_LABELS: VerificationLabels = {
 /** The `theme` / `labels` props for a UI variant; nothing for the default. */
 export const uiProps = (
   ui: KycUi,
-): { theme?: VerificationTheme; labels?: VerificationLabels } =>
-  ui === 'themed' ? { theme: BLINK_THEME, labels: BLINK_LABELS } : {};
+): {
+  theme?: IdentityVerificationTheme;
+  labels?: IdentityVerificationLabels;
+} => (ui === 'themed' ? { theme: BLINK_THEME, labels: BLINK_LABELS } : {});
