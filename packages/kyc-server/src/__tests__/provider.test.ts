@@ -45,6 +45,7 @@ describe('supportsHostedPage', () => {
       expect(
         capable.hostedPage.render({
           sessionId: 's',
+          userId: 'u',
           accessToken: 't',
           nonce: 'n',
         }),

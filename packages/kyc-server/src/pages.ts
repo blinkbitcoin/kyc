@@ -13,6 +13,8 @@ export { BRIDGE_PROTOCOL_VERSION, BRIDGE_SOURCE } from './bridge/script';
 /** What a provider's page renderer gets for one session. */
 export interface HostedPageParams {
   sessionId: string;
+  /** The host's user id (a mock page signs webhooks on its behalf; never rendered). */
+  userId: string;
   accessToken: string;
   locale?: string;
   applicantId?: string;
@@ -23,21 +25,30 @@ export interface HostedPageParams {
 /** A fresh CSP nonce for one response. */
 export const hostedPageNonce = (): string => randomBytes(16).toString('base64');
 
+export interface HostedPageCspOptions {
+  /** Script origins beyond the nonce (a provider's SDK loader). */
+  scriptSrc?: readonly string[];
+  /** connect-src sources; `'self'` unless the provider's SDK talks elsewhere. */
+  connectSrc?: readonly string[];
+  /** Further directives (frame-src, img-src, media-src ...). */
+  extra?: readonly string[];
+}
+
 /**
- * The CSP a page gets unless its provider asks for more. `frame-ancestors *`
+ * The CSP a page gets, with what its provider asks for. `frame-ancestors *`
  * is deliberate: the page exists to be embedded in a host app's WebView or
  * iframe, and the postMessage origin pin on the client side is what actually
  * authenticates the channel.
  */
 export const hostedPageCsp = (
   nonce: string,
-  extra: readonly string[] = [],
+  options: HostedPageCspOptions = {},
 ): string =>
   [
     "default-src 'none'",
-    `script-src 'nonce-${nonce}'`,
-    "connect-src 'self'",
-    ...extra,
+    [`script-src 'nonce-${nonce}'`, ...(options.scriptSrc ?? [])].join(' '),
+    `connect-src ${(options.connectSrc ?? ["'self'"]).join(' ')}`,
+    ...(options.extra ?? []),
     `style-src 'nonce-${nonce}'`,
     "base-uri 'none'",
     "form-action 'none'",
@@ -54,8 +65,7 @@ export const PAGE_STYLE = `
     .meta { color: #666; font-size: 13px; word-break: break-all; }
     button { display: block; width: 100%; margin: 8px 0; padding: 14px; font-size: 16px; border-radius: 8px; border: none; cursor: pointer; }
     .primary { background: #007aff; color: #fff; font-weight: 600; }
-    .plain { background: #eee; color: #333; }
-    #sumsub-websdk-container { min-height: 100vh; }`;
+    .plain { background: #eee; color: #333; }`;
 
 /** The page a host serves for a session it cannot show; tells the app to stop waiting. */
 export const renderNotFoundPage = (nonce: string): string => `<!doctype html>

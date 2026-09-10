@@ -36,7 +36,7 @@ export {
 } from './http';
 export type { Logger } from './log';
 export { consoleLogger, sanitizeForLog } from './log';
-export type { HostedPageParams } from './pages';
+export type { HostedPageCspOptions, HostedPageParams } from './pages';
 export {
   DEFAULT_PERMISSIONS_POLICY,
   hostedPageCsp,
@@ -46,6 +46,34 @@ export {
 } from './pages';
 export type { HostedPageRenderer, VerificationProvider } from './provider';
 export { supportsHostedPage, supportsUserStatusLookup } from './provider';
+export type {
+  MockPageParams,
+  MockProviderHandle,
+  MockProviderOptions,
+  MockWebhookPost,
+} from './providers/mock';
+export {
+  createMockProvider,
+  MOCK_APPLICANT_PREFIX,
+  MOCK_BUTTON_IDS,
+  MOCK_TOKEN_PREFIX,
+  MOCK_TOKEN_TTL_SECS,
+  MOCK_WEBHOOK_SECRET_DEFAULT,
+  MOCK_SIGNATURE_HEADER,
+  renderMockPage,
+} from './providers/mock';
+export * from './providers/sumsub';
+export type {
+  DefaultRegistryOptions,
+  ProviderFromEnvOptions,
+  ProviderRegistry,
+} from './registry';
+export {
+  defaultRegistry,
+  KYC_PROVIDER_ENV,
+  providerFromEnv,
+  providerNameFromEnv,
+} from './registry';
 export type { HexDigestAlgorithm, VerifyHexDigestArgs } from './signature';
 export {
   DEFAULT_DIGEST_ALGORITHM,

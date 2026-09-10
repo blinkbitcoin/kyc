@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/knex.ts'],
+  entry: ['src/index.ts', 'src/knex.ts', 'src/sumsub.ts'],
   // Build without the tests: the guard tests walk kyc-core's sources, which
   // would pull files from outside this package into the dts tree
   tsconfig: 'tsconfig.build.json',

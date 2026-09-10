@@ -44,10 +44,17 @@ describe('hostedPageCsp', () => {
     expect(csp).toContain('frame-ancestors *');
   });
 
-  it('lets a provider add the directives its SDK needs', () => {
-    expect(hostedPageCsp(NONCE, ['frame-src https://x'])).toContain(
-      "connect-src 'self'; frame-src https://x; style-src",
+  it('lets a provider add the sources and directives its SDK needs', () => {
+    const csp = hostedPageCsp(NONCE, {
+      scriptSrc: ['https://cdn.example'],
+      connectSrc: ['https://api.example', 'https://*.example'],
+      extra: ['frame-src https://x'],
+    });
+    expect(csp).toContain(`script-src 'nonce-${NONCE}' https://cdn.example; `);
+    expect(csp).toContain(
+      'connect-src https://api.example https://*.example; frame-src https://x; style-src',
     );
+    expect(csp).not.toContain("'self'");
   });
 });
 

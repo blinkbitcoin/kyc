@@ -18,6 +18,7 @@ module.exports = {
     'src/express\\.ts$',
     'src/sumsub\\.ts$',
     'src/providers/sumsub/index\\.ts$',
+    'src/providers/mock/index\\.ts$',
     '/__tests__/support\\.ts$',
   ],
   // json-summary feeds scripts/coverage-badge.mjs (README badge + HTML report)
