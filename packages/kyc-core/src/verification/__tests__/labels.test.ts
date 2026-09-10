@@ -1,4 +1,4 @@
-// Copy resolution for the default Verification UI: how a host's labels layer
+// Copy resolution for the default IdentityVerification UI: how a host's labels layer
 // onto a platform's defaults, and how the outcome and error copy fall back
 // to the built-in messages.
 
@@ -11,9 +11,9 @@ import {
   resolveLabelsWith,
 } from '../labels';
 
-import type { LabelDefaults, VerificationLabels } from '../labels';
+import type { LabelDefaults, IdentityVerificationLabels } from '../labels';
 
-interface PlatformLabels extends VerificationLabels {
+interface PlatformLabels extends IdentityVerificationLabels {
   /** A platform-only key, like the RN "Open settings" button. */
   extra?: string;
 }

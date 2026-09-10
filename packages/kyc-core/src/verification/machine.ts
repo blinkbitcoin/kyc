@@ -13,9 +13,9 @@ import { getErrorMessage } from './messages';
 
 import type {
   VerificationEvent,
-  VerificationResult,
+  IdentityVerificationResult,
   VerificationSession,
-  VerificationStatus,
+  IdentityVerificationStatus,
 } from './types';
 
 /** What the UI is showing. The spec's eight states, no more. */
@@ -33,7 +33,7 @@ export type VerificationState =
 export type PermissionReason = 'denied' | 'blocked';
 
 /** An error with copy already resolved - what onError receives. */
-export interface VerificationError {
+export interface IdentityVerificationError {
   code: string;
   message: string;
 }
@@ -43,8 +43,8 @@ export interface MachineState {
   /** The running session; kept across a restartable failure. */
   session: VerificationSession | null;
   /** The terminal outcome, once one arrived. */
-  result: VerificationResult | null;
-  error: VerificationError | null;
+  result: IdentityVerificationResult | null;
+  error: IdentityVerificationError | null;
   /**
    * Set with status 'permissionDenied'. 'denied' can be retried in place;
    * 'blocked' cannot - only the OS settings can change it.
@@ -59,17 +59,17 @@ export type MachineAction =
   | { type: 'session'; session: VerificationSession }
   | { type: 'applicant'; applicantId: string }
   | { type: 'awaitReview' }
-  | { type: 'outcome'; result: VerificationResult }
+  | { type: 'outcome'; result: IdentityVerificationResult }
   | { type: 'cancelled' }
-  | { type: 'failed'; error: VerificationError; keepSession: boolean }
+  | { type: 'failed'; error: IdentityVerificationError; keepSession: boolean }
   | { type: 'clearSession' };
 
 /** A host callback the hook must run, described rather than performed. */
 export type VerificationEffect =
-  | { type: 'statusChange'; status: VerificationStatus }
-  | { type: 'complete'; result: VerificationResult; delayed: boolean }
+  | { type: 'statusChange'; status: IdentityVerificationStatus }
+  | { type: 'complete'; result: IdentityVerificationResult; delayed: boolean }
   | { type: 'cancel' }
-  | { type: 'error'; error: VerificationError }
+  | { type: 'error'; error: IdentityVerificationError }
   | { type: 'refreshToken' };
 
 export interface VerificationPlan {
@@ -89,10 +89,13 @@ export const initialMachineState: MachineState = {
 };
 
 /** Attach the user-facing copy once, at the edge. */
-export const toVerificationError = (
+export const toIdentityVerificationError = (
   code: string,
   message?: string,
-): VerificationError => ({ code, message: getErrorMessage(code, message) });
+): IdentityVerificationError => ({
+  code,
+  message: getErrorMessage(code, message),
+});
 
 /**
  * The failure the error screen renders. The machine only ever enters 'error'
@@ -101,8 +104,9 @@ export const toVerificationError = (
  * would hand the UI `undefined.message` if it ever broke.
  */
 export const describeFailure = (
-  error: VerificationError | null,
-): VerificationError => error ?? toVerificationError(UNKNOWN_ERROR_CODE);
+  error: IdentityVerificationError | null,
+): IdentityVerificationError =>
+  error ?? toIdentityVerificationError(UNKNOWN_ERROR_CODE);
 
 export const machineReducer = (
   state: MachineState,
@@ -186,7 +190,7 @@ export const planEvent = (
       };
     case 'complete': {
       const applicantId = event.applicantId ?? session?.applicantId;
-      const result: VerificationResult = applicantId
+      const result: IdentityVerificationResult = applicantId
         ? { status: event.status, applicantId }
         : { status: event.status };
       return {
@@ -206,14 +210,14 @@ export const planEvent = (
     case 'sessionExpired': {
       // There is no SESSION_EXPIRED client code - TOKEN_EXPIRED is the one
       // the copy and the Restart affordance are written for.
-      const error = toVerificationError(ClientErrorCodes.TOKEN_EXPIRED);
+      const error = toIdentityVerificationError(ClientErrorCodes.TOKEN_EXPIRED);
       return {
         action: { type: 'failed', error, keepSession: true },
         effect: { type: 'error', error },
       };
     }
     case 'error': {
-      const error = toVerificationError(event.code, event.message);
+      const error = toIdentityVerificationError(event.code, event.message);
       return {
         action: { type: 'failed', error, keepSession: false },
         effect: { type: 'error', error },
@@ -223,7 +227,9 @@ export const planEvent = (
 };
 
 /** Copy for the outcome screen; `undefined` means "submitted, review running". */
-export const describeOutcome = (status?: VerificationStatus): string => {
+export const describeOutcome = (
+  status?: IdentityVerificationStatus,
+): string => {
   switch (status) {
     case 'approved':
       return 'Your identity has been verified.';

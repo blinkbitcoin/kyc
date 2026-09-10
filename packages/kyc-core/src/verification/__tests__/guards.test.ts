@@ -1,8 +1,8 @@
 import {
   isLaunchable,
   isTokenRefreshable,
-  isVerificationStatus,
-  VERIFICATION_STATUSES,
+  isIdentityVerificationStatus,
+  IDENTITY_VERIFICATION_STATUSES,
 } from '../index';
 import type { VerificationSession, VerificationSource } from '../types';
 
@@ -38,9 +38,9 @@ describe('isTokenRefreshable', () => {
   });
 });
 
-describe('isVerificationStatus', () => {
+describe('isIdentityVerificationStatus', () => {
   it('accepts every status in the vocabulary', () => {
-    expect(VERIFICATION_STATUSES).toEqual([
+    expect(IDENTITY_VERIFICATION_STATUSES).toEqual([
       'initial',
       'incomplete',
       'pending',
@@ -48,15 +48,15 @@ describe('isVerificationStatus', () => {
       'declined',
       'finallyRejected',
     ]);
-    for (const status of VERIFICATION_STATUSES) {
-      expect(isVerificationStatus(status)).toBe(true);
+    for (const status of IDENTITY_VERIFICATION_STATUSES) {
+      expect(isIdentityVerificationStatus(status)).toBe(true);
     }
   });
 
   it('rejects anything else', () => {
-    expect(isVerificationStatus('APPROVED')).toBe(false);
-    expect(isVerificationStatus('')).toBe(false);
-    expect(isVerificationStatus(undefined)).toBe(false);
-    expect(isVerificationStatus({ status: 'approved' })).toBe(false);
+    expect(isIdentityVerificationStatus('APPROVED')).toBe(false);
+    expect(isIdentityVerificationStatus('')).toBe(false);
+    expect(isIdentityVerificationStatus(undefined)).toBe(false);
+    expect(isIdentityVerificationStatus({ status: 'approved' })).toBe(false);
   });
 });

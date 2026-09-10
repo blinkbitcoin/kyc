@@ -10,10 +10,10 @@ import { interpretBridgeMessage } from './bridge';
 import type {
   LaunchableSource,
   VerificationEvent,
-  VerificationResult,
+  IdentityVerificationResult,
   VerificationSession,
   VerificationSourceError,
-  VerificationStatus,
+  IdentityVerificationStatus,
 } from './types';
 
 export type FakeOutcome =
@@ -51,7 +51,7 @@ export interface FakeLaunchableSourceOptions {
  * A cancelled applicant is left incomplete; the cancel event is the signal,
  * and this resolved status is advisory only (see `LaunchableSource.launch`).
  */
-const CANCEL_STATUS: VerificationStatus = 'incomplete';
+const CANCEL_STATUS: IdentityVerificationStatus = 'incomplete';
 
 export const createFakeLaunchableSource = (
   options: FakeLaunchableSourceOptions = {},
@@ -61,20 +61,23 @@ export const createFakeLaunchableSource = (
   const outcome = options.outcome ?? 'approved';
   const delayMs = options.delayMs ?? 0;
 
-  let resolveLaunch: ((result: VerificationResult) => void) | null = null;
+  let resolveLaunch: ((result: IdentityVerificationResult) => void) | null =
+    null;
   let rejectLaunch: ((error: VerificationSourceError) => void) | null = null;
   // Assigned by launch() before any code path that might read it - the
   // functions below only ever run after that assignment (see takeResolve).
   let emit!: (event: VerificationEvent) => void;
 
-  const takeResolve = (): ((result: VerificationResult) => void) | null => {
+  const takeResolve = ():
+    | ((result: IdentityVerificationResult) => void)
+    | null => {
     const pending = resolveLaunch;
     resolveLaunch = null;
     rejectLaunch = null;
     return pending;
   };
 
-  const finish = (status: VerificationStatus): void => {
+  const finish = (status: IdentityVerificationStatus): void => {
     const pending = takeResolve();
     if (!pending) {
       return;
@@ -151,7 +154,7 @@ export const createFakeLaunchableSource = (
         } as VerificationSourceError);
       }
 
-      return new Promise<VerificationResult>((resolve, reject) => {
+      return new Promise<IdentityVerificationResult>((resolve, reject) => {
         emit = onEvent;
         resolveLaunch = resolve;
         rejectLaunch = reject;

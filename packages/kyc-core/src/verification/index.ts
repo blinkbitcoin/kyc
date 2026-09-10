@@ -1,19 +1,19 @@
 export {
   isLaunchable,
   isTokenRefreshable,
-  isVerificationStatus,
-  VERIFICATION_STATUSES,
+  isIdentityVerificationStatus,
+  IDENTITY_VERIFICATION_STATUSES,
 } from './types';
 export type {
   LaunchableSource,
   TokenRefreshableSource,
   VerificationEvent,
-  VerificationResult,
+  IdentityVerificationResult,
   VerificationSession,
   VerificationSource,
   VerificationSourceError,
-  VerificationStatus,
-  VerificationTheme,
+  IdentityVerificationStatus,
+  IdentityVerificationTheme,
 } from './types';
 
 export {
@@ -42,7 +42,7 @@ export {
 export type {
   LabelDefaults,
   ResolvedLabels,
-  VerificationLabels,
+  IdentityVerificationLabels,
 } from './labels';
 
 export { createHostedSource } from './hostedSource';
@@ -59,7 +59,7 @@ export {
   isRestartableError,
   machineReducer,
   planEvent,
-  toVerificationError,
+  toIdentityVerificationError,
   UNKNOWN_ERROR_CODE,
 } from './machine';
 export type {
@@ -67,7 +67,7 @@ export type {
   MachineState,
   PermissionReason,
   VerificationEffect,
-  VerificationError,
+  IdentityVerificationError,
   VerificationPlan,
   VerificationState,
 } from './machine';

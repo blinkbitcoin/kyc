@@ -8,7 +8,7 @@ import {
   isRestartableError,
   machineReducer,
   planEvent,
-  toVerificationError,
+  toIdentityVerificationError,
   UNKNOWN_ERROR_CODE,
 } from '../machine';
 
@@ -28,16 +28,18 @@ const verifying: MachineState = {
   session,
 };
 
-describe('toVerificationError', () => {
+describe('toIdentityVerificationError', () => {
   it('always carries a human message for a known code', () => {
-    expect(toVerificationError(ClientErrorCodes.PERMISSION_DENIED)).toEqual({
+    expect(
+      toIdentityVerificationError(ClientErrorCodes.PERMISSION_DENIED),
+    ).toEqual({
       code: 'PERMISSION_DENIED',
       message: getErrorMessage(ClientErrorCodes.PERMISSION_DENIED),
     });
   });
 
   it('prefers a server message when the code is unknown', () => {
-    expect(toVerificationError(UNKNOWN_ERROR_CODE, 'boom')).toEqual({
+    expect(toIdentityVerificationError(UNKNOWN_ERROR_CODE, 'boom')).toEqual({
       code: 'UNKNOWN_ERROR',
       message: 'boom',
     });
@@ -46,13 +48,13 @@ describe('toVerificationError', () => {
 
 describe('describeFailure', () => {
   it('passes the error the machine set through', () => {
-    const error = toVerificationError(ClientErrorCodes.NETWORK_ERROR);
+    const error = toIdentityVerificationError(ClientErrorCodes.NETWORK_ERROR);
     expect(describeFailure(error)).toBe(error);
   });
 
   it('stands in for a cast when there is somehow no error', () => {
     expect(describeFailure(null)).toEqual(
-      toVerificationError(UNKNOWN_ERROR_CODE),
+      toIdentityVerificationError(UNKNOWN_ERROR_CODE),
     );
   });
 });
@@ -71,7 +73,7 @@ describe('machineReducer', () => {
   it('clears the previous error and result when a run begins', () => {
     const failed = machineReducer(initialMachineState, {
       type: 'failed',
-      error: toVerificationError(UNKNOWN_ERROR_CODE),
+      error: toIdentityVerificationError(UNKNOWN_ERROR_CODE),
       keepSession: false,
     });
     expect(machineReducer(failed, { type: 'begin' })).toEqual({
@@ -178,7 +180,7 @@ describe('machineReducer', () => {
   });
 
   it('keeps the session on a restartable failure and drops it otherwise', () => {
-    const error = toVerificationError(ClientErrorCodes.TOKEN_EXPIRED);
+    const error = toIdentityVerificationError(ClientErrorCodes.TOKEN_EXPIRED);
     expect(
       machineReducer(verifying, { type: 'failed', error, keepSession: true }),
     ).toEqual({
@@ -299,7 +301,7 @@ describe('planEvent', () => {
 
   it('turns sessionExpired into a restartable TOKEN_EXPIRED error', () => {
     const plan = planEvent({ type: 'sessionExpired' }, session);
-    const error = toVerificationError(ClientErrorCodes.TOKEN_EXPIRED);
+    const error = toIdentityVerificationError(ClientErrorCodes.TOKEN_EXPIRED);
     expect(plan.action).toEqual({ type: 'failed', error, keepSession: true });
     expect(plan.effect).toEqual({ type: 'error', error });
   });
@@ -311,7 +313,7 @@ describe('planEvent', () => {
     );
     expect(plan.action).toEqual({
       type: 'failed',
-      error: toVerificationError('PROVIDER_UNAVAILABLE'),
+      error: toIdentityVerificationError('PROVIDER_UNAVAILABLE'),
       keepSession: false,
     });
     expect(

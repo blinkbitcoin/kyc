@@ -12,7 +12,7 @@
 // Apollo-free ./hosted entry.
 
 import { ClientErrorCodes } from '../errors';
-import { isVerificationStatus } from './types';
+import { isIdentityVerificationStatus } from './types';
 
 import type { VerificationEvent } from './types';
 
@@ -98,13 +98,13 @@ export const interpretBridgeMessage = (
       return { type: 'submitted' };
     case 'statusChanged': {
       const status = payload.status;
-      return isVerificationStatus(status)
+      return isIdentityVerificationStatus(status)
         ? { type: 'statusChanged', status }
         : null;
     }
     case 'complete': {
       const status = payload.status;
-      if (!isVerificationStatus(status)) {
+      if (!isIdentityVerificationStatus(status)) {
         return null;
       }
       const applicantId = str(payload.applicantId);

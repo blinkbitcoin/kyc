@@ -9,7 +9,7 @@ import { ClientErrorCodes } from '../../errors';
 
 import type {
   VerificationEvent,
-  VerificationStatus,
+  IdentityVerificationStatus,
 } from '../../verification/types';
 
 import type {
@@ -29,7 +29,7 @@ export const SUMSUB_WEBHOOK_TYPES = {
   applicantPending: 'pending',
   applicantOnHold: 'pending',
   applicantReset: 'initial',
-} as const satisfies Record<string, VerificationStatus>;
+} as const satisfies Record<string, IdentityVerificationStatus>;
 
 /**
  * Normalize a Sumsub review. `reviewStatus` is the lifecycle stage and
@@ -41,7 +41,7 @@ export const SUMSUB_WEBHOOK_TYPES = {
 export const mapSumsubStatus = (
   reviewStatus?: string,
   reviewResult?: SumsubReviewResult,
-): VerificationStatus => {
+): IdentityVerificationStatus => {
   switch (reviewStatus) {
     case 'completed':
       if (reviewResult?.reviewAnswer === 'GREEN') return 'approved';
@@ -68,21 +68,24 @@ export const mapSumsubWebhookType = (
   type: string,
   reviewStatus?: string,
   reviewResult?: SumsubReviewResult,
-): VerificationStatus | null => {
+): IdentityVerificationStatus | null => {
   if (type === 'applicantReviewed') {
     return mapSumsubStatus(reviewStatus, reviewResult);
   }
   return (
-    (SUMSUB_WEBHOOK_TYPES as Record<string, VerificationStatus | undefined>)[
-      type
-    ] ?? null
+    (
+      SUMSUB_WEBHOOK_TYPES as Record<
+        string,
+        IdentityVerificationStatus | undefined
+      >
+    )[type] ?? null
   );
 };
 
 /** Payload-shaped convenience wrapper over mapSumsubWebhookType. */
 export const mapSumsubWebhookStatus = (
   payload: SumsubWebhookPayload,
-): VerificationStatus | null =>
+): IdentityVerificationStatus | null =>
   mapSumsubWebhookType(
     payload.type,
     payload.reviewStatus,
@@ -97,7 +100,10 @@ export const mapSumsubWebhookStatus = (
  * the action flow this version does not use), so they map to null and the
  * caller turns them into an error event.
  */
-const MOBILE_STATUSES: Record<SNSMobileSDKStatus, VerificationStatus | null> = {
+const MOBILE_STATUSES: Record<
+  SNSMobileSDKStatus,
+  IdentityVerificationStatus | null
+> = {
   Ready: 'initial',
   Initial: 'initial',
   Incomplete: 'incomplete',
@@ -112,7 +118,7 @@ const MOBILE_STATUSES: Record<SNSMobileSDKStatus, VerificationStatus | null> = {
 /** Normalize a Mobile SDK status (result status or onStatusChanged event). */
 export const mapSumsubMobileStatus = (
   status: string,
-): VerificationStatus | null =>
+): IdentityVerificationStatus | null =>
   MOBILE_STATUSES[status as SNSMobileSDKStatus] ?? null;
 
 /**

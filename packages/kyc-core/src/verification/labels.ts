@@ -1,4 +1,4 @@
-// Copy of the default Verification UI, resolved once for both platforms:
+// Copy of the default IdentityVerification UI, resolved once for both platforms:
 // the platform's defaults, then `label` for the idle title and the start
 // button, then the host's overrides (null / undefined keep the default).
 // Blink is multilingual, so every string the component renders is a key
@@ -8,11 +8,11 @@
 
 import { describeOutcome } from './machine';
 
-import type { VerificationError } from './machine';
-import type { VerificationStatus } from './types';
+import type { IdentityVerificationError } from './machine';
+import type { IdentityVerificationStatus } from './types';
 
-/** Copy overrides for the default Verification UI (a platform may add keys). */
-export interface VerificationLabels {
+/** Copy overrides for the default IdentityVerification UI (a platform may add keys). */
+export interface IdentityVerificationLabels {
   /** Idle-screen title (defaults to `label`). */
   title?: string;
   /** Idle-screen subtitle. */
@@ -50,12 +50,12 @@ export interface VerificationLabels {
 }
 
 /** The defaults a platform supplies: every label but the two `label` fills. */
-export type LabelDefaults<L extends VerificationLabels> = Required<
+export type LabelDefaults<L extends IdentityVerificationLabels> = Required<
   Omit<L, 'title' | 'start' | 'errorMessages'>
 >;
 
 /** Every label present, plus the (possibly empty) error-copy table. */
-export type ResolvedLabels<L extends VerificationLabels> = Required<
+export type ResolvedLabels<L extends IdentityVerificationLabels> = Required<
   Omit<L, 'errorMessages'>
 > & { errorMessages: Readonly<Record<string, string>> };
 
@@ -68,7 +68,7 @@ export const DEFAULT_OUTCOME_LABELS = {
   outcomeReviewing: describeOutcome(undefined),
 } as const;
 
-export const resolveLabelsWith = <L extends VerificationLabels>(
+export const resolveLabelsWith = <L extends IdentityVerificationLabels>(
   defaults: LabelDefaults<L>,
   label: string,
   labels?: L,
@@ -97,7 +97,7 @@ export const resolveLabelsWith = <L extends VerificationLabels>(
 };
 
 type OutcomeLabels = Pick<
-  ResolvedLabels<VerificationLabels>,
+  ResolvedLabels<IdentityVerificationLabels>,
   | 'outcomeApproved'
   | 'outcomeDeclined'
   | 'outcomeFinallyRejected'
@@ -108,7 +108,7 @@ type OutcomeLabels = Pick<
 /** The copy for a result's status; anything undecided reads as reviewing. */
 export const outcomeLabel = (
   labels: OutcomeLabels,
-  status?: VerificationStatus,
+  status?: IdentityVerificationStatus,
 ): string => {
   switch (status) {
     case 'approved':
@@ -126,6 +126,6 @@ export const outcomeLabel = (
 
 /** The host's copy for the error's code, else the message the error carries. */
 export const failureLabel = (
-  labels: Pick<ResolvedLabels<VerificationLabels>, 'errorMessages'>,
-  failure: VerificationError,
+  labels: Pick<ResolvedLabels<IdentityVerificationLabels>, 'errorMessages'>,
+  failure: IdentityVerificationError,
 ): string => labels.errorMessages[failure.code] ?? failure.message;
