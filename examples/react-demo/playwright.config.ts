@@ -10,7 +10,7 @@ import {
 // demo (vite preview over the libraries' dist - what a consumer installs)
 // embedding the backend's real mock verification page in a genuinely
 // cross-origin iframe - the postMessage path jsdom can only fake. Ports are
-// per worktree (e2e/ports.ts; block 0 is :5173 + :4000).
+// from the environment (e2e/ports.ts: KYC_API_PORT, KYC_WEB_PORT).
 //
 // Prerequisite (handled by `make e2e-web` at the repo root): the libraries
 // are built and the dockerized test database is up and migrated; both

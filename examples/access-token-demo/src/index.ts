@@ -2,7 +2,7 @@
 import { createServer } from './server';
 import { createStartSession } from './session';
 
-const port = Number(process.env.PORT || 4100);
+const port = Number(process.env.PORT || 5003);
 createServer(createStartSession())
   .start(port)
   .then(({ url }) => {

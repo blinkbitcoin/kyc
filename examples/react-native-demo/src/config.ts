@@ -6,14 +6,21 @@ import { Platform } from 'react-native';
 
 // KYC_MODE is inlined at bundle time by babel (see babel.config.js); declare
 // the shape we read without pulling in full @types/node.
-declare const process: { env: { KYC_MODE?: string; KYC_UI?: string } };
+declare const process: {
+  env: { KYC_MODE?: string; KYC_UI?: string; KYC_API_PORT?: string };
+};
 
-const BACKEND_PORT = 4000;
+// Every service in this repo runs on a custom port so repos and worktrees
+// never clash: KYC_API_PORT (inlined at bundle time like KYC_MODE) says
+// where the backend listens; 5000 is the repo default.
+export const resolveBackendPort = (raw?: string): number =>
+  raw !== undefined && /^\d+$/.test(raw) ? Number(raw) : 5000;
+const BACKEND_PORT = resolveBackendPort(process.env.KYC_API_PORT);
 
 // The Android emulator reaches the host machine through 10.0.2.2. The E2E
-// runner additionally does `adb reverse tcp:4000 tcp:4000`
+// runner additionally does `adb reverse tcp:<port> tcp:<port>`
 // (scripts/e2e/android-maestro.sh), which is what makes the *hosted page URL*
-// the backend mints (http://localhost:4000/hosted/<id>) load inside the
+// the backend mints (http://localhost:<port>/hosted/<id>) load inside the
 // WebView. Both routes reach the same backend.
 export const getDevBackendHost = (platformOs: string): string =>
   platformOs === 'android' ? '10.0.2.2' : 'localhost';

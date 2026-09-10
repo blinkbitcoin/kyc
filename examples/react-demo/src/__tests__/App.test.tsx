@@ -53,8 +53,8 @@ describe('proxy mode', () => {
   it('labels itself and still renders the same idle screen', async () => {
     vi.resetModules();
     vi.doMock('../config', () => ({
-      API_ORIGIN: 'http://localhost:4000',
-      GRAPHQL_URL: 'http://localhost:4000/graphql',
+      API_ORIGIN: 'http://localhost:5000',
+      GRAPHQL_URL: 'http://localhost:5000/graphql',
       KYC_MODE: 'proxy',
       KYC_UI: 'default',
     }));

@@ -64,7 +64,7 @@ describe('scripts/e2e/sumsub-env.sh', () => {
     const lines = readFileSync(out, 'utf8').split('\n');
     expect(lines).toEqual(
       expect.arrayContaining([
-        'PORT=4000',
+        'PORT=5000',
         'ALLOW_INSECURE_DEV=true',
         'KYC_PROVIDER=sumsub',
         'SUMSUB_APP_TOKEN=sbx:app-token',
@@ -73,7 +73,7 @@ describe('scripts/e2e/sumsub-env.sh', () => {
         'SUMSUB_WEBHOOK_DIGEST_ALG=HMAC_SHA256_HEX',
         'SUMSUB_LEVEL_NAME=basic-kyc-level',
         'SUMSUB_BASE_URL=https://api.sumsub.com',
-        'PUBLIC_BASE_URL=http://localhost:4000',
+        'PUBLIC_BASE_URL=http://localhost:5000',
       ]),
     );
     expect(lines.some(line => line.startsWith('JWT_SECRET='))).toBe(false);

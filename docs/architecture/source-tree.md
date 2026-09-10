@@ -135,7 +135,7 @@ kyc/
 │       ├── src/{config,apollo,source,theme}.ts
 │       ├── vite.config.ts           # libs from source when serving, dist when building
 │       ├── vite/libraries.ts        # requireBuiltLibraries + sourceAliases, unit-tested ⭐
-│       └── e2e/                     # Playwright: launch, hosted, proxy; ports.ts = per-worktree ports ⭐
+│       └── e2e/                     # Playwright: launch, hosted, proxy; ports.ts = the stack's ports from KYC_*_PORT ⭐
 │
 ├── 📚 DOCS
 │   └── docs/
@@ -182,7 +182,7 @@ kyc/
 
 - `examples/*/src/source.ts` - one `VerificationSource` per mode: the whole integration a host writes.
 - `examples/*/src/theme.ts` - what a branded, multilingual host hands the component.
-- `examples/react-demo/e2e/ports.ts` - the per-worktree ports every Playwright config and the backend's `PUBLIC_BASE_URL` / CORS come from.
+- `examples/react-demo/e2e/ports.ts` - the stack's ports (`KYC_API_PORT`, `KYC_WEB_PORT`, `KYC_WEB_PROXY_PORT`) every Playwright config and the backend's `PUBLIC_BASE_URL` / CORS come from.
 
 ## Integration points
 

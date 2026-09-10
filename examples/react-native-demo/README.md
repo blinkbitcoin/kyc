@@ -95,15 +95,16 @@ same backend on the host machine:
 - **GraphQL** (`verificationSessionStart`/`Refresh`, the mutations the app
   itself calls): `src/config.ts`'s `getDevBackendHost` resolves to the
   emulator's `10.0.2.2` alias for the host loopback, so `GRAPHQL_URL` is
-  `http://10.0.2.2:4000/graphql` on Android without any extra setup.
+  `http://10.0.2.2:<KYC_API_PORT>/graphql` (5000 by default; the variable is
+  inlined at bundle time like `KYC_MODE`) on Android without any extra setup.
 - **The hosted page** (what loads *inside* the WebView): the backend mints
-  its URL from `PUBLIC_BASE_URL`, which stays `http://localhost:4000` for
+  its URL from `PUBLIC_BASE_URL`, which stays `http://localhost:<port>` for
   both Chromium and the emulator - so the Android runner does
-  `adb reverse tcp:4000 tcp:4000` (`scripts/e2e/android-maestro.sh`) to make
-  the emulator's `localhost:4000` actually reach the host, which is what
-  makes `http://localhost:4000/hosted/<id>` load inside the emulator's
+  `adb reverse tcp:<port> tcp:<port>` (`scripts/e2e/android-maestro.sh`) to make
+  the emulator's `localhost:<port>` actually reach the host, which is what
+  makes `http://localhost:<port>/hosted/<id>` load inside the emulator's
   WebView. If a runner ever drops that reverse, override `PUBLIC_BASE_URL`
-  to `http://10.0.2.2:4000` for the Android job only - GraphQL doesn't need
+  to `http://10.0.2.2:<port>` for the Android job only - GraphQL doesn't need
   this because it already goes through `10.0.2.2` directly.
 
 ## Sumsub sandbox (manual)

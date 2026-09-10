@@ -36,7 +36,7 @@ the current state is [docs/index.md](docs/index.md).
 │   │       └── config.ts            # validateSecurityConfig (fail-closed boot)
 │   ├── access-token-demo/       # 🖥️ the other server shape: an existing GraphQL API adds one mutation that mints a provider access token (mode 1)
 │   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native, KYC_UI default|themed; Maestro suite (.maestro/)
-│   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy, VITE_KYC_UI default|themed; Playwright suites on per-worktree ports (e2e/)
+│   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy, VITE_KYC_UI default|themed; Playwright suites (e2e/)
 ├── docs/                        # Current-state documentation (hand-maintained): architecture/, integration/, diagrams/ (sources in src/*.mmd), index.md is the map
 ├── scripts/                     # the `tooling` npm workspace: ci/, e2e/, release/ shell + node used by the Makefile and CI; lib/*.mjs is Vitest-covered at 100%, __tests__/ covers the shell scripts
 ├── Makefile                     # Root flows; packages/, examples/ and each workspace have their own
@@ -119,6 +119,10 @@ The reasons behind these rules, and the check that holds each one, are in
   core's `resolveLabelsWith` so both platforms agree); a host that needs
   a different layout calls `useVerification`
 - `graphql` stays on 16.x repo-wide (Apollo Server 5 peer range)
+- Every service runs on a custom port so repos and worktrees never clash:
+  the backend `PORT` / `KYC_API_PORT` (5000), the web demo `KYC_WEB_PORT`
+  (5001) and `KYC_WEB_PROXY_PORT` (5002), the access-token example `PORT`
+  (5003); nothing hard-codes a port outside those defaults
 - The git hooks (lefthook) run format, lint, commitlint and typecheck; CI is
   the authoritative gate and every workflow must be green before merge
 

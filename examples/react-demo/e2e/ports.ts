@@ -1,81 +1,76 @@
-// Ports for the web E2E stack (backend + Vite demo per mode).
+// Ports of the web E2E stack (backend + Vite demo per mode), from the
+// environment. Every service in this repo runs on a custom port so repos
+// and worktrees never clash: set the three variables per worktree (direnv,
+// a shell export) and the whole stack moves.
 //
-// Every git worktree gets its own stable block, derived from a hash of the
-// worktree path: parallel sessions in sibling worktrees never fight over the
-// canonical :4000 / :5173 (a foreign server on a shared port is reused by
-// Playwright and every test fails on the first request). E2E_PORT_OFFSET pins
-// the block explicitly - 0 gives the canonical ports the docs quote.
+//   KYC_API_PORT        the reference backend         default 5000
+//   KYC_WEB_PORT        the web demo, hosted mode     default 5001
+//   KYC_WEB_PROXY_PORT  the web demo, proxy mode      default 5002
 //
 // Runs under Node (Playwright config) but is typechecked with the demo's
-// browser tsconfig, so no node imports: the hash is inline and the worktree
-// path comes from import.meta.url.
+// browser tsconfig, so no node imports.
 
 declare const process: { env: Record<string, string | undefined> };
 
-// Blocks of ports; the backend takes one port per block, Vite one per mode,
-// and the two ranges never overlap: 4000-4249 vs 5173-5672.
-export const BLOCKS = 250;
-const API_BASE = 4000;
-const VITE_BASE = 5173;
 export const MODES = ['hosted', 'proxy'] as const;
 export type Mode = (typeof MODES)[number];
 
-// FNV-1a (32-bit): small, dependency-free, stable across runs and machines
-/* eslint-disable no-bitwise -- the hash is bit arithmetic by definition */
-export const fnv1a = (text: string): number => {
-  let hash = 0x811c9dc5;
-  for (const char of text) {
-    hash ^= char.codePointAt(0) as number;
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash;
-};
-/* eslint-enable no-bitwise */
-
-// The block for a worktree root, or the pinned one from E2E_PORT_OFFSET
-// (an empty pin counts as unset)
-export const blockFor = (root: string, override?: string): number => {
-  if (override !== undefined && override !== '') {
-    if (!/^\d+$/.test(override) || Number(override) >= BLOCKS) {
-      throw new Error(
-        `E2E_PORT_OFFSET must be an integer in [0, ${BLOCKS}), got ${JSON.stringify(override)}`,
-      );
-    }
-    return Number(override);
-  }
-  return fnv1a(root) % BLOCKS;
-};
-
 export interface E2EPorts {
   api: number;
-  vite: Record<Mode, number>;
+  web: Record<Mode, number>;
 }
 
-export const portsForBlock = (block: number): E2EPorts => ({
-  api: API_BASE + block,
-  vite: {
-    hosted: VITE_BASE + block * MODES.length,
-    proxy: VITE_BASE + block * MODES.length + 1,
+export const DEFAULT_PORTS: E2EPorts = {
+  api: 5000,
+  web: { hosted: 5001, proxy: 5002 },
+};
+
+// A port from one variable: unset or empty means the default; anything
+// else must be a real port number, so a typo fails here and not as a
+// server that never comes up
+export const portFrom = (
+  name: string,
+  value: string | undefined,
+  fallback: number,
+): number => {
+  if (value === undefined || value === '') {
+    return fallback;
+  }
+  if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 65535) {
+    throw new Error(
+      `${name} must be a port number (1-65535), got ${JSON.stringify(value)}`,
+    );
+  }
+  return Number(value);
+};
+
+export const portsFrom = (
+  env: Record<string, string | undefined>,
+): E2EPorts => ({
+  api: portFrom('KYC_API_PORT', env.KYC_API_PORT, DEFAULT_PORTS.api),
+  web: {
+    hosted: portFrom(
+      'KYC_WEB_PORT',
+      env.KYC_WEB_PORT,
+      DEFAULT_PORTS.web.hosted,
+    ),
+    proxy: portFrom(
+      'KYC_WEB_PROXY_PORT',
+      env.KYC_WEB_PROXY_PORT,
+      DEFAULT_PORTS.web.proxy,
+    ),
   },
 });
 
-// This worktree's root (examples/react-demo/e2e/ → ../../..)
-export const WORKTREE_ROOT = decodeURIComponent(
-  new URL('../../..', import.meta.url).pathname,
-).replace(/\/$/, '');
-
-export const PORTS = portsForBlock(
-  blockFor(WORKTREE_ROOT, process.env.E2E_PORT_OFFSET),
-);
+export const PORTS = portsFrom(process.env);
 export const API_ORIGIN = `http://localhost:${PORTS.api}`;
-const viteOrigin = (mode: Mode): string =>
-  `http://localhost:${PORTS.vite[mode]}`;
+const webOrigin = (mode: Mode): string => `http://localhost:${PORTS.web[mode]}`;
 
 // What CI changes about running the servers. In CI, a listener already on
 // a port is a foreign leftover from a previous job, never this suite's own
 // server - it must never be adopted, so CI always starts its own and fails
-// if the port is taken; locally, reusing a dev server already running on the
-// worktree's ports is the whole point. Retries: once in CI only, so a flaky
+// if the port is taken; locally, reusing a dev server already running on
+// these ports is the whole point. Retries: once in CI only, so a flaky
 // runner doesn't fail the suite while a real failure still fails fast
 // locally instead of being masked by a retry.
 export const ciPolicy = (env: Record<string, string | undefined>) => ({
@@ -87,13 +82,13 @@ export { retries };
 
 // Playwright webServer entries. The backend gets its port, the public base
 // URL it mints hosted-page URLs from (the iframe must point at THIS
-// backend, not the canonical :4000 in .env.test) and the demo origins it
-// must allow (CORS); the demo gets the backend origin.
+// backend, whatever .env.test says) and the demo origins it must allow
+// (CORS); the demo gets the backend origin.
 export const backendServer = () => ({
   command: [
     `PORT=${PORTS.api}`,
     `PUBLIC_BASE_URL=${API_ORIGIN}`,
-    `CORS_ALLOWED_ORIGINS=${MODES.map(viteOrigin).join(',')}`,
+    `CORS_ALLOWED_ORIGINS=${MODES.map(webOrigin).join(',')}`,
     'KYC_PROVIDER=mock npx dotenv-cli -e examples/full-service-demo/.env.test -- npm run dev -w examples/full-service-demo',
   ].join(' '),
   cwd: '../..',
@@ -105,10 +100,10 @@ export const backendServer = () => ({
 // Production build + preview (what CI's Web job verifies: the demo bundled
 // against the packages' dist)
 export const vitePreviewServer = (mode: Mode) => ({
-  command: `VITE_API_ORIGIN=${API_ORIGIN} VITE_KYC_MODE=${mode} npm run build -- --outDir dist/${mode} && npm run preview -- --outDir dist/${mode} --port ${PORTS.vite[mode]} --strictPort`,
-  url: viteOrigin(mode),
+  command: `VITE_API_ORIGIN=${API_ORIGIN} VITE_KYC_MODE=${mode} npm run build -- --outDir dist/${mode} && npm run preview -- --outDir dist/${mode} --port ${PORTS.web[mode]} --strictPort`,
+  url: webOrigin(mode),
   reuseExistingServer,
   timeout: 30_000,
 });
 
-export const baseURL = (mode: Mode): string => viteOrigin(mode);
+export const baseURL = (mode: Mode): string => webOrigin(mode);

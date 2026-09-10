@@ -1,8 +1,8 @@
 // Demo configuration - a real host app would take this from its own
-// environment/config system. VITE_API_ORIGIN is what the E2E stack sets so
-// a worktree's demo talks to that worktree's backend (e2e/ports.ts).
+// environment/config system. VITE_API_ORIGIN is how the demo finds a backend
+// on a custom port (the E2E stack sets it from KYC_API_PORT, e2e/ports.ts).
 export const resolveApiOrigin = (origin?: string): string =>
-  origin !== undefined && origin !== '' ? origin : 'http://localhost:4000';
+  origin !== undefined && origin !== '' ? origin : 'http://localhost:5000';
 export const API_ORIGIN = resolveApiOrigin(import.meta.env.VITE_API_ORIGIN);
 export const GRAPHQL_URL = `${API_ORIGIN}/graphql`;
 

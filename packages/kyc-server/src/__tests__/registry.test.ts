@@ -129,7 +129,7 @@ describe('defaultRegistry', () => {
         accessToken: 't',
         nonce: 'n',
       }),
-    ).toContain('http://localhost:4000/webhook/kyc/mock');
+    ).toContain('http://localhost:5000/webhook/kyc/mock');
     const custom = defaultRegistry(
       {},
       { publicBaseUrl: () => 'http://svc:9', mockWebhookSecret: () => 'k' },

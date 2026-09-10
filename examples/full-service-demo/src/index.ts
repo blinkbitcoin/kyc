@@ -13,7 +13,7 @@ import { initTelemetry } from './instrumentation';
 
 initTelemetry();
 
-const PORT = Number(process.env.PORT) || 4000;
+const PORT = Number(process.env.PORT) || 5000;
 
 import('./server.js')
   .then(({ startServer }) => startServer(PORT))

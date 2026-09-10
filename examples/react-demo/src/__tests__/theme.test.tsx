@@ -20,8 +20,8 @@ describe('themed UI', () => {
   it('shows Blink copy and colors on the idle screen', async () => {
     vi.resetModules();
     vi.doMock('../config', () => ({
-      API_ORIGIN: 'http://localhost:4000',
-      GRAPHQL_URL: 'http://localhost:4000/graphql',
+      API_ORIGIN: 'http://localhost:5000',
+      GRAPHQL_URL: 'http://localhost:5000/graphql',
       KYC_MODE: 'hosted',
       KYC_UI: 'themed',
     }));

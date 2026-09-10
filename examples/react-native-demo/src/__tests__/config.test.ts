@@ -5,6 +5,7 @@ import {
   GRAPHQL_URL,
   KYC_MODE,
   KYC_UI,
+  resolveBackendPort,
   resolveKycMode,
   resolveKycUi,
 } from '../config';
@@ -19,10 +20,19 @@ describe('getDevBackendHost', () => {
   });
 });
 
+describe('resolveBackendPort', () => {
+  it('defaults to 5000 and reads KYC_API_PORT', () => {
+    expect(resolveBackendPort(undefined)).toBe(5000);
+    expect(resolveBackendPort('')).toBe(5000);
+    expect(resolveBackendPort('abc')).toBe(5000);
+    expect(resolveBackendPort('5010')).toBe(5010);
+  });
+});
+
 describe('GRAPHQL_URL', () => {
   it('derives the GraphQL endpoint from the backend origin for the current platform', () => {
     expect(GRAPHQL_URL).toBe(
-      `http://${getDevBackendHost(Platform.OS)}:4000/graphql`,
+      `http://${getDevBackendHost(Platform.OS)}:5000/graphql`,
     );
   });
 });

@@ -65,8 +65,8 @@ describe('verification session (E2E)', () => {
     expect(session.provider).toBe('mock');
     expect(session.status).toBe('initial');
     expect(session.accessToken).toMatch(/^mock-token-/);
-    expect(session.url).toBe(`http://localhost:4000/hosted/${session.sessionId}`);
-    expect(session.allowedOrigin).toBe('http://localhost:4000');
+    expect(session.url).toBe(`http://localhost:5000/hosted/${session.sessionId}`);
+    expect(session.allowedOrigin).toBe('http://localhost:5000');
     expect(session.applicantId).toMatch(/^mock-applicant-/);
 
     const [row] = await knex('VerificationSession').where({ id: session.sessionId });

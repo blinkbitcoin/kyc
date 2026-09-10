@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Maestro E2E on a running Android emulator: installs the debug APK, wires
-# Metro (8081) and the backend (4000) into the emulator via adb reverse (the
-# signing WebView loads localhost:4000 URLs minted by the mock provider), runs
+# Metro (8081) and the backend (KYC_API_PORT, 5000) into the emulator via adb
+# reverse (the WebView loads localhost:<port> URLs minted by the mock provider), runs
 # the suite and keeps device forensics (logcat) when it fails.
 # Needs: emulator up, debug APK built, Metro + backend running (metro-start.sh,
 # backend-up.sh). CI: the `script:` input of reactivecircus/android-emulator-
@@ -13,10 +13,11 @@ APK=examples/react-native-demo/android/app/build/outputs/apk/debug/app-debug.apk
 LOGS="${RUNNER_TEMP:-/tmp}/android-logs"
 
 adb install "$APK"
-# Metro + backend: the signing WebView loads localhost:4000 URLs minted by
-# the mock provider - reverse both into the emulator.
+# Metro + backend: the WebView loads localhost:<port> URLs minted by the
+# mock provider - reverse both into the emulator.
+API_PORT="${KYC_API_PORT:-5000}"
 adb reverse tcp:8081 tcp:8081
-adb reverse tcp:4000 tcp:4000
+adb reverse "tcp:$API_PORT" "tcp:$API_PORT"
 # A starved CI emulator throws "X isn't responding" dialogs (even for the
 # launcher) on top of the app under test, which then fails visibility
 # assertions. Hide ANR/crash dialogs; real crashes still land in logcat.

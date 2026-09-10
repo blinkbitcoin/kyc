@@ -61,7 +61,7 @@ export const getAllowedOrigins = (env: NodeJS.ProcessEnv = process.env): string[
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0);
 
-export const PUBLIC_BASE_URL_DEFAULT = 'http://localhost:4000';
+export const PUBLIC_BASE_URL_DEFAULT = 'http://localhost:5000';
 
 /**
  * Base URL this backend is reachable at, without a trailing slash. The

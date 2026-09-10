@@ -8,7 +8,7 @@ import {
 
 // Browser E2E for proxy mode: the same real stack as the hosted suite, but
 // the demo is built with VITE_KYC_MODE=proxy on its own port so it cannot
-// collide with the hosted demo (e2e/ports.ts; block 0 is :5174). In proxy
+// collide with the hosted demo (e2e/ports.ts: KYC_WEB_PROXY_PORT). In proxy
 // mode the backend owns the whole session lifecycle (create, refresh,
 // webhook-driven status) and the component embeds the url the mutation
 // returned - so this suite proves the Apollo path, not a second embedding
