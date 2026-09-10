@@ -51,7 +51,7 @@ The ones that matter most: `make test` (unit + check-code), `make coverage`,
 `make diagrams` / `make docs-check`, `make e2e-backend` (backend suite),
 `make e2e-web` / `make e2e-web-proxy` (Playwright, hosted / proxy),
 `make e2e-backend-up && make e2e-android` (Maestro, Android; iOS via `make
-e2e-ios` or the `e2e:ios` label), `make e2e-fake-native` (native-launch
+e2e-ios`), `make e2e-fake-native` (native-launch
 branch, needs a `KYC_MODE=fake-native` Metro), `make db-up/migrate/backend`, `make ios/android/start/web`,
 `make pods`, `make build`, `make release`, `make clean/reset`. The
 underlying npm scripts:
@@ -232,9 +232,8 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   environment's secrets - the sandbox API only, never the Sumsub UI
   (`docs/operations/live-e2e-ci.md`). Locally: `make sumsub-env`,
   `make sumsub-check`, `make test-live`, `make e2e-live`.
-- iOS E2E runs by default (public repo: GitHub-hosted macOS is free). Pause it
-  with repo variable `E2E_IOS=false`; PR label `e2e:ios` forces it for one PR
-  while paused; `E2E_IOS_RUNNER` overrides `runs-on`.
+- iOS E2E always runs (public repo: GitHub-hosted macOS is free);
+  `E2E_IOS_RUNNER` overrides `runs-on`. Only the live Sumsub job is opt-in.
 - Native E2E builds are cached on the inputs `scripts/native-deps-hash.sh`
   sees plus `android/**` / `ios/**`; bump the cache key's `v` suffix when an
   input the script cannot see changes.

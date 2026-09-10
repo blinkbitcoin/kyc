@@ -48,15 +48,9 @@ name: CI
 #
 # The whole pipeline in one picture: docs/diagrams/README.md#ci--release-pipeline
 #
-# iOS E2E runs by default: the repo is public, so GitHub-hosted macOS minutes
-# are free (they bill at 10x on private repos, which is why the job used to be
-# opt-in). "CI passing" covers backend, web, Android and iOS. Switches, no
-# workflow edit needed:
-#   - repo variable E2E_IOS=false        -> pause iOS on every run (e.g. the
-#                                           macOS runners misbehave, or the
-#                                           repo goes private again)
-#   - PR label `e2e:ios`                 -> force iOS for that PR while paused
-#                                           (labeling triggers a run)
+# iOS E2E always runs: "CI passing" covers backend, web, Android and iOS.
+# The repo is public, so GitHub-hosted macOS minutes are free (they bill at
+# 10x on private repos). One switch, no workflow edit needed:
 #   - repo variable E2E_IOS_RUNNER       -> runs-on label(s) for the iOS job,
 #                                           default macos-latest; set it to a
 #                                           self-hosted label, e.g.
@@ -67,7 +61,7 @@ on:
     branches: [main]
     paths-ignore: ['docs/**', '**.md'] # docs-only pushes ship nothing new
   pull_request:
-    types: [opened, synchronize, reopened, labeled] # labeled: the `e2e:ios` override
+    types: [opened, synchronize, reopened, labeled] # labeled: the `e2e:live` opt-in
   release:
     types: [published] # hand-cut tags only (make release-rc); see release.yml
   workflow_dispatch:
@@ -111,7 +105,6 @@ jobs:
     needs: [unit]
     uses: ./.github/workflows/e2e.yml
     with:
-      ios: ${{ vars.E2E_IOS != 'false' || contains(github.event.pull_request.labels.*.name, 'e2e:ios') }}
       ios-runner: ${{ vars.E2E_IOS_RUNNER || 'macos-latest' }}
       release-tag: ${{ inputs.release_tag || '' }}
       # Live Sumsub: repo variable E2E_LIVE=true, or the e2e:live label on a

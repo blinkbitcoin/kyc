@@ -149,9 +149,8 @@ The reasons behind these rules, and the check that holds each one, are in
 One pipeline per branch (`ci.yml`): Checks → Unit → E2E (incl. the one build
 of the packages, which Web tests) → Badges, then Publish (ships that build) +
 Verify on `main`. Docs-only PRs stop after Checks. The iOS E2E
-suite runs by default (GitHub-hosted macOS is free on a public repo); repo
-variable `E2E_IOS=false` pauses it and PR label `e2e:ios` forces it for one PR
-while paused. Native E2E builds are cached on the inputs
+suite always runs (GitHub-hosted macOS is free on a public repo;
+`E2E_IOS_RUNNER` points it at a self-hosted Mac). Native E2E builds are cached on the inputs
 `scripts/native-deps-hash.sh` sees; bump the key's `v` suffix when an input it
 cannot see changes. Live Sumsub checks are opt-in (`E2E_LIVE=true` / label `e2e:live`,
 secrets in the `sumsub-sandbox` environment; `docs/operations/live-e2e-ci.md`):

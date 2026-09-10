@@ -486,14 +486,11 @@ and nothing else. The README shows `main`.
 The iOS job runs on every run. It needs a macOS runner, which GitHub hosts for
 free on a public repo; on a private repo macOS bills at 10x Linux (one ~15 min
 run is ~150 Linux minutes), which is why the job was opt-in before the repo
-went public. `ci.yml` passes `ios: true` to `e2e.yml` unless one of these says
-otherwise; a skipped job costs nothing and the `E2E` badge describes what
-actually ran.
+went public. Only the live Sumsub job is conditional; the one iOS switch is
+where it runs:
 
 | Switch | Effect |
 |--------|--------|
-| Repo variable `E2E_IOS=false` | Pauses iOS on every run (`gh variable set E2E_IOS --body false`; delete the variable to resume). |
-| PR label `e2e:ios` | Forces iOS for that PR while paused (labeling triggers a run). |
 | Repo variable `E2E_IOS_RUNNER` | `runs-on` for the iOS job, default `macos-latest`. Set to self-hosted label(s), e.g. `["self-hosted","macOS","arm64"]`, and GitHub-hosted macOS is never used. |
 
 All workflows run with `permissions: contents: read` (the publish job adds
