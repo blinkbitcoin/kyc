@@ -145,13 +145,11 @@ e2e-web-proxy: test-db-up build ## Playwright browser E2E for the web demo in pr
 e2e-server-demos: ## Boot the access-token example (mock provider) and call its mutation
 	bash scripts/e2e/server-demos-smoke.sh
 
-e2e-backend-up: test-db-up ## E2E Postgres + migrations, then the backend (mock provider) in the background on KYC_API_PORT, wait for /health
-	npm run migrate:test -w examples/full-service-demo
+e2e-backend-up: ## The backend (mock provider) in the background on KYC_API_PORT, wait for /health (needs a migrated E2E database: Docker `make test-db-up` + `npm run migrate:test -w examples/full-service-demo`, or CI's Homebrew Postgres; `make e2e-*-local` does it all)
 	bash scripts/e2e/backend-up.sh
 
-e2e-backend-down: ## Stop the backend started by e2e-backend-up and its database
+e2e-backend-down: ## Stop the backend started by e2e-backend-up
 	bash scripts/e2e/backend-down.sh
-	$(MAKE) test-db-down
 
 e2e-metro-up: ## Start Metro for the RN demo in the background (KYC_MODE=hosted unless set) and prewarm the Android bundle
 	bash scripts/e2e/metro-start.sh

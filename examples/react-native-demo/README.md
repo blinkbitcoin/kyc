@@ -81,11 +81,12 @@ emulator -avd <avd> &
 make e2e-android-local           # DB + backend + APK + Metro (hosted) + Maestro, then teardown
 
 # ...or the steps CI runs as separate jobs
-make e2e-backend-up              # E2E Postgres, migrations, backend on KYC_API_PORT
+make test-db-up && npm run migrate:test -w examples/full-service-demo
+make e2e-backend-up              # the backend on KYC_API_PORT
 make android-build               # debug APK for the emulator's ABI
 make e2e-metro-up                # Metro, KYC_MODE=hosted, bundle prewarmed
 make e2e-android
-make e2e-metro-down && make e2e-backend-down
+make e2e-metro-down && make e2e-backend-down && make test-db-down
 
 # iOS, one command (boots the first iPhone simulator if none is)
 make e2e-ios-local               # DB + backend + pods if missing + .app + install + Metro + Maestro

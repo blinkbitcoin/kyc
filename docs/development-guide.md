@@ -272,11 +272,12 @@ emulator -avd <avd> &
 make e2e-android-local     # test DB + backend + debug APK + Metro (hosted) + Maestro, then teardown
 
 # ...or step by step, which is what CI's jobs do:
-make e2e-backend-up        # E2E Postgres, migrations, the backend on KYC_API_PORT
+make test-db-up && npm run migrate:test -w examples/full-service-demo
+make e2e-backend-up        # the backend on KYC_API_PORT (CI's iOS job feeds it Homebrew Postgres instead)
 make android-build         # debug APK for the emulator's ABI
 make e2e-metro-up          # Metro in hosted mode, bundle prewarmed
 make e2e-android
-make e2e-metro-down && make e2e-backend-down
+make e2e-metro-down && make e2e-backend-down && make test-db-down
 
 # iOS, in one command (boots the first iPhone simulator if none is booted):
 make e2e-ios-local         # test DB + backend + pods if missing + .app + install + Metro + Maestro
@@ -467,7 +468,7 @@ diagram: [CI / Release Pipeline](diagrams/README.md#ci--release-pipeline).
 | `e2e.yml` | `workflow_call` only | `build-packages` (version stamp, build, publint + arethetypeswrong, pack smoke; uploads the dist for `web` and the tarballs for `Publish`) plus the E2E suites as jobs: `backend`, `web` (Playwright, bundles the demo against that dist - what a web consumer installs), `build-android` → `android` (emulator), and `build-ios` → `ios` (simulator) **on by default** (see below). Outputs the stamped `version` / `disttag` for `Publish` |
 | `release.yml` | Push to main; CI completed on main | `Release PR / Tag` (push): keeps the `chore(release): X.Y.Z` PR current (version from the Conventional Commits since the last tag, `CHANGELOG.md` entry); when that PR merges, tags `vX.Y.Z`, creates the GitHub Release and dispatches `ci.yml` at the tag with `release_tag` (a release the workflow token creates never fires the `release:` trigger). `Re-run blocked releases` (CI completed green): re-runs the failed Publish of any release run for that commit (releases wait for / refuse a red main run). See [releasing.md](releasing.md) |
 | `pull-request.yml` | PR closed; PR title edited | `Cancel in-flight runs` + `Remove branch badge` (closed): cancels the PR's still-running runs (the push-to-main run is unaffected) and removes its `gh-pages` badge directory. `Title` (edited): re-lints the PR title only; the gating lint is the `Commits` job in `checks.yml` (a title edit must not re-run the whole pipeline) |
-| `codeql.yml` | Push to main, PRs (both ignore docs-only changes), weekly schedule | CodeQL static analysis (JavaScript/TypeScript); alerts land under Security → Code scanning;<br>suite + query filters in `.github/codeql/codeql-config.yml` |
+| `codeql.yml` | Push to main, PRs (both ignore docs-only changes), weekly schedule | CodeQL static analysis (JavaScript/TypeScript); alerts land under Security → Code scanning;<br>suite + alert-suppression query in `.github/codeql/codeql-config.yml` |
 
 Badges are per branch by construction: `gh-pages/badges/X/{unit,e2e,coverage}.svg`
 (and a workflow badge filtered with `?branch=X`) all describe branch `X`
