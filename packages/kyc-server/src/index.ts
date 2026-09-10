@@ -22,6 +22,29 @@ export {
   getErrorCode,
   KycError,
 } from './errors';
+export type {
+  HostedPageHandlerOptions,
+  HostedPageHttpInput,
+  HostedPageHttpResult,
+  HttpResult,
+  RefreshHttpInput,
+  SessionHandlerOptions,
+  SessionRefreshHandlerOptions,
+  SessionStartHandlerOptions,
+  StartHttpInput,
+  WebhookHandlerOptions,
+  WebhookHttpInput,
+} from './handlers';
+export {
+  createHostedPageHandler,
+  createSessionRefreshHandler,
+  createSessionStartHandler,
+  createWebhookHandler,
+  hostedPageHttp,
+  processWebhookHttp,
+  refreshSessionHttp,
+  startSessionHttp,
+} from './handlers';
 export { escapeHtml, jsonForScript, sanitizeId } from './html';
 export type { RetryConfig } from './http';
 export {

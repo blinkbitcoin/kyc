@@ -18,6 +18,12 @@ if (mode === 'default') {
     sumsub.mapSumsubStatus('completed', { reviewAnswer: 'GREEN' }),
     'approved',
   );
+  const server = consumer('@blinkbitcoin/kyc-server');
+  assert.equal(typeof server.createVerificationService, 'function');
+  assert.equal(
+    typeof consumer('@blinkbitcoin/kyc-server/knex').runKycMigrations,
+    'function',
+  );
   const loaded = Object.keys(require.cache).filter(f =>
     /node_modules[\\/](@apollo|graphql)/.test(f),
   );
@@ -33,6 +39,13 @@ if (mode === 'default') {
 } else if (mode === 'lean') {
   consumer('@blinkbitcoin/kyc-core/hosted');
   consumer('@blinkbitcoin/kyc-core/testing');
+  consumer('@blinkbitcoin/kyc-server');
+  let express = false;
+  try {
+    consumer.resolve('express');
+    express = true;
+  } catch {}
+  assert.equal(express, false, '--omit=peer install must not contain express');
   let apollo = false;
   try {
     consumer.resolve('@apollo/client');

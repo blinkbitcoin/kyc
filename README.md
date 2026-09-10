@@ -24,7 +24,7 @@ webhook-backed status that a replayed callback cannot downgrade.
 
 | Mode | What it is | What your app installs | Backend required |
 |------|-----------|------------------------|------------------|
-| **1. Native SDK** | The provider SDK runs in-process<br>(a React Native native module);<br>your app supplies an<br>access-token callback | `kyc-react-native`<br>(its `/sumsub` entry) +<br>the Sumsub SDK peer | Any backend that<br>mints provider<br>access tokens |
+| **1. Native SDK** | The provider SDK runs in-process<br>(a React Native native module);<br>your app supplies an<br>access-token callback | `kyc-react-native`<br>(its `/sumsub` entry) +<br>the Sumsub SDK peer | Any backend that<br>mints provider<br>access tokens<br>(`kyc-server` does) |
 | **2. Hosted page** | A page speaking the<br>`kyc-bridge` protocol, embedded<br>in a hardened WebView or an<br>origin-pinned iframe | One package via the<br>Apollo-free `/hosted`<br>entry - **no Apollo,<br>no GraphQL** | The page (this<br>repo's `apps/api`,<br>or your own) |
 | **3. Proxy session** | Full orchestration: session<br>creation, token refresh,<br>webhook status sync,<br>status query | The package +<br>`@apollo/client` +<br>`graphql` | This repo's backend<br>service (`apps/api`) |
 
@@ -159,6 +159,7 @@ Ordered by how likely you are to need each part:
 |------|------------------|
 | [`packages/kyc-react-native/`](packages/kyc-react-native/README.md) | The React Native library you install:<br>`Verification`, `useVerification`, the<br>hardened hosted WebView, and the Sumsub<br>native-SDK source on its `/sumsub` entry. |
 | [`packages/kyc-react/`](packages/kyc-react/README.md) | The same pair for React web, over an<br>origin-pinned iframe. |
+| [`packages/kyc-server/`](packages/kyc-server/README.md) | The server half a backend installs: Sumsub<br>token minting and webhook verification, the<br>session domain, the hosted page, an Express<br>router and a Knex store. This repo's<br>backend is built on it. |
 | [`packages/kyc-core/`](packages/kyc-core/README.md) | The shared core both libraries build on:<br>`VerificationSource`, the capability guards,<br>the bridge protocol, the state machine, the<br>error-code contract, and the Sumsub mapping<br>on `/sumsub`. It arrives as a dependency -<br>you never install it directly. |
 | [`apps/api/`](apps/api/README.md) | The reference backend: provider port, mock<br>and Sumsub adapters, webhooks, the hosted<br>page. Needed for mode 3 only. |
 | [`examples/`](examples/README.md) | Two demo hosts - the executable integration<br>docs, and the Maestro / Playwright targets. |

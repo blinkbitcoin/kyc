@@ -18,7 +18,7 @@
     "format": "biome format --write examples packages scripts && npm run format -w apps/api",
     "format:check": "biome format examples packages scripts && npm run format:check -w apps/api",
     "build": "npm run build -w packages/kyc-core -w packages/kyc-server -w packages/kyc-react-native -w packages/kyc-react",
-    "check:packages": "publint packages/kyc-core && publint packages/kyc-react-native && publint packages/kyc-react && attw --pack packages/kyc-core --profile node16 && attw --pack packages/kyc-react --profile node16",
+    "check:packages": "publint packages/kyc-core && publint packages/kyc-server && publint packages/kyc-react-native && publint packages/kyc-react && attw --pack packages/kyc-core --profile node16 && attw --pack packages/kyc-server --profile node16 && attw --pack packages/kyc-react --profile node16",
     "web": "npm run dev -w examples/react-demo",
     "codegen": "npm run schema:emit -w apps/api && npm run codegen -w packages/kyc-core",
     "prepare": "lefthook install"

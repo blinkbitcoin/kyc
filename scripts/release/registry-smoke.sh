@@ -18,7 +18,7 @@ WORK=$(mktemp -d)
 echo "--- npm $(npm -v) / node $(node -v)"
 mkdir "$WORK/smoke" && cd "$WORK/smoke"
 npm init -y > /dev/null
-npm install "@blinkbitcoin/kyc-core@$VERSION" > /dev/null
+npm install "@blinkbitcoin/kyc-core@$VERSION" "@blinkbitcoin/kyc-server@$VERSION" > /dev/null
 echo "--- published manifest peer metadata:"
 node -p "JSON.stringify(require('@blinkbitcoin/kyc-core/package.json').peerDependenciesMeta ?? 'MISSING')"
 echo "--- @apollo/client in the tree (expected: yes, registry drops peerDependenciesMeta):"
@@ -27,5 +27,5 @@ VERSION="$VERSION" node "$ASSERT" default
 
 mkdir "$WORK/smoke-lean" && cd "$WORK/smoke-lean"
 npm init -y > /dev/null
-npm install --omit=peer "@blinkbitcoin/kyc-core@$VERSION" > /dev/null
+npm install --omit=peer "@blinkbitcoin/kyc-core@$VERSION" "@blinkbitcoin/kyc-server@$VERSION" > /dev/null
 VERSION="$VERSION" node "$ASSERT" lean

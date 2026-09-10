@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Packs the three packages and installs them into a clean project, then
+# Packs the four packages and installs them into a clean project, then
 # asserts the consumer contract: the /hosted, /testing and /sumsub entries
-# resolve and never load Apollo; the platform packages expose their /sumsub
-# entry. Run from the repo root after `npm run build` (CI: E2E / Build Packages).
+# resolve and never load Apollo; the server package loads with no peers and
+# reaches core Apollo-free; the platform packages expose their /sumsub entry. Run from the repo root after `npm run build` (CI: E2E / Build Packages).
 set -euo pipefail
 SMOKE="$(mktemp -d)"
 trap 'rm -rf "$SMOKE"' EXIT
 
-for p in packages/kyc-core packages/kyc-react-native packages/kyc-react; do
+for p in packages/kyc-core packages/kyc-server packages/kyc-react-native packages/kyc-react; do
   (cd "$p" && npm pack --pack-destination "$SMOKE" >/dev/null)
 done
 
@@ -25,12 +25,15 @@ assert_one() {
 }
 
 CORE_TGZS=("$SMOKE"/blinkbitcoin-kyc-core-[0-9]*.tgz)
+SERVER_TGZS=("$SMOKE"/blinkbitcoin-kyc-server-[0-9]*.tgz)
 RN_TGZS=("$SMOKE"/blinkbitcoin-kyc-react-native-[0-9]*.tgz)
 WEB_TGZS=("$SMOKE"/blinkbitcoin-kyc-react-[0-9]*.tgz)
 assert_one kyc-core "${CORE_TGZS[@]}"
+assert_one kyc-server "${SERVER_TGZS[@]}"
 assert_one kyc-react-native "${RN_TGZS[@]}"
 assert_one kyc-react "${WEB_TGZS[@]}"
 CORE_TGZ="${CORE_TGZS[0]}"
+SERVER_TGZ="${SERVER_TGZS[0]}"
 
 cd "$SMOKE"
 npm init -y >/dev/null
@@ -42,6 +45,7 @@ npm init -y >/dev/null
 # override that textually matches a *direct install target*'s spec.
 npm pkg set "overrides.@blinkbitcoin/kyc-core=file:$CORE_TGZ" >/dev/null
 npm pkg set "dependencies.@blinkbitcoin/kyc-core=file:$CORE_TGZ" >/dev/null
+npm pkg set "dependencies.@blinkbitcoin/kyc-server=file:$SERVER_TGZ" >/dev/null
 npm install --prefer-offline --no-audit >/dev/null
 # The platform packages need their React peers; install them best-effort so
 # their export maps can be checked (the RN library itself cannot run in Node)
@@ -72,9 +76,28 @@ try { require.resolve('@apollo/client'); apolloInstalled = true; } catch {}
 assert.equal(apolloInstalled, false, '@apollo/client must NOT be installed for hosted-only use');
 const loaded = Object.keys(require.cache).filter((f) => /node_modules[\\/](@apollo|graphql)/.test(f));
 assert.deepEqual(loaded, [], '/hosted, /testing and /sumsub must not load Apollo or graphql');
-// The FULL entry needs the optional Apollo peers - without them installed it
-// must fail loudly at require-time (that boundary is the reason /hosted
-// exists). If this ever starts succeeding, the optional-peer contract broke.
+// The server package: framework-free root and Sumsub entry load with no
+// peers installed, the Knex store needs knex only for its types, the
+// router needs express (an optional peer) - and none of it reaches Apollo
+const server = require('@blinkbitcoin/kyc-server');
+assert.equal(typeof server.createVerificationService, 'function');
+assert.equal(typeof server.providerFromEnv, 'function');
+assert.equal(typeof server.createKycGraphQL, 'function');
+assert.equal(typeof server.typeDefs, 'string');
+const serverKnex = require('@blinkbitcoin/kyc-server/knex');
+assert.equal(typeof serverKnex.createKnexSessionStore, 'function');
+assert.equal(typeof serverKnex.runKycMigrations, 'function');
+const serverSumsub = require('@blinkbitcoin/kyc-server/sumsub');
+assert.equal(typeof serverSumsub.createSumsubProvider, 'function');
+assert.equal(serverSumsub.sumsubHostedPage.render({ sessionId: 's', userId: 'u', accessToken: 't', nonce: 'n' }).includes('snsWebSdk'), true);
+let expressLoaded = false;
+try { require('@blinkbitcoin/kyc-server/express'); expressLoaded = true; } catch {}
+assert.equal(expressLoaded, false, '/express must need the express peer');
+const afterServer = Object.keys(require.cache).filter((f) => /node_modules[\\/](@apollo|graphql)/.test(f));
+assert.deepEqual(afterServer, [], 'the server package must not load Apollo or graphql');
+// The FULL core entry needs the optional Apollo peers - without them
+// installed it must fail loudly at require-time (that boundary is the reason
+// /hosted exists). If this ever starts succeeding, the optional-peer contract broke.
 let fullLoaded = false;
 try { require('@blinkbitcoin/kyc-core'); fullLoaded = true; } catch {}
 assert.equal(fullLoaded, false, 'full entry must require the Apollo peers');
@@ -88,12 +111,14 @@ if (resolvable('@blinkbitcoin/kyc-react-native')) {
 if (resolvable('@blinkbitcoin/kyc-react')) {
   assert.match(require.resolve('@blinkbitcoin/kyc-react/sumsub'), /dist[\\/]sumsub\.cjs$/);
 }
-console.log('pack smoke: /hosted + /testing + /sumsub resolve Apollo-free; full entry correctly needs Apollo');
+console.log('pack smoke: /hosted + /testing + /sumsub and the server package resolve Apollo-free; full entry correctly needs Apollo');
 NODE
 NODE_OPTIONS="" node --input-type=module -e "
 import { createHostedSource } from '@blinkbitcoin/kyc-core/hosted';
 import { mapSumsubStatus } from '@blinkbitcoin/kyc-core/sumsub';
+import { createVerificationService } from '@blinkbitcoin/kyc-server';
 if (typeof createHostedSource !== 'function') process.exit(1);
+if (typeof createVerificationService !== 'function') process.exit(1);
 if (mapSumsubStatus('completed', { reviewAnswer: 'GREEN' }) !== 'approved') process.exit(1);
 console.log('pack smoke: ESM imports of /hosted and /sumsub work');
 "

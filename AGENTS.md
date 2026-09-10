@@ -29,7 +29,7 @@ the current state is [docs/index.md](docs/index.md).
 │       ├── webhook.ts           # Signed webhook handling
 │       └── verificationPages.ts # The hosted page (kyc-bridge protocol)
 ├── packages/
-│   ├── kyc-server/              # 📦 server half: the verification-session domain over provider + store ports, Sumsub adapter, hosted page, Express router, Knex store (being extracted from apps/api)
+│   ├── kyc-server/              # 📦 server half: the verification-session domain over provider + store ports, Sumsub adapter, hosted page, Fetch handlers, /express router, /knex store (entries ., /express, /knex, /sumsub)
 │   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode; providers/sumsub/ = the one Sumsub mapping (entry /sumsub)
 │   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (Verification + useVerification + hardened HostedWebView; entries ., /hosted and /sumsub = the native-SDK source in providers/sumsub/)
 │   └── kyc-react/               # 📦 THE PRODUCT - web (Verification + useVerification + origin-pinned HostedFrame; entries . and /sumsub, the reserved web-SDK seat)
