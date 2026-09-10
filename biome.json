@@ -22,7 +22,6 @@
     "useEditorconfig": true,
     "includes": [
       "**",
-      "!examples/full-service-demo/**",
       "!**/ios/**",
       "!**/android/**",
       "!**/coverage/**",

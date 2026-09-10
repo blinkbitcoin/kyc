@@ -15,9 +15,9 @@ pre-commit:
     - merge
     - rebase
   commands:
-    # Biome runs per config root (repo root and examples/full-service-demo are separate Biome
-    # roots - a single root-invoked run on files from both errors with
-    # "nested root configuration", same reason the npm scripts split them).
+    # Biome runs per config: the service example carries a nested config
+    # (root: false, its own style) and its own hook below, so the root hook
+    # leaves its files alone - the root npm format scripts cover both.
     biome:
       glob: '*.{ts,tsx,js,jsx,mjs,cjs,json}'
       exclude:
