@@ -16,6 +16,12 @@ export default {
         'deps-dev',
         'docs',
         'release',
+        // Retired scopes, still in history: the reference backend was
+        // `api` before it became examples/full-service-demo on kyc-server,
+        // and the Sumsub package was `sumsub` before the provider fold.
+        // The PR range that carries that history must still lint clean.
+        'api',
+        'sumsub',
       ],
     ],
     // Dependabot group titles and imperative subjects run long; keep the
