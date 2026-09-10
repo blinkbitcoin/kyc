@@ -12,6 +12,7 @@ set -uo pipefail
 APK=examples/react-native-demo/android/app/build/outputs/apk/debug/app-debug.apk
 LOGS="${RUNNER_TEMP:-/tmp}/android-logs"
 
+[ -f "$APK" ] || { echo "::error::no debug APK at $APK - run make android-build (or make e2e-android-local for the whole stack)"; exit 1; }
 adb install "$APK"
 # Metro + backend: the WebView loads localhost:<port> URLs minted by the
 # mock provider - reverse both into the emulator.

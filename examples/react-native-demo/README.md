@@ -76,13 +76,16 @@ default suite's bundle-time mode) unless the caller overrides it — the
 `KYC_MODE=hosted npm start` below is the manual equivalent.
 
 ```bash
-# Android (what CI runs)
-make e2e-backend-up
-cd examples/react-native-demo/android && ./gradlew assembleDebug && cd -
+# Android, one command (an emulator must already be running)
 emulator -avd <avd> &
-KYC_MODE=hosted npm start        # in another terminal, from this directory
+make e2e-android-local           # DB + backend + APK + Metro (hosted) + Maestro, then teardown
+
+# ...or the steps CI runs as separate jobs
+make e2e-backend-up              # E2E Postgres, migrations, backend on KYC_API_PORT
+make android-build               # debug APK for the emulator's ABI
+make e2e-metro-up                # Metro, KYC_MODE=hosted, bundle prewarmed
 make e2e-android
-make e2e-backend-down
+make e2e-metro-down && make e2e-backend-down
 
 # The native-launch branch, no backend needed
 KYC_MODE=fake-native npm start   # in another terminal

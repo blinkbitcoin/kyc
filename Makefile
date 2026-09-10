@@ -145,11 +145,23 @@ e2e-web-proxy: test-db-up build ## Playwright browser E2E for the web demo in pr
 e2e-server-demos: ## Boot the access-token example (mock provider) and call its mutation
 	bash scripts/e2e/server-demos-smoke.sh
 
-e2e-backend-up: ## Start the backend (mock provider) in the background for mobile E2E, wait for /health
+e2e-backend-up: test-db-up ## E2E Postgres + migrations, then the backend (mock provider) in the background on KYC_API_PORT, wait for /health
+	npm run migrate:test -w examples/full-service-demo
 	bash scripts/e2e/backend-up.sh
 
-e2e-backend-down: ## Stop the backend started by e2e-backend-up
+e2e-backend-down: ## Stop the backend started by e2e-backend-up and its database
 	bash scripts/e2e/backend-down.sh
+	$(MAKE) test-db-down
+
+e2e-metro-up: ## Start Metro for the RN demo in the background (KYC_MODE=hosted unless set) and prewarm the Android bundle
+	bash scripts/e2e/metro-start.sh
+	bash scripts/e2e/metro-wait.sh android
+
+e2e-metro-down: ## Stop the Metro started by e2e-metro-up
+	bash scripts/e2e/metro-down.sh
+
+android-build: ## Debug APK of the RN demo for the attached emulator's ABI (what CI's Build Android job runs; ANDROID_ABI overrides)
+	bash scripts/e2e/android-build.sh
 
 ios-build: ## Debug build of the RN demo for the simulator (what CI's Build iOS job runs; needs `make pods`)
 	bash scripts/e2e/ios-build.sh
@@ -157,8 +169,11 @@ ios-build: ## Debug build of the RN demo for the simulator (what CI's Build iOS 
 e2e-ios: ## Maestro E2E, iOS (needs: booted simulator with the app installed, Metro + backend running)
 	bash scripts/e2e/ios-maestro.sh
 
-e2e-android: ## Maestro E2E, Android (needs: emulator, debug APK built, Metro + backend running)
+e2e-android: ## Maestro E2E, Android (needs: emulator, `make android-build`, `make e2e-backend-up`, `make e2e-metro-up`)
 	bash scripts/e2e/android-maestro.sh
+
+e2e-android-local: ## The whole Android stack in one command on a laptop: DB, backend, APK, Metro, Maestro, teardown (needs a running emulator)
+	bash scripts/e2e/android-local.sh
 
 e2e-fake-native: ## Maestro E2E, fake native SDK (MANUAL, Android emulator only: needs a `KYC_MODE=fake-native npm start` Metro, an emulator and the debug APK; no backend needed)
 	npm run test:e2e:fake-native -w examples/react-native-demo
@@ -194,5 +209,5 @@ help: ## List available targets
 .PHONY: install hooks pods release release-rc version registry-smoke unit coverage coverage-badge typecheck lint format format-check check-code \
 	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check start ios android backend web db-up db-down migrate \
 	diagrams test-db-up test-db-down e2e-backend e2e-web e2e-web-proxy \
-	e2e-server-demos e2e-backend-up e2e-backend-down ios-build e2e-ios e2e-android e2e-fake-native \
+	e2e-server-demos e2e-backend-up e2e-backend-down e2e-metro-up e2e-metro-down android-build e2e-android e2e-android-local e2e-fake-native ios-build e2e-ios \
 	sumsub-env sumsub-check test-live e2e-live clean reset help

@@ -267,15 +267,16 @@ matrix (`docs/integration/sumsub.md`, sections 3-5) is manual.
 # Install Maestro once
 curl -Ls "https://get.maestro.mobile.dev" | bash
 
-# The stack: backend + test DB, the debug APK, an emulator, and a Metro
-# started in the mode the flows expect
-make e2e-backend-up
-(cd examples/react-native-demo/android && ./gradlew assembleDebug)
+# Android, in one command (an emulator must already be running):
 emulator -avd <avd> &
-#   in another terminal, from examples/react-native-demo:
-#   KYC_MODE=hosted npm start
+make e2e-android-local     # test DB + backend + debug APK + Metro (hosted) + Maestro, then teardown
+
+# ...or step by step, which is what CI's jobs do:
+make e2e-backend-up        # E2E Postgres, migrations, the backend on KYC_API_PORT
+make android-build         # debug APK for the emulator's ABI
+make e2e-metro-up          # Metro in hosted mode, bundle prewarmed
 make e2e-android
-make e2e-backend-down
+make e2e-metro-down && make e2e-backend-down
 ```
 
 Six flows run by default (`app-launch`, `hosted-happy-path`, `hosted-decline`,
