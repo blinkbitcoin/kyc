@@ -17,6 +17,14 @@ describe('getDevBackendHost', () => {
 
   it('uses localhost on iOS', () => {
     expect(getDevBackendHost('ios')).toBe('localhost');
+    expect(getDevBackendHost('ios', '')).toBe('localhost');
+  });
+
+  it('takes KYC_API_HOST for a physical device on either platform', () => {
+    expect(getDevBackendHost('ios', '100.64.0.7')).toBe('100.64.0.7');
+    expect(getDevBackendHost('android', 'mac.tailnet.ts.net')).toBe(
+      'mac.tailnet.ts.net',
+    );
   });
 });
 

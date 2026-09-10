@@ -104,7 +104,11 @@ same backend on the host machine:
   emulator's `10.0.2.2` alias for the host loopback, so `GRAPHQL_URL` is
   `http://10.0.2.2:<port>/graphql` on Android without any extra setup, the
   port being `KYC_API_PORT`, else `KYC_PORT_BASE` + 0 (5100) - both inlined
-  at bundle time like `KYC_MODE`.
+  at bundle time like `KYC_MODE`. A physical phone reaches neither
+  `localhost` nor `10.0.2.2`: start Metro with `KYC_API_HOST=<the Mac's LAN
+  or tailnet address>` (inlined the same way) and point the backend's
+  `PUBLIC_BASE_URL` at a URL the phone can open (the hosted page loads
+  from it).
 - **The hosted page** (what loads *inside* the WebView): the backend mints
   its URL from `PUBLIC_BASE_URL`, which stays `http://localhost:<port>` for
   both Chromium and the emulator - so the Android runner does

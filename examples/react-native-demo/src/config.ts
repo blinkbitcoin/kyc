@@ -12,6 +12,7 @@ declare const process: {
     KYC_UI?: string;
     KYC_PORT_BASE?: string;
     KYC_API_PORT?: string;
+    KYC_API_HOST?: string;
   };
 };
 
@@ -36,13 +37,22 @@ const BACKEND_PORT = resolveBackendPort(
 // runner additionally does `adb reverse tcp:<port> tcp:<port>`
 // (scripts/e2e/android-maestro.sh), which is what makes the *hosted page URL*
 // the backend mints (http://localhost:<port>/hosted/<id>) load inside the
-// WebView. Both routes reach the same backend.
-export const getDevBackendHost = (platformOs: string): string =>
-  platformOs === 'android' ? '10.0.2.2' : 'localhost';
+// WebView. Both routes reach the same backend. A physical device reaches
+// neither: KYC_API_HOST (inlined like KYC_MODE) names the machine the
+// backend runs on - its LAN or tailnet address - and wins when set.
+export const getDevBackendHost = (
+  platformOs: string,
+  override?: string,
+): string =>
+  override !== undefined && override !== ''
+    ? override
+    : platformOs === 'android'
+      ? '10.0.2.2'
+      : 'localhost';
 
 // Not exported: nothing outside this module needs the bare origin, only the
 // derived GRAPHQL_URL - keep it private until something does.
-const API_ORIGIN = `http://${getDevBackendHost(Platform.OS)}:${BACKEND_PORT}`;
+const API_ORIGIN = `http://${getDevBackendHost(Platform.OS, process.env.KYC_API_HOST)}:${BACKEND_PORT}`;
 
 export const GRAPHQL_URL = `${API_ORIGIN}/graphql`;
 
