@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 748" width="400" height="748" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Drop in the component: the library draws every screen">
+<rect width="400" height="748" fill="#FFFFFF"/>
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L9,5 L0,9 Z" fill="#1C2230"/></marker>
+</defs>
+<text x="20" y="30" font-size="11" font-weight="600" letter-spacing="0.08em" fill="#5B6472">1 · DEFAULT</text>
+<text x="20" y="54" font-size="17" font-weight="700" fill="#1C2230">Drop in the component</text>
+<text x="20" y="74" font-size="12" fill="#5B6472">Library draws every screen, iOS blue.</text>
+<!-- phone -->
+<g transform="translate(110 96)">
+<rect x="0" y="0" width="180" height="300" rx="22" fill="#1C2230"/>
+<rect x="7" y="7" width="166" height="286" rx="16" fill="#FFFFFF"/>
+<rect x="66" y="12" width="48" height="6" rx="3" fill="#1C2230"/>
+<!-- idle screen: the ID card icon, title, subtitle, start, cancel -->
+<rect x="62" y="52" width="56" height="38" rx="5" fill="#EEF4FF" stroke="#C7D7FE"/>
+<circle cx="76" cy="71" r="7" fill="#C7D7FE"/>
+<rect x="88" y="63" width="22" height="4" rx="2" fill="#C7D7FE"/>
+<rect x="88" y="72" width="22" height="4" rx="2" fill="#C7D7FE"/>
+<rect x="88" y="81" width="14" height="4" rx="2" fill="#C7D7FE"/>
+<g text-anchor="middle">
+<text x="90" y="128" font-size="13" font-weight="700" fill="#1C2230">Verify your identity</text>
+<text x="90" y="146" font-size="8.5" fill="#666666">Have your ID document ready</text>
+<text x="90" y="158" font-size="8.5" fill="#666666">and allow camera access.</text>
+<rect x="35" y="172" width="110" height="28" rx="6" fill="#007AFF"/>
+<text x="90" y="190" font-size="10" font-weight="700" fill="#FFFFFF">Verify your identity</text>
+<text x="90" y="224" font-size="10" fill="#007AFF">Cancel</text>
+</g>
+<rect x="66" y="278" width="48" height="4" rx="2" fill="#1C2230"/>
+</g>
+<!-- ownership ladder -->
+<g font-size="12.5">
+<rect x="20" y="420" width="360" height="48" rx="8" fill="#F3F5F8" stroke="#B8BFC9"/>
+<text x="32" y="438" font-weight="600" fill="#1C2230">Host app</text>
+<text x="32" y="453" font-size="10.5" fill="#5B6472">places the component</text>
+<line x1="200" y1="468" x2="200" y2="480" stroke="#1C2230" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="20" y="480" width="360" height="48" rx="8" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.5"/>
+<text x="32" y="498" font-weight="600" fill="#1C2230">IdentityVerification</text>
+<text x="32" y="513" font-size="10.5" fill="#5B6472">every screen: idle, loading, in progress, pending, outcome, error</text>
+<line x1="200" y1="528" x2="200" y2="540" stroke="#1C2230" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="20" y="540" width="360" height="48" rx="8" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.5"/>
+<text x="32" y="558" font-weight="600" fill="#1C2230">useIdentityVerification</text>
+<text x="32" y="573" font-size="10.5" fill="#5B6472">state machine: offline, permissions, token refresh, outcome</text>
+<line x1="200" y1="588" x2="200" y2="600" stroke="#1C2230" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="20" y="600" width="360" height="48" rx="8" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.5"/>
+<text x="32" y="618" font-weight="600" fill="#1C2230">WebView / iframe / native SDK</text>
+<text x="32" y="633" font-size="10.5" fill="#5B6472">placed by IdentityVerification, hardened and origin-pinned</text>
+<line x1="200" y1="648" x2="200" y2="660" stroke="#1C2230" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="20" y="660" width="360" height="48" rx="8" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.5"/>
+<text x="32" y="678" font-weight="600" fill="#1C2230">VerificationSource</text>
+<text x="32" y="693" font-size="10.5" fill="#5B6472">hosted · native SDK · proxy - the only thing that changes</text>
+</g>
+<g transform="translate(20 732)" font-size="10" fill="#5B6472">
+<rect x="0" y="-9" width="12" height="12" rx="3" fill="#FFFFFF" stroke="#1C2230" stroke-width="1.5"/><text x="20" y="0">library owns</text>
+<rect x="100" y="-9" width="12" height="12" rx="3" fill="#F3F5F8" stroke="#B8BFC9" stroke-width="1.5"/><text x="120" y="0">host owns</text>
+</g>
+</svg>

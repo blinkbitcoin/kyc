@@ -132,6 +132,16 @@ ignored, token refresh is disabled, and a console warning explains why. Token
 refreshes are posted with `postMessage(createSetTokenMessage(token),
 allowedOrigin)` — never with `'*'`.
 
+## Integration paths
+
+Independent of the mode: how much of the screen the library draws.
+
+| Path | You write | Read |
+|------|-----------|------|
+| Default | `<IdentityVerification source={source} … />` | [props](#identityverification--props) |
+| Themed | the same, plus `theme`, `styles`, `labels` | [Labels and theme](#labels-and-theme) |
+| Headless | `useIdentityVerification(source, options)`<br>and your own screens around the hosted frame | [the hook](#useidentityverificationsource-options) |
+
 ## `<IdentityVerification />` props
 
 | Prop | Type | Default | Description |

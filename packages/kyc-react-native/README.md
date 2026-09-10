@@ -146,6 +146,16 @@ actually resolve them: **Try again** for `denied` (the OS will ask again),
 without it that screen is informational. Neither is an error: `onError` is
 not called for them, exactly like the offline state.
 
+## Integration paths
+
+Independent of the mode: how much of the screen the library draws.
+
+| Path | You write | Read |
+|------|-----------|------|
+| Default | `<IdentityVerification source={source} … />` | [props](#identityverification--props) |
+| Themed | the same, plus `theme`, `styles`, `labels` | [Labels and theme](#labels-and-theme) |
+| Headless | `useIdentityVerification(source, options)`<br>and your own screens around `<HostedWebView />` | [the hook](#useidentityverificationsource-options), [`HostedWebView`](#hostedwebview--and-createhostedwebviewprops) |
+
 ## `<IdentityVerification />` props
 
 | Prop | Type | Default | Description |
