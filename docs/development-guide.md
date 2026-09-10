@@ -472,7 +472,7 @@ diagram: [CI / Release Pipeline](diagrams/README.md#ci--release-pipeline).
 | `e2e.yml` | `workflow_call` only | `build-packages` (version stamp, build, publint + arethetypeswrong, pack smoke; uploads the dist for `web` and the tarballs for `Publish`) plus the E2E suites as jobs: `backend`, `web` (Playwright, bundles the demo against that dist - what a web consumer installs), `build-android` → `android` (emulator), and `build-ios` → `ios` (simulator) **on by default** (see below). Outputs the stamped `version` / `disttag` for `Publish` |
 | `release.yml` | Push to main; CI completed on main | `Release PR / Tag` (push): keeps the `chore(release): X.Y.Z` PR current (version from the Conventional Commits since the last tag, `CHANGELOG.md` entry); when that PR merges, tags `vX.Y.Z`, creates the GitHub Release and dispatches `ci.yml` at the tag with `release_tag` (a release the workflow token creates never fires the `release:` trigger). `Re-run blocked releases` (CI completed green): re-runs the failed Publish of any release run for that commit (releases wait for / refuse a red main run). See [releasing.md](releasing.md) |
 | `pull-request.yml` | PR closed; PR title edited | `Cancel in-flight runs` + `Remove branch badge` (closed): cancels the PR's still-running runs (the push-to-main run is unaffected) and removes its `gh-pages` badge directory. `Title` (edited): re-lints the PR title only; the gating lint is the `Commits` job in `checks.yml` (a title edit must not re-run the whole pipeline) |
-| `codeql.yml` | Push to main, PRs (both ignore docs-only changes), weekly schedule | CodeQL static analysis (JavaScript/TypeScript); alerts land under Security → Code scanning;<br>suite + alert-suppression query in `.github/codeql/codeql-config.yml` |
+| `codeql.yml` | Push to main, PRs (both ignore docs-only changes), weekly schedule | CodeQL static analysis (JavaScript/TypeScript); alerts land under Security → Code scanning;<br>suite + alert-suppression query in `.github/codeql/codeql-config.yml`;<br>`make codeql` runs the same analysis locally |
 
 Badges are per branch by construction: `gh-pages/badges/X/{unit,e2e,coverage}.svg`
 (and a workflow badge filtered with `?branch=X`) all describe branch `X`
@@ -510,6 +510,12 @@ human would run it - so a CI failure can be reproduced without pushing:
 ```bash
 # The whole Checks stage (static only)
 make check-code check-ci codegen-check diagrams-check docs-check
+
+# GitHub's CodeQL analysis, locally (never in a workflow: GitHub runs it there).
+# Same language, same config (suite + the alert-suppression query), so a finding
+# and an inline `// codeql[<rule-id>]` marker show up here before the push;
+# the CLI comes from the flake on first use (nix shell .#codeql, one large fetch)
+make codeql
 
 # Unit
 make coverage

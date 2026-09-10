@@ -54,6 +54,7 @@ one-line description. The ones you will reach for:
 | `make test` | Unit suites + `check-code` (lint, typecheck, format check) |
 | `make coverage` | Coverage - 100% enforced on the packages, backend, and scripts/lib;<br>fails on a coverage row with nothing to cover (re-export / type-only<br>modules go in the workspace's exclude list) |
 | `make check-ci` | actionlint on the workflows + shellcheck on `scripts/**` |
+| `make codeql` | GitHub's CodeQL analysis locally (same config as `codeql.yml`, markers honoured);<br>never run in CI - GitHub runs it there |
 | `make codegen` | Regenerate `schema.graphql` + client types after editing the SDL in<br>`packages/kyc-server/src/graphql.ts` |
 | `make diagrams` | Re-render `docs/diagrams/dist/*.svg` from `src/*.mmd` (CI fails on drift) |
 | `make docs-check` | Warn when architecture-relevant changes ship without a `docs/` update;<br>fail on a README table cell line wider than 72 characters (break with `<br>`) |
@@ -137,7 +138,8 @@ The reasons behind these rules, and the check that holds each one, are in
   query, without which the marker is ignored). Never dismiss it in the
   UI/API (fingerprint-keyed: esign saw the same finding re-open three times
   across file moves) and never exclude the query (it stays on for real
-  findings)
+  findings). `make codeql` runs the same analysis locally and shows the
+  marker as suppressed before the push
 - The git hooks (lefthook) run format, lint, commitlint and typecheck; CI is
   the authoritative gate and every workflow must be green before merge
 

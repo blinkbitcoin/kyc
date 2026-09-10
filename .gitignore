@@ -103,4 +103,7 @@ packages/*/src/**/*.d.ts.map
 
 # lefthook personal overrides (see lefthook.yml)
 lefthook-local.yml
+
+# CodeQL database + SARIF from make codeql (local only)
+.codeql/
 .superpowers/
