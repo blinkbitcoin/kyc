@@ -1,4 +1,4 @@
-// Browser E2E, proxy mode (VITE_KYC_MODE=proxy, :5174). The backend owns the
+// Browser E2E, proxy mode (VITE_KYC_MODE=proxy, its own port - e2e/ports.ts). The backend owns the
 // session lifecycle: verificationSessionStart returns the page url plus the
 // allowedOrigin, the page's Approve posts the SIGNED mock webhook, and the
 // backend's terminal-state machine records the result. Two journeys are

@@ -1,6 +1,7 @@
 // Browser E2E: the same five journeys the Maestro suite drives on mobile,
 // through a real Chromium, a real backend (mock provider), a real Postgres,
-// and a real CROSS-ORIGIN iframe (app :5173, verification page :4000).
+// and a real CROSS-ORIGIN iframe (app on the worktree's Vite port, the
+// verification page on its backend port - e2e/ports.ts).
 
 import { expect, test, type FrameLocator, type Page } from '@playwright/test';
 

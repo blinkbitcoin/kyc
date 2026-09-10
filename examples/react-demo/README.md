@@ -22,8 +22,8 @@ the same in both, so every Playwright spec runs under either.
 The screen mirrors the React Native demo: `mode-label`, `reset-button`,
 `outcome`, around the library's `<Verification />`. The verification page is
 embedded in a genuinely cross-origin iframe (built app via `vite preview`
-`:5173` / `:5174`, page `:4000`), so the E2E suites exercise the real
-`postMessage` path and the origin pin.
+on the worktree's Vite port, page on its backend port), so the E2E suites
+exercise the real `postMessage` path and the origin pin.
 
 ## Permissions
 
@@ -37,9 +37,15 @@ page's own camera/mic prompt with no error the host can see.
 ## E2E
 
 ```bash
-make e2e-web         # hosted, :5173 - what CI runs
-make e2e-web-proxy   # proxy, :5174
+make e2e-web                     # hosted - what CI runs
+make e2e-web-proxy               # proxy
+E2E_PORT_OFFSET=0 make e2e-web   # pin the canonical :5173 / :5174 / :4000
 ```
+
+Ports are per worktree: `e2e/ports.ts` hashes the worktree path into a
+block (backend `4000 + n`, demos `5173 + 2n` / `5174 + 2n`), so parallel
+worktrees never adopt each other's servers, and the backend is started
+with that port and the two demo origins in `CORS_ALLOWED_ORIGINS`.
 
 Both targets build the libraries, bring up the dockerized test Postgres,
 migrate it, and let Playwright start the backend and build + preview the

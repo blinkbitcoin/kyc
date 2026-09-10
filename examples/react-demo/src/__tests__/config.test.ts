@@ -3,6 +3,7 @@ import {
   GRAPHQL_URL,
   KYC_MODE,
   KYC_UI,
+  resolveApiOrigin,
   resolveKycMode,
   resolveKycUi,
 } from '../config';
@@ -11,6 +12,14 @@ describe('demo config', () => {
   it('points at the local reference backend', () => {
     expect(API_ORIGIN).toBe('http://localhost:4000');
     expect(GRAPHQL_URL).toBe('http://localhost:4000/graphql');
+    expect(resolveApiOrigin(undefined)).toBe('http://localhost:4000');
+    expect(resolveApiOrigin('')).toBe('http://localhost:4000');
+  });
+
+  it('takes the E2E stack backend origin from VITE_API_ORIGIN', () => {
+    expect(resolveApiOrigin('http://localhost:4123')).toBe(
+      'http://localhost:4123',
+    );
   });
 
   it('defaults to hosted mode', () => {

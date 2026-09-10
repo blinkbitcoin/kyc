@@ -234,16 +234,19 @@ docker-compose -f docker-compose.test.yml down
 
 ```bash
 npx playwright install chromium     # once per machine
-make e2e-web                        # hosted mode on :5173 - what CI runs
-make e2e-web-proxy                  # proxy mode on :5174
+make e2e-web                        # hosted mode - what CI runs
+make e2e-web-proxy                  # proxy mode
+E2E_PORT_OFFSET=0 make e2e-web      # pin the canonical :5173 / :5174 / :4000
 ```
 
 Both targets bring up the dockerized test Postgres, migrate it, and let
-Playwright start the backend and Vite. Both demo ports are already in
-`examples/full-service-demo/.env.test`'s `CORS_ALLOWED_ORIGINS`, and the app and the hosted page
-are genuinely cross-origin (`:5173`/`:5174` vs `:4000`), so the suites exercise
-the real `postMessage` path and the origin pin rather than a same-origin
-shortcut.
+Playwright start the backend and Vite. Ports are per worktree
+(`examples/react-demo/e2e/ports.ts` hashes the worktree path into a block,
+so sibling worktrees never adopt each other's servers; the backend is told
+its port and the demo origins to allow), and the app and the hosted page
+are genuinely cross-origin (the Vite port vs the backend port), so the
+suites exercise the real `postMessage` path and the origin pin rather than
+a same-origin shortcut.
 
 ### Mobile E2E Tests (Maestro)
 

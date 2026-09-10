@@ -88,4 +88,4 @@ export const isMountable: (source: VerificationSource) => source is MountableSou
 
 ## Testing strategy
 
-Jest + jsdom + `@testing-library/react`, 100% thresholds, `collectCoverageFrom: ['src/**/*.{ts,tsx}']` so a new file cannot hide from the gate. Playwright drives the real cross-origin iframe in `make e2e-web` (hosted, port 5173) and `make e2e-web-proxy` (proxy, port 5174).
+Jest + jsdom + `@testing-library/react`, 100% thresholds, `collectCoverageFrom: ['src/**/*.{ts,tsx}']` so a new file cannot hide from the gate. Playwright drives the real cross-origin iframe in `make e2e-web` (hosted) and `make e2e-web-proxy` (proxy) on per-worktree ports (`e2e/ports.ts`; block 0 is 5173 / 5174 with the backend on 4000).

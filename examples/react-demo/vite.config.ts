@@ -17,11 +17,20 @@ export default defineConfig(({ command }) => {
     test: {
       environment: 'jsdom',
       globals: true,
-      include: ['src/**/*.test.{ts,tsx}', 'vite/**/*.test.ts'],
+      include: [
+        'src/**/*.test.{ts,tsx}',
+        'vite/**/*.test.ts',
+        'e2e/**/*.test.ts',
+      ],
       coverage: {
         provider: 'v8',
-        include: ['src/**/*.{ts,tsx}', 'vite/**/*.ts'],
-        exclude: ['src/main.tsx', 'src/**/*.test.*', 'vite/**/*.test.*'],
+        include: ['src/**/*.{ts,tsx}', 'vite/**/*.ts', 'e2e/ports.ts'],
+        exclude: [
+          'src/main.tsx',
+          'src/**/*.test.*',
+          'vite/**/*.test.*',
+          'e2e/**/*.test.*',
+        ],
         thresholds: {
           statements: 100,
           branches: 100,

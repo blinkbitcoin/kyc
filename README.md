@@ -206,7 +206,7 @@ in [docs/integration/sumsub.md](docs/integration/sumsub.md).
 | `make diagrams`<br>`make diagrams-check` | Render `docs/diagrams/dist/*.svg` and reassemble the page / fail on drift |
 | `make docs-check` | Warn on architecture changes without docs; fail on a stale diagram SVG |
 | `make e2e-backend` | Backend E2E with a dockerized Postgres |
-| `make e2e-web`<br>`make e2e-web-proxy` | Playwright, hosted (`:5173`) and proxy (`:5174`) - both build the<br>libraries first and bundle the demo against their dist |
+| `make e2e-web`<br>`make e2e-web-proxy` | Playwright, hosted and proxy - both build the libraries first<br>and bundle the demo against their dist. Ports are per worktree<br>(`examples/react-demo/e2e/ports.ts`; `E2E_PORT_OFFSET=0` gives<br>the canonical `:5173` / `:5174` / `:4000`) |
 | `make e2e-android`<br>`make e2e-ios`<br>`make e2e-fake-native` | Maestro suites (see `make help` for the prerequisites) |
 | `make version`<br>`make release` | What CI would publish / merge the release PR release-please<br>maintains ([docs/releasing.md](docs/releasing.md)) |
 

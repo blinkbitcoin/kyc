@@ -3,6 +3,8 @@
 
 import { expect, test } from '@playwright/test';
 
+import { API_ORIGIN } from './ports';
+
 test('launch smoke: demo boots to the idle screen and the backend is healthy', async ({
   page,
   request,
@@ -14,7 +16,7 @@ test('launch smoke: demo boots to the idle screen and the backend is healthy', a
   await expect(page.getByTestId('reset-button')).toBeVisible();
   await expect(page.getByTestId('outcome')).toHaveText('no outcome yet');
 
-  const health = await request.get('http://localhost:4000/health');
+  const health = await request.get(`${API_ORIGIN}/health`);
   expect(health.ok()).toBe(true);
   expect((await health.json()).status).toBe('ok');
 });
