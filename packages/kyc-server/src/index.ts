@@ -85,7 +85,48 @@ export {
   MOCK_SIGNATURE_HEADER,
   renderMockPage,
 } from './providers/mock';
-export * from './providers/sumsub';
+// Named, not `export *`: an ESM host (tsx, Node) importing this CommonJS
+// package only sees names the CJS lexer can find statically
+export type {
+  Env,
+  SignPayloadArgs,
+  SumsubAccessToken,
+  SumsubApplicant,
+  SumsubClient,
+  SumsubClientOptions,
+  SumsubConfig,
+  SumsubConfigKey,
+  SumsubProviderHandle,
+  SumsubProviderOptions,
+  SumsubReviewPayload,
+  SumsubReviewResult,
+  SumsubWebhookOptions,
+  SumsubWebhookPayload,
+} from './providers/sumsub';
+export {
+  assertSumsubConfig,
+  buildSumsubStatusTable,
+  createSumsubClient,
+  createSumsubProvider,
+  lookupSumsubStatus,
+  missingSumsubConfig,
+  renderSumsubPage,
+  signPayload,
+  SUMSUB_CREDENTIALS,
+  SUMSUB_DEFAULTS,
+  SUMSUB_DIGEST_ALG_HEADER,
+  SUMSUB_DIGEST_HEADER,
+  SUMSUB_ENV,
+  SUMSUB_PERMISSIONS_POLICY,
+  SUMSUB_SDK_URL,
+  SUMSUB_STATUS_FALLBACK,
+  SUMSUB_STATUS_TABLE,
+  SumsubConfigError,
+  sumsubConfigFromEnv,
+  sumsubHostedPage,
+  sumsubPageCsp,
+  sumsubStatusKey,
+} from './providers/sumsub';
 export type {
   DefaultRegistryOptions,
   ProviderFromEnvOptions,

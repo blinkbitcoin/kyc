@@ -33,6 +33,7 @@
 #### Demos (`examples/`)
 
 - **`react-native-demo`** - React Native 0.86, `KYC_MODE` = `native` | `hosted` | `proxy` | `fake-native`, Maestro flows in `.maestro/`
+- **`access-token-demo`** - the other server shape: an existing GraphQL API adds one mutation that mints a provider access token for mode 1 (`make e2e-server-demos` boots it)
 - **`react-demo`** - Vite + React 19, `VITE_KYC_MODE` = `hosted` | `proxy`, Playwright specs in `e2e/`
 
 ---

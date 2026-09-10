@@ -16,6 +16,7 @@ export const WORKSPACES = [
   { ws: 'packages/kyc-react-native', reportDir: 'coverage/lcov-report' },
   { ws: 'packages/kyc-react', reportDir: 'coverage/lcov-report' },
   { ws: 'examples/full-service-demo', reportDir: 'coverage' },
+  { ws: 'examples/access-token-demo', reportDir: 'coverage' },
   { ws: 'scripts', reportDir: 'coverage' },
 ];
 

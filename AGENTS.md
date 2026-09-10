@@ -34,6 +34,7 @@ the current state is [docs/index.md](docs/index.md).
 │   │       ├── services.ts          # createVerificationService over the provider, the Knex store and PUBLIC_BASE_URL
 │   │       ├── app.ts               # Apollo + the package router, under the service's middleware
 │   │       └── config.ts            # validateSecurityConfig (fail-closed boot)
+│   ├── access-token-demo/       # 🖥️ the other server shape: an existing GraphQL API adds one mutation that mints a provider access token (mode 1)
 │   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native; Maestro suite (.maestro/)
 │   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy; Playwright suites (e2e/)
 ├── docs/                        # Current-state documentation (hand-maintained): architecture/, integration/, diagrams/ (sources in src/*.mmd), index.md is the map

@@ -15,6 +15,7 @@ module.exports = [
     ignores: [
       '**/node_modules/**',
       'examples/full-service-demo/**',
+      'examples/access-token-demo/**',
       '**/coverage/**',
       '**/ios/**',
       '**/android/**',

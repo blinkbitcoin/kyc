@@ -162,7 +162,7 @@ Ordered by how likely you are to need each part:
 | [`packages/kyc-server/`](packages/kyc-server/README.md) | The server half a backend installs: Sumsub<br>token minting and webhook verification, the<br>session domain, the hosted page, an Express<br>router and a Knex store. This repo's<br>backend is built on it. |
 | [`packages/kyc-core/`](packages/kyc-core/README.md) | The shared core both libraries build on:<br>`VerificationSource`, the capability guards,<br>the bridge protocol, the state machine, the<br>error-code contract, and the Sumsub mapping<br>on `/sumsub`. It arrives as a dependency -<br>you never install it directly. |
 | [`examples/full-service-demo/`](examples/full-service-demo/README.md) | The reference backend on `kyc-server`:<br>Express + Apollo + Postgres, this service's<br>policy around the package. Needed for mode<br>3 only; the backend every E2E suite runs<br>against. |
-| [`examples/`](examples/README.md) | Two demo hosts - the executable integration<br>docs, and the Maestro / Playwright targets. |
+| [`examples/`](examples/README.md) | The hosts - the executable integration docs:<br>two client demos (Maestro / Playwright<br>targets) and, beside the full service, an<br>existing API that only mints access tokens. |
 | `docs/` | Documentation of how everything currently<br>works - start at [docs/index.md](docs/index.md). |
 
 ## Development

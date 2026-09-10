@@ -142,6 +142,9 @@ e2e-web-proxy: test-db-up build ## Playwright browser E2E for the web demo in pr
 	npm run test:e2e:proxy -w examples/react-demo
 	$(MAKE) test-db-down
 
+e2e-server-demos: ## Boot the access-token example (mock provider) and call its mutation
+	bash scripts/e2e/server-demos-smoke.sh
+
 e2e-backend-up: ## Start the backend (mock provider) in the background for mobile E2E, wait for /health
 	bash scripts/e2e/backend-up.sh
 
@@ -177,4 +180,4 @@ help: ## List available targets
 .PHONY: install hooks pods release release-rc version registry-smoke unit coverage coverage-badge typecheck lint format format-check check-code \
 	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check start ios android backend web db-up db-down migrate \
 	diagrams test-db-up test-db-down e2e-backend e2e-web e2e-web-proxy \
-	e2e-backend-up e2e-backend-down ios-build e2e-ios e2e-android e2e-fake-native clean reset help
+	e2e-server-demos e2e-backend-up e2e-backend-down ios-build e2e-ios e2e-android e2e-fake-native clean reset help
