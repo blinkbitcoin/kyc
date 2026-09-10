@@ -117,3 +117,21 @@ export const isLaunchable = (
   source: VerificationSource,
 ): source is LaunchableSource =>
   typeof (source as LaunchableSource).launch === 'function';
+
+/**
+ * Color overrides for the default Verification UI, one set for both
+ * platforms; a per-element `styles` prop on the component wins over it.
+ */
+export interface VerificationTheme {
+  /** Primary button background, secondary button text, the spinner. */
+  primaryColor?: string;
+  /** Text on the primary button. */
+  primaryTextColor?: string;
+  /** Titles. */
+  textColor?: string;
+  /** Subtitles and hints. */
+  mutedTextColor?: string;
+  successColor?: string;
+  errorColor?: string;
+  fontFamily?: string;
+}

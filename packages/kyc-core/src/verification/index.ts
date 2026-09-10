@@ -13,6 +13,7 @@ export type {
   VerificationSource,
   VerificationSourceError,
   VerificationStatus,
+  VerificationTheme,
 } from './types';
 
 export {
@@ -31,6 +32,18 @@ export type {
 } from './bridge';
 
 export { getErrorMessage } from './messages';
+
+export {
+  DEFAULT_OUTCOME_LABELS,
+  failureLabel,
+  outcomeLabel,
+  resolveLabelsWith,
+} from './labels';
+export type {
+  LabelDefaults,
+  ResolvedLabels,
+  VerificationLabels,
+} from './labels';
 
 export { createHostedSource } from './hostedSource';
 export type {

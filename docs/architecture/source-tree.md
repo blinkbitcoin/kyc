@@ -20,6 +20,7 @@ kyc/
 │       │   │   ├── machine.ts       # The shared state machine ⭐
 │       │   │   ├── bridge.ts        # kyc-bridge envelopes + setToken transports
 │       │   │   ├── messages.ts      # getErrorMessage copy
+│       │   │   ├── labels.ts        # VerificationLabels + resolveLabelsWith, outcomeLabel, failureLabel
 │       │   │   ├── hostedSource.ts  # createHostedSource (mode 2)
 │       │   │   ├── proxySource.ts   # createProxySource (mode 3, Apollo)
 │       │   │   └── fakeSource.ts    # Test double for the launch branch

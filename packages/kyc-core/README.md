@@ -6,10 +6,12 @@ capability interfaces, the normalized event/status vocabulary, and the
 `ErrorCode` wire contract generated from `examples/full-service-demo/schema.graphql`, and the
 one Sumsub mapping on `/sumsub`. No React, no DOM, no native modules.
 
+## Entry points
+
 | Import | Contents | Needs Apollo? |
 |--------|----------|---------------|
 | `@blinkbitcoin/kyc-core` | Everything below plus `createProxySource`, `createKycApolloClient`,<br>`getApolloErrorCode`, the GraphQL operations and their generated types | Yes — `@apollo/client` + `graphql` (optional peers) |
-| `@blinkbitcoin/kyc-core/hosted` | Contract types + capability guards, the `kyc-bridge` protocol<br>(`interpretBridgeMessage`, `createSetTokenMessage`, `createSetTokenScript`),<br>`createHostedSource`, the verification state machine (`machineReducer`,<br>`planEvent`, `describeOutcome`, `describeFailure`, `isRestartableError`),<br>`getErrorMessage`, `ErrorCodes` / `ClientErrorCodes` | **No — Apollo-free by construction** (guard-tested) |
+| `@blinkbitcoin/kyc-core/hosted` | Contract types + capability guards, the `kyc-bridge` protocol<br>(`interpretBridgeMessage`, `createSetTokenMessage`, `createSetTokenScript`),<br>`createHostedSource`, the verification state machine (`machineReducer`,<br>`planEvent`, `describeOutcome`, `describeFailure`, `isRestartableError`),<br>`getErrorMessage`, the labels contract (`resolveLabelsWith`,<br>`outcomeLabel`, `failureLabel`), `ErrorCodes` / `ClientErrorCodes` | **No — Apollo-free by construction** (guard-tested) |
 | `@blinkbitcoin/kyc-core/testing` | `createFakeLaunchableSource` — a UI-free `LaunchableSource` you script<br>(`outcome`) or drive from buttons (`controller`) | **No** (guard-tested) |
 | `@blinkbitcoin/kyc-core/sumsub` | Everything on `/hosted` plus the Sumsub mapping (`mapSumsubStatus`,<br>`mapSumsubWebhookStatus`, `mapSumsubMobileResult`,<br>`interpretSumsubWebMessage`, `sumsubSession`, the Sumsub vocabulary) -<br>the surface of `src/providers/sumsub/`, read by the backend too | **No** (guard-tested) |
 
@@ -94,6 +96,21 @@ the error screen offers Restart or Try again. The `permission` action carries
 `MachineState.permissionReason`, so a platform that can send the user to the
 OS settings (React Native) and one that cannot (the browser) still share one
 reducer. Nothing here touches React, the DOM, native modules or Apollo.
+
+## Labels and theme
+
+Blink is multilingual and branded, so nothing the default `Verification`
+UI renders is hard-coded in the platform packages. `VerificationLabels`
+names every string (idle title and subtitle, the buttons, the pending,
+permission, offline and error screens, one `outcome*` key per decision,
+and an `errorMessages` table keyed by error code); `VerificationTheme`
+names the colors and the font. `resolveLabelsWith(defaults, label, labels)`
+layers a host's overrides over a platform's defaults (null and undefined
+keep the default), `outcomeLabel(labels, status)` picks the outcome copy
+and `failureLabel(labels, error)` the error copy, falling back to the
+message the error carries. The platform packages own the defaults and the
+`theme` / `styles` / `labels` props; this package only guarantees both
+resolve copy the same way.
 
 The `Verification` component and the `useVerification` hook live in the
 platform packages (`@blinkbitcoin/kyc-react-native`,
