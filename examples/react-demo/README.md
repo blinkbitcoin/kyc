@@ -39,4 +39,4 @@ Both targets build the libraries, bring up the dockerized test Postgres,
 migrate it, and let Playwright start the backend and build + preview the
 demo - so the browser drives the production bundle over the libraries' `dist`,
 which is what a consumer installs. Both demo ports are already in
-`apps/api/.env.test`'s `CORS_ALLOWED_ORIGINS`.
+`examples/full-service-demo/.env.test`'s `CORS_ALLOWED_ORIGINS`.

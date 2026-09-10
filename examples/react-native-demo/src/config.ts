@@ -1,6 +1,6 @@
 // Demo configuration. A real host app would take this from its own
 // environment/config system; here the backend is always the local reference
-// backend from apps/api.
+// backend from examples/full-service-demo.
 
 import { Platform } from 'react-native';
 

@@ -1,5 +1,5 @@
 {
-  "name": "api",
+  "name": "kyc-full-service-example",
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
@@ -56,5 +56,6 @@
     "tsx": "^4.23.12",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
-  }
+  },
+  "private": true
 }

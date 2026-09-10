@@ -11,17 +11,9 @@ import { formatFindings, overlongTableLines } from '../lib/table-lines.mjs';
 const files =
   process.argv.length > 2
     ? process.argv.slice(2)
-    : globSync(
-        [
-          'README.md',
-          'packages/*/README.md',
-          'apps/*/README.md',
-          'examples/*/README.md',
-        ],
-        {
-          exclude: name => name.includes('node_modules'),
-        },
-      );
+    : globSync(['README.md', 'packages/*/README.md', 'examples/*/README.md'], {
+        exclude: name => name.includes('node_modules'),
+      });
 let problems = 0;
 for (const file of files) {
   const findings = overlongTableLines(readFileSync(file, 'utf8'));

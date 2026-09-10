@@ -6,7 +6,7 @@ Every failure surfaces through `onError({ code, message })` with a stable `code`
 
 ## Schema-borne codes (produced by the backend, proxy mode)
 
-The `ErrorCode` GraphQL enum in `apps/api/schema.graphql` is the wire contract; `make codegen` regenerates the client's copy and a parity test fails on drift.
+The `ErrorCode` GraphQL enum in `examples/full-service-demo/schema.graphql` is the wire contract; `make codegen` regenerates the client's copy and a parity test fails on drift.
 
 | Code | Meaning | Sensible host reaction |
 |------|---------|------------------------|

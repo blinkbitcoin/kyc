@@ -9,7 +9,7 @@ import { defineConfig } from '@playwright/test';
 // returned - so this suite proves the Apollo path, not a second embedding
 // mechanism.
 //
-// 5174 is already in apps/api/.env.test's CORS_ALLOWED_ORIGINS.
+// 5174 is already in examples/full-service-demo/.env.test's CORS_ALLOWED_ORIGINS.
 export default defineConfig({
   testDir: 'e2e',
   testMatch: '**/proxy.spec.ts',
@@ -21,7 +21,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        'KYC_PROVIDER=mock npx dotenv-cli -e apps/api/.env.test -- npm run dev -w apps/api',
+        'KYC_PROVIDER=mock npx dotenv-cli -e examples/full-service-demo/.env.test -- npm run dev -w examples/full-service-demo',
       cwd: '../..',
       url: 'http://localhost:4000/health',
       // In CI, a listener already on :4000 is a foreign leftover from a

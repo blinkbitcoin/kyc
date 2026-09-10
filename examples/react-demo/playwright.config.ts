@@ -19,7 +19,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        'KYC_PROVIDER=mock npx dotenv-cli -e apps/api/.env.test -- npm run dev -w apps/api',
+        'KYC_PROVIDER=mock npx dotenv-cli -e examples/full-service-demo/.env.test -- npm run dev -w examples/full-service-demo',
       cwd: '../..',
       url: 'http://localhost:4000/health',
       // In CI, a listener already on :4000/:5173 is a foreign leftover from a

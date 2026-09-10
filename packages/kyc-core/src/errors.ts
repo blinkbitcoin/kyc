@@ -1,7 +1,7 @@
 // Error codes, split by origin.
 //
 // ErrorCodes: the GraphQL wire contract. Parity with the enum generated from
-// apps/api/schema.graphql is asserted in src/__tests__/wire-contract.test.ts.
+// examples/full-service-demo/schema.graphql is asserted in src/__tests__/wire-contract.test.ts.
 //
 // ClientErrorCodes: codes that only ever originate on the client (network,
 // permissions, missing native SDK, token/bridge handling). They deliberately

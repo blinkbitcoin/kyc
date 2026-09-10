@@ -35,7 +35,7 @@ npm ci
 # Enable direnv (once per machine) - loads .env files, enters the nix
 # flake dev shell (pinned node/jdk/ruby/watchman), and puts workspace
 # bins (tsx, knex, biome, ...) on PATH
-direnv allow . && direnv allow apps/api
+direnv allow . && direnv allow examples/full-service-demo
 ```
 
 Without direnv/nix, any Node 22.22+ or 24.15+ plus a JDK 17 and Ruby 3.2+ works -
@@ -54,7 +54,7 @@ cd ios && bundle exec pod install  # iOS native deps
 
 ```bash
 # Start development database
-cd apps/api
+cd examples/full-service-demo
 docker-compose up -d
 
 # Run migrations
@@ -68,7 +68,7 @@ Environment is managed with **direnv** (house convention): `.envrc` files load
 `dotenv/config` as a fallback for non-direnv environments (CI, IDE launchers) -
 dotenv never overrides direnv-exported values, so precedence is consistent.
 
-**Backend (`apps/api/.env`, see `apps/api/.env.example`):**
+**Backend (`examples/full-service-demo/.env`, see `examples/full-service-demo/.env.example`):**
 ```env
 DATABASE_URL=postgresql://dev:dev@localhost:5432/kyc
 KYC_PROVIDER=mock            # 'sumsub' for the real integration
@@ -89,7 +89,7 @@ PORT=4000
 ### Start Backend
 
 ```bash
-cd apps/api
+cd examples/full-service-demo
 npm run dev
 # Server runs at http://localhost:4000
 # GraphQL Playground at http://localhost:4000/graphql
@@ -184,7 +184,7 @@ npm test -- --watch
 ### Backend Unit Tests
 
 ```bash
-cd apps/api
+cd examples/full-service-demo
 
 # Run all tests
 npm test
@@ -240,7 +240,7 @@ make e2e-web-proxy                  # proxy mode on :5174
 
 Both targets bring up the dockerized test Postgres, migrate it, and let
 Playwright start the backend and Vite. Both demo ports are already in
-`apps/api/.env.test`'s `CORS_ALLOWED_ORIGINS`, and the app and the hosted page
+`examples/full-service-demo/.env.test`'s `CORS_ALLOWED_ORIGINS`, and the app and the hosted page
 are genuinely cross-origin (`:5173`/`:5174` vs `:4000`), so the suites exercise
 the real `postMessage` path and the origin pin rather than a same-origin
 shortcut.
@@ -317,7 +317,7 @@ npm run lint:fix
 ### Knex Commands
 
 ```bash
-cd apps/api
+cd examples/full-service-demo
 
 # Create migration
 npx tsx "$(command -v knex)" migrate:make -x ts <migration-name>
@@ -366,7 +366,7 @@ npm install
 
 ### Migration Issues
 ```bash
-cd apps/api
+cd examples/full-service-demo
 npx tsx "$(command -v knex)" migrate:status
 npm run migrate
 ```

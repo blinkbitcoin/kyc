@@ -1,6 +1,6 @@
 // The hosted-page bridge protocol.
 //
-// A hosted verification page (this repo's apps/api, or any page that speaks
+// A hosted verification page (this repo's examples/full-service-demo, or any page that speaks
 // this protocol) posts versioned envelopes to its host:
 //   page -> app:  window.ReactNativeWebView.postMessage(JSON.stringify(msg))
 //                 window.parent.postMessage(msg, allowedOrigin)

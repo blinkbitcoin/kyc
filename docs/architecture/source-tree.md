@@ -32,11 +32,11 @@ kyc/
 │       │   ├── errors.ts            # ErrorCodes + ClientErrorCodes
 │       │   ├── client.ts            # createKycApolloClient
 │       │   ├── operations.ts        # The three GraphQL documents
-│       │   └── generated/           # Codegen output from apps/api/schema.graphql
+│       │   └── generated/           # Codegen output from examples/full-service-demo/schema.graphql
 │       ├── codegen.ts
 │       └── dist/                    # tsup output (gitignored)
 │
-├── 🖥️ SERVER PACKAGE - being extracted from apps/api
+├── 🖥️ SERVER PACKAGE - what a backend imports; the reference backend below is built on it
 │   │
 │   └── packages/kyc-server/
 │       ├── src/
@@ -92,7 +92,7 @@ kyc/
 │
 ├── 🖥️ REFERENCE BACKEND
 │   │
-│   └── apps/api/
+│   └── examples/full-service-demo/
 │       ├── src/
 │       │   ├── app.ts               # Routes + middleware ⭐
 │       │   ├── schema.ts            # Resolvers ⭐
@@ -135,7 +135,7 @@ kyc/
 │       └── superpowers/             # The approved design and the phase plans
 │
 └── 🔧 TOOLING
-    ├── Makefile , packages/Makefile , apps/Makefile , examples/Makefile
+    ├── Makefile , packages/Makefile , examples/Makefile
     ├── scripts/                     # the `tooling` npm workspace; pure logic in scripts/lib/*.mjs, Vitest-covered at 100% ⭐
     │   ├── {ci,e2e}/ , assemble-diagrams.mjs , coverage-badge.mjs , status-badge.mjs
     │   ├── release/resolve-version.mjs  # thin CLI over scripts/lib/resolve-version.mjs
@@ -162,7 +162,7 @@ kyc/
 
 - `src/providers/port.ts` - adding a provider means implementing this and nothing else.
 - `src/session.ts` (`applyStatusTransition` / `updateSessionStatus`) - the terminal-state guard is part of the conditional `UPDATE` itself, the invariant that protects an approved user from a replayed callback.
-- `apps/api/schema.graphql` - the emitted wire contract; `make codegen` regenerates the client's view of it and `make codegen-check` fails on drift.
+- `examples/full-service-demo/schema.graphql` - the emitted wire contract; `make codegen` regenerates the client's view of it and `make codegen-check` fails on drift.
 
 ## Integration points
 
@@ -170,8 +170,8 @@ kyc/
 |------|----|-----------|
 | Host app | Platform package | `Verification` props |
 | Platform package | Core | Direct import (exact-version dependency) |
-| Core proxy source | `apps/api` | GraphQL over HTTP with a Bearer token |
+| Core proxy source | `examples/full-service-demo` | GraphQL over HTTP with a Bearer token |
 | Hosted page | Platform package | `kyc-bridge` envelopes over `postMessage` |
-| Provider | `apps/api` | Signed webhook |
-| `apps/api` | Sumsub | App-token-signed REST |
-| `apps/api` | PostgreSQL | Knex |
+| Provider | `examples/full-service-demo` | Signed webhook |
+| `examples/full-service-demo` | Sumsub | App-token-signed REST |
+| `examples/full-service-demo` | PostgreSQL | Knex |

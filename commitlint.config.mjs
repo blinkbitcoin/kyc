@@ -10,7 +10,7 @@ export default {
         'rn', // packages/kyc-react-native
         'react', // packages/kyc-react
         'sumsub', // packages/kyc-sumsub
-        'api', // apps/api
+        'api', // examples/full-service-demo
         'demo', // examples/*
         'e2e',
         'ci',

@@ -15,30 +15,30 @@ the current state is [docs/index.md](docs/index.md).
 
 - **Language**: TypeScript 6.0 everywhere
 - **Node**: `^22.22.2 || >= 24.15.0`; toolchain pinned by `flake.nix`, entered
-  via direnv (`direnv allow . && direnv allow apps/api`, once per machine)
+  via direnv (`direnv allow . && direnv allow examples/full-service-demo`, once per machine)
 - **Docs**: `docs/index.md` is the current-state entry point; CLAUDE.md has
   the full command reference; `CONTRIBUTING.md` has the commit and release rules
 
 ## Project Structure
 
 ```
-├── apps/api/                    # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres), composed from packages/kyc-server: this service's policy (helmet, CORS, rate limits, JWT auth, fail-closed boot) around the package's router, schema, store and adapters
-│   └── src/
-│       ├── providers/           # The registry: the package adapters wired to this service's config + tracing
-│       ├── services.ts          # createVerificationService over the provider, the Knex store and PUBLIC_BASE_URL
-│       ├── app.ts               # Apollo + the package router, under the service's middleware
-│       └── config.ts            # validateSecurityConfig (fail-closed boot)
 ├── packages/
 │   ├── kyc-server/              # 📦 server half: the verification-session domain over provider + store ports, Sumsub adapter, hosted page, Fetch handlers, /express router, /knex store (entries ., /express, /knex, /sumsub)
 │   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode; providers/sumsub/ = the one Sumsub mapping (entry /sumsub)
 │   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (Verification + useVerification + hardened HostedWebView; entries ., /hosted and /sumsub = the native-SDK source in providers/sumsub/)
 │   └── kyc-react/               # 📦 THE PRODUCT - web (Verification + useVerification + origin-pinned HostedFrame; entries . and /sumsub, the reserved web-SDK seat)
 ├── examples/
+│   ├── full-service-demo/       # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres), composed from packages/kyc-server: this service's policy (helmet, CORS, rate limits, JWT auth, fail-closed boot) around the package's router, schema, store and adapters
+│   │   └── src/
+│   │       ├── providers/           # The registry: the package adapters wired to this service's config + tracing
+│   │       ├── services.ts          # createVerificationService over the provider, the Knex store and PUBLIC_BASE_URL
+│   │       ├── app.ts               # Apollo + the package router, under the service's middleware
+│   │       └── config.ts            # validateSecurityConfig (fail-closed boot)
 │   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native; Maestro suite (.maestro/)
 │   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy; Playwright suites (e2e/)
 ├── docs/                        # Current-state documentation (hand-maintained): architecture/, integration/, diagrams/ (sources in src/*.mmd), index.md is the map
 ├── scripts/                     # the `tooling` npm workspace: ci/, e2e/, release/ shell + node used by the Makefile and CI; lib/*.mjs is Vitest-covered at 100%, __tests__/ covers the shell scripts
-├── Makefile                     # Root flows; apps/, packages/, examples/ and each workspace have their own
+├── Makefile                     # Root flows; packages/, examples/ and each workspace have their own
 └── package.json                 # Workspace root (orchestration scripts, single lockfile)
 ```
 
@@ -53,7 +53,7 @@ one-line description. The ones you will reach for:
 | `make test` | Unit suites + `check-code` (lint, typecheck, format check) |
 | `make coverage` | Coverage - 100% enforced on the packages, backend, and scripts/lib;<br>fails on a coverage row with nothing to cover (re-export / type-only<br>modules go in the workspace's exclude list) |
 | `make check-ci` | actionlint on the workflows + shellcheck on `scripts/**` |
-| `make codegen` | Regenerate `schema.graphql` + client types after editing `apps/api/src/typeDefs.ts` |
+| `make codegen` | Regenerate `schema.graphql` + client types after editing the SDL in<br>`packages/kyc-server/src/graphql.ts` |
 | `make diagrams` | Re-render `docs/diagrams/dist/*.svg` from `src/*.mmd` (CI fails on drift) |
 | `make docs-check` | Warn when architecture-relevant changes ship without a `docs/` update;<br>fail on a README table cell line wider than 72 characters (break with `<br>`) |
 | `make db-up migrate backend` | Dev Postgres, migrations, backend dev server |
@@ -87,13 +87,13 @@ Underlying npm scripts (`npm test`, `npm run typecheck`, `npm run lint`,
   `packages/kyc-server/src/providers/sumsub/` (the adapter, its client and
   its hosted page), `packages/kyc-react-native/src/providers/sumsub/` (the
   native-SDK source), `packages/kyc-react/src/providers/sumsub/` (reserved)
-  and `apps/api/src/providers/sumsub/` (the package adapter wired to the
+  and `examples/full-service-demo/src/providers/sumsub/` (the package adapter wired to the
   service's config); a package's `src/sumsub.ts` is a one-line re-export of
   its `providers/sumsub/` surface (guard tests), generic layers never import
   a provider (guard tests), and hosts select one through `providerFromEnv`
   (`KYC_PROVIDER`)
 - GraphQL error codes are a wire contract: the `ErrorCode` enum in
-  `apps/api/schema.graphql` (emitted from the SDL in
+  `examples/full-service-demo/schema.graphql` (emitted from the SDL in
   `packages/kyc-server/src/graphql.ts`, re-exported by `src/typeDefs.ts`) and the generated
   client types in `packages/kyc-core/src/generated/` - run `make codegen`
   after schema changes; drift fails tests and a CI step. Client-only codes
@@ -129,7 +129,7 @@ cannot see changes.
 - Core / Sumsub / RN / web library tests: `packages/*/src/__tests__/`
 - Demo tests: `examples/react-native-demo/{__tests__,src/__tests__}/`,
   `examples/react-demo/src/__tests__/`; browser E2E in `examples/react-demo/e2e/` (Playwright)
-- Backend unit tests: `apps/api/tests/` (DB mocked); E2E: `apps/api/tests/e2e/`
+- Backend unit tests: `examples/full-service-demo/tests/` (DB mocked); E2E: `examples/full-service-demo/tests/e2e/`
   (real Postgres via `docker-compose.test.yml`)
 - Tooling scripts: `scripts/lib/*.test.mjs` (100% Vitest coverage) for the
   extracted logic; `scripts/__tests__/*.test.mjs` shells out to the shell

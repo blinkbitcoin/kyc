@@ -4,7 +4,7 @@
 
 ```sh
 make install                             # npm ci (also installs git hooks via lefthook)
-direnv allow . && direnv allow apps/api  # once per machine: env + nix dev shell (Node 24)
+direnv allow . && direnv allow examples/full-service-demo  # once per machine: env + nix dev shell (Node 24)
 ```
 
 Working on the libraries needs nothing else. Running the demo apps needs the
@@ -70,7 +70,7 @@ area names (`commitlint.config.mjs` is the source of truth):
 | `sumsub` | `packages/kyc-sumsub` |
 | `rn` | `packages/kyc-react-native` |
 | `react` | `packages/kyc-react` |
-| `api` | `apps/api` |
+| `api` | `examples/full-service-demo` |
 | `demo` | `examples/*` |
 | `e2e` | Maestro / Playwright / backend E2E suites |
 | `ci` | `.github/` |
@@ -103,7 +103,7 @@ CI stays the authoritative check.
 
 | Hook | What runs |
 |------|-----------|
-| `pre-commit` | Biome format (root) and Biome check (`apps/api`) on staged files, auto-fixes re-staged; ESLint on staged TS/TSX; diagram re-render when a `.mmd` source changes. Skipped during merge and rebase replays. |
+| `pre-commit` | Biome format (root) and Biome check (`examples/full-service-demo`) on staged files, auto-fixes re-staged; ESLint on staged TS/TSX; diagram re-render when a `.mmd` source changes. Skipped during merge and rebase replays. |
 | `commit-msg` | commitlint against `commitlint.config.mjs` |
 | `pre-push` | Workspace-wide typecheck |
 | `post-merge`, `post-checkout` | `npm ci` when `package-lock.json` changed, so hooks never run on a stale install |
@@ -122,7 +122,7 @@ Escape hatches, for the rare cases where they are warranted:
    `docs/index.md` maps them).
 2. Diagrams: edit `docs/diagrams/src/*.mmd`, then `make diagrams` and commit
    the regenerated SVG in the same commit (CI fails on a source without its
-   SVG). Schema: edit `apps/api/src/typeDefs.ts`, then `make codegen`.
+   SVG). Schema: edit `examples/full-service-demo/src/typeDefs.ts`, then `make codegen`.
    Documentation: `docs/architecture/` is internals, `docs/integration/` is
    for consumers, and [docs/index.md](docs/index.md) maps both - update the
    relevant page in the same change.

@@ -116,7 +116,7 @@ Run in **Chrome and Safari**, over HTTPS (or `localhost`).
 |---|------|
 | 6.1 | Remove `@sumsub/react-native-mobilesdk-module` from the demo again and restore `package-lock.json` (`git checkout -- examples/react-native-demo/package.json package-lock.json`) |
 | 6.2 | Delete or disable the sandbox webhook if the tunnel URL was temporary |
-| 6.3 | Never commit the credentials. `apps/api/.env` is gitignored - keep them there or in a secret manager |
+| 6.3 | Never commit the credentials. `examples/full-service-demo/.env` is gitignored - keep them there or in a secret manager |
 
 ## Recording the result
 

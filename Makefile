@@ -109,14 +109,14 @@ web: ## Vite dev server for the web example app
 
 # ---------- Database ----------
 
-db-up: ## Start the dev Postgres (apps/api/docker-compose.yml, port 5432)
-	cd apps/api && docker compose up -d --wait
+db-up: ## Start the dev Postgres (examples/full-service-demo/docker-compose.yml, port 5432)
+	cd examples/full-service-demo && docker compose up -d --wait
 
 db-down: ## Stop the dev Postgres
-	cd apps/api && docker compose down
+	cd examples/full-service-demo && docker compose down
 
 migrate: ## Apply Knex migrations to the dev database
-	npm run migrate -w apps/api
+	npm run migrate -w examples/full-service-demo
 
 # ---------- E2E ----------
 
@@ -128,17 +128,17 @@ test-db-down: ## Stop the E2E Postgres
 	docker compose -f docker-compose.test.yml down
 
 e2e-backend: test-db-up ## Backend E2E suite against real Postgres (then tears DB down)
-	npm run migrate:test -w apps/api
-	npm run test:e2e -w apps/api
+	npm run migrate:test -w examples/full-service-demo
+	npm run test:e2e -w examples/full-service-demo
 	$(MAKE) test-db-down
 
 e2e-web: test-db-up build ## Playwright browser E2E for the web demo (hosted mode; then tears DB down) - builds the libraries first (the demo bundles their dist)
-	npm run migrate:test -w apps/api
+	npm run migrate:test -w examples/full-service-demo
 	npm run test:e2e -w examples/react-demo
 	$(MAKE) test-db-down
 
 e2e-web-proxy: test-db-up build ## Playwright browser E2E for the web demo in proxy mode (then tears DB down) - builds the libraries first (the demo bundles their dist)
-	npm run migrate:test -w apps/api
+	npm run migrate:test -w examples/full-service-demo
 	npm run test:e2e:proxy -w examples/react-demo
 	$(MAKE) test-db-down
 
@@ -164,7 +164,7 @@ e2e-fake-native: ## Maestro E2E, fake native SDK (MANUAL, Android emulator only:
 
 clean: ## Remove build output and caches (library lib/, coverage)
 	npm run clean -w packages/kyc-core -w packages/kyc-server -w packages/kyc-react-native -w packages/kyc-react
-	rm -rf coverage packages/*/coverage examples/*/coverage apps/api/coverage
+	rm -rf coverage packages/*/coverage examples/*/coverage
 
 reset: ## Full dependency reinstall (root lockfile only)
 	rm -rf node_modules package-lock.json

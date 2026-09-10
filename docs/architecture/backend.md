@@ -1,4 +1,4 @@
-# Architecture - Backend (`apps/api`)
+# Architecture - Backend (`examples/full-service-demo`, on `@blinkbitcoin/kyc-server`)
 
 **Part:** backend
 **Type:** Express 5 + Apollo Server 5 GraphQL API

@@ -5,7 +5,7 @@
 
 ## Overview
 
-`apps/api` exposes one GraphQL endpoint and three HTTP routes. The SDL is authored in `src/typeDefs.ts` and emitted to `apps/api/schema.graphql` by `npm run schema:emit -w apps/api`; `make codegen` then regenerates `packages/kyc-core/src/generated/`. `make codegen-check` fails if either artifact drifts.
+`examples/full-service-demo` exposes one GraphQL endpoint and three HTTP routes. The SDL is authored in `src/typeDefs.ts` and emitted to `examples/full-service-demo/schema.graphql` by `npm run schema:emit -w examples/full-service-demo`; `make codegen` then regenerates `packages/kyc-core/src/generated/`. `make codegen-check` fails if either artifact drifts.
 
 ## GraphQL API
 

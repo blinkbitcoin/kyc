@@ -8,7 +8,7 @@
 <sub>Badges render once the first `main` run publishes them to `gh-pages`. E2E covers backend, web, Android and the iOS simulator suite, see [CI/CD](docs/development-guide.md#ios-e2e-and-the-macos-runner).</sub>
 
 <p align="center">
-  <img src="docs/assets/readme-hero.svg" alt="Your React Native or React web app renders one Verification component. A VerificationSource picks one of three modes: the native provider SDK in-process, a hosted page embedded in a hardened WebView or origin-pinned iframe, or a proxy session on the reference backend. The two backend-backed modes go through the optional apps/api service, and every mode ends at Sumsub." width="960">
+  <img src="docs/assets/readme-hero.svg" alt="Your React Native or React web app renders one Verification component. A VerificationSource picks one of three modes: the native provider SDK in-process, a hosted page embedded in a hardened WebView or origin-pinned iframe, or a proxy session on the reference backend. The two backend-backed modes go through the optional examples/full-service-demo service, and every mode ends at Sumsub." width="960">
 </p>
 
 Embedded identity verification (KYC) for React Native and React web apps.
@@ -25,8 +25,8 @@ webhook-backed status that a replayed callback cannot downgrade.
 | Mode | What it is | What your app installs | Backend required |
 |------|-----------|------------------------|------------------|
 | **1. Native SDK** | The provider SDK runs in-process<br>(a React Native native module);<br>your app supplies an<br>access-token callback | `kyc-react-native`<br>(its `/sumsub` entry) +<br>the Sumsub SDK peer | Any backend that<br>mints provider<br>access tokens<br>(`kyc-server` does) |
-| **2. Hosted page** | A page speaking the<br>`kyc-bridge` protocol, embedded<br>in a hardened WebView or an<br>origin-pinned iframe | One package via the<br>Apollo-free `/hosted`<br>entry - **no Apollo,<br>no GraphQL** | The page (this<br>repo's `apps/api`,<br>or your own) |
-| **3. Proxy session** | Full orchestration: session<br>creation, token refresh,<br>webhook status sync,<br>status query | The package +<br>`@apollo/client` +<br>`graphql` | This repo's backend<br>service (`apps/api`) |
+| **2. Hosted page** | A page speaking the<br>`kyc-bridge` protocol, embedded<br>in a hardened WebView or an<br>origin-pinned iframe | One package via the<br>Apollo-free `/hosted`<br>entry - **no Apollo,<br>no GraphQL** | The page (this<br>repo's `examples/full-service-demo`,<br>or your own) |
+| **3. Proxy session** | Full orchestration: session<br>creation, token refresh,<br>webhook status sync,<br>status query | The package +<br>`@apollo/client` +<br>`graphql` | This repo's backend<br>service (`examples/full-service-demo`) |
 
 The GraphQL backend, the Apollo wiring and the provider adapters in this repo
 exist for **mode 3 only**. If mode 1 or 2 covers you, none of that ships with
@@ -47,7 +47,7 @@ that covers your needs.**
 ### 1. Hosted page - the simplest (no Apollo, no provider SDK)
 
 **Use when:** you have, or can serve, a page that speaks the bridge protocol.
-This repo's `apps/api` serves one at `GET /hosted/:sessionId`, and the whole
+This repo's `examples/full-service-demo` serves one at `GET /hosted/:sessionId`, and the whole
 contract a page must honour is three bullet points.
 
 ```sh
@@ -111,7 +111,7 @@ drive the whole launch branch in tests and E2E with no credentials at all.
 ### 3. Proxy session - full orchestration (this repo's backend service)
 
 **Use when:** you want sessions, token refresh, provider webhooks and an
-authoritative status handled for you, and you are willing to run `apps/api`.
+authoritative status handled for you, and you are willing to run `examples/full-service-demo`.
 
 ```sh
 npm i @blinkbitcoin/kyc-react-native @apollo/client graphql
@@ -161,7 +161,7 @@ Ordered by how likely you are to need each part:
 | [`packages/kyc-react/`](packages/kyc-react/README.md) | The same pair for React web, over an<br>origin-pinned iframe. |
 | [`packages/kyc-server/`](packages/kyc-server/README.md) | The server half a backend installs: Sumsub<br>token minting and webhook verification, the<br>session domain, the hosted page, an Express<br>router and a Knex store. This repo's<br>backend is built on it. |
 | [`packages/kyc-core/`](packages/kyc-core/README.md) | The shared core both libraries build on:<br>`VerificationSource`, the capability guards,<br>the bridge protocol, the state machine, the<br>error-code contract, and the Sumsub mapping<br>on `/sumsub`. It arrives as a dependency -<br>you never install it directly. |
-| [`apps/api/`](apps/api/README.md) | The reference backend: provider port, mock<br>and Sumsub adapters, webhooks, the hosted<br>page. Needed for mode 3 only. |
+| [`examples/full-service-demo/`](examples/full-service-demo/README.md) | The reference backend on `kyc-server`:<br>Express + Apollo + Postgres, this service's<br>policy around the package. Needed for mode<br>3 only; the backend every E2E suite runs<br>against. |
 | [`examples/`](examples/README.md) | Two demo hosts - the executable integration<br>docs, and the Maestro / Playwright targets. |
 | `docs/` | Documentation of how everything currently<br>works - start at [docs/index.md](docs/index.md). |
 
@@ -172,14 +172,14 @@ requires none of this**.
 
 ```sh
 make install                             # npm ci across all workspaces (also installs git hooks)
-direnv allow . && direnv allow apps/api  # once per machine (loads env + the nix flake dev shell)
+direnv allow . && direnv allow examples/full-service-demo  # once per machine (loads env + the nix flake dev shell)
 ```
 
 **Working on the packages**
 
 ```sh
 make test                                # unit suites + lint + typecheck + format check
-make coverage                            # 100% on the four packages, apps/api, and scripts/lib
+make coverage                            # 100% on the four packages, examples/full-service-demo, and scripts/lib
 npm test -w @blinkbitcoin/kyc-react -- useVerification    # one suite
 ```
 
@@ -209,7 +209,7 @@ in [docs/integration/sumsub.md](docs/integration/sumsub.md).
 | `make e2e-android`<br>`make e2e-ios`<br>`make e2e-fake-native` | Maestro suites (see `make help` for the prerequisites) |
 | `make version`<br>`make release` | What CI would publish / merge the release PR release-please<br>maintains ([docs/releasing.md](docs/releasing.md)) |
 
-Coverage is enforced at 100% on all four packages, `apps/api`, and
+Coverage is enforced at 100% on all four packages, `examples/full-service-demo`, and
 `scripts/lib`, with an 80% floor on the demos. See
 [docs/development-guide.md](docs/development-guide.md)
 for the full workflow and [CONTRIBUTING.md](CONTRIBUTING.md) for commit and PR

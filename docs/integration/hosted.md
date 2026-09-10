@@ -2,7 +2,7 @@
 
 **Updated:** 2026-09-06
 
-A page that speaks the `kyc-bridge` protocol is embedded in a hardened WebView (React Native) or an origin-pinned iframe (web). This repo's `apps/api` serves such a page at `GET /hosted/:sessionId`, but any page of yours that posts the same envelopes works identically - the packages have no knowledge of what renders inside.
+A page that speaks the `kyc-bridge` protocol is embedded in a hardened WebView (React Native) or an origin-pinned iframe (web). This repo's `examples/full-service-demo` serves such a page at `GET /hosted/:sessionId`, but any page of yours that posts the same envelopes works identically - the packages have no knowledge of what renders inside.
 
 ## Install
 
@@ -67,7 +67,7 @@ posted through `window.ReactNativeWebView.postMessage(JSON.stringify(msg))` when
 - **React Native** injects `createSetTokenScript(token)`, which calls `window.__kycBridge.setToken("<bare token>")`. There is no envelope to validate because an injected script is already trusted; the trailing `true;` is what `injectJavaScript` expects back.
 - **Web** posts `createSetTokenMessage(token)` - the full `{ source: 'kyc-bridge', v: 1, type: 'setToken', token }` envelope - at `allowedOrigin`, never at `'*'`. The page must check `source` and `v` before trusting it.
 
-A page that accepts both is trivial: `apps/api`'s `readToken` takes either a bare string or an object with a `.token`. This repo's own mock page acknowledges a refreshed token entirely in its own DOM (`document.body.dataset.tokenRefreshed = 'true'`, an element with id `mock-token-refreshed`) rather than by emitting a bridge event - a `statusChanged` there would move your state machine (`pending` hides and mutes the page) and end the flow instead of resuming it, so a page that wants to signal a successful refresh should do the same: acknowledge it locally, not over the bridge.
+A page that accepts both is trivial: `examples/full-service-demo`'s `readToken` takes either a bare string or an object with a `.token`. This repo's own mock page acknowledges a refreshed token entirely in its own DOM (`document.body.dataset.tokenRefreshed = 'true'`, an element with id `mock-token-refreshed`) rather than by emitting a bridge event - a `statusChanged` there would move your state machine (`pending` hides and mutes the page) and end the flow instead of resuming it, so a page that wants to signal a successful refresh should do the same: acknowledge it locally, not over the bridge.
 
 ## Token refresh
 
@@ -76,7 +76,7 @@ When the page emits `tokenExpired`:
 - If `isTokenRefreshable(source)` and a session and (on the web) an `allowedOrigin` exist, the hook awaits `refreshToken(session)` and pushes the token back into the page. Two guards keep this honest: an unmount flag drops anything that resolves too late, and a monotonic sequence number means only the newest refresh may inject - latest wins.
 - Otherwise, or if the refresh rejects, the flow enters `error` with `TOKEN_EXPIRED` / `TOKEN_REFRESH_FAILED`, **keeping the session**, and the error screen offers **Restart** rather than **Try again**.
 
-`sessionExpired` always takes the Restart path - it is not refreshable by definition. The hosted page you write should emit `sessionExpired` for a session that can no longer progress (unknown, wrong provider, or already terminal) rather than staying silent; `apps/api`'s own not-found page (served for those cases, and for a `502` when token minting fails) does exactly this.
+`sessionExpired` always takes the Restart path - it is not refreshable by definition. The hosted page you write should emit `sessionExpired` for a session that can no longer progress (unknown, wrong provider, or already terminal) rather than staying silent; `examples/full-service-demo`'s own not-found page (served for those cases, and for a `502` when token minting fails) does exactly this.
 
 ## What your host page must allow (web)
 
@@ -84,7 +84,7 @@ The iframe is rendered with `allow="camera; microphone; fullscreen"`, `sandbox="
 
 1. **Your page must be permitted to use the camera itself.** If your app sends a `Permissions-Policy` header, it must not drop `camera` / `microphone` for its own origin - a frame can only be delegated a capability its embedder holds.
 2. **Your page must be served over HTTPS** (or `localhost`). Browsers do not grant `getUserMedia` on plain HTTP.
-3. **The verification page must allow being framed by you.** This repo's `apps/api` serves it with `frame-ancestors *` and no `X-Frame-Options`, and with `Permissions-Policy: camera=(self "https://api.sumsub.com"), microphone=(self "https://api.sumsub.com")`. If your own page sets a CSP, add the verification origin to `frame-src`.
+3. **The verification page must allow being framed by you.** This repo's `examples/full-service-demo` serves it with `frame-ancestors *` and no `X-Frame-Options`, and with `Permissions-Policy: camera=(self "https://api.sumsub.com"), microphone=(self "https://api.sumsub.com")`. If your own page sets a CSP, add the verification origin to `frame-src`.
 
 `allow-same-origin` is required, not an oversight: the provider SDK uses its own storage, and a sandbox without it gives the page an opaque origin where every storage access throws. Because the page is served from a *different* origin than your app, that flag restores the page's own origin and grants the frame nothing over your document. `fullscreen` is delegated because a provider's document-capture step can ask for the whole viewport. Popups, top-level navigation and downloads stay denied.
 
@@ -105,4 +105,4 @@ Everything the packages require of a page:
 2. Accept a `setToken` in either transport and hand the token to the provider SDK.
 3. Serve it over HTTPS, allow being framed, and delegate `camera` / `microphone` to the provider's origin.
 
-`apps/api/src/verificationPages.ts` is a complete worked example, including the CSP.
+`packages/kyc-server/src/providers/sumsub/page.ts` (and the mock's `providers/mock/page.ts`) is a complete worked example, including the CSP.

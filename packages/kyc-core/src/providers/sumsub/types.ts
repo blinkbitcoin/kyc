@@ -1,6 +1,6 @@
 // The Sumsub vocabulary this package translates, in one place. Pure types
 // plus their runtime companions - no imports, so every entry (root,
-// ./react-native, ./web) and apps/api can read them.
+// ./react-native, ./web) and examples/full-service-demo can read them.
 
 /** `reviewStatus` as the REST API, the webhooks and the web SDK report it. */
 export type SumsubReviewStatus =

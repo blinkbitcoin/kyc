@@ -212,6 +212,23 @@ describe('docs-freshness.sh', () => {
     expect(result.summary).toContain('packages/kyc-core/src/index.ts');
   });
 
+  it('counts the server package migration source as architecture-relevant', () => {
+    const { dir } = createFixtureRepo();
+    writeFile(
+      dir,
+      'packages/kyc-server/src/knex/migrations.ts',
+      'export const m = 1;\n',
+    );
+    commit(dir, 'feat(server): add a column');
+
+    const result = runDocsFreshness(dir, { EVENT_NAME: 'push' });
+
+    expect(result.status).toBe(0);
+    expect(result.summary).toContain(
+      'packages/kyc-server/src/knex/migrations.ts',
+    );
+  });
+
   it('does not warn when the same architecture change also updates docs', () => {
     const { dir } = createFixtureRepo();
     writeFile(dir, 'packages/kyc-core/src/index.ts', 'export const x = 2;\n');

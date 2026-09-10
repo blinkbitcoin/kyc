@@ -15,7 +15,7 @@ There is deliberately **no applicant mirror table**: the provider's applicant id
 
 ## Migrations
 
-`apps/api/migrations/20260905000000_create_verification_session_and_audit_tables.ts` creates both tables. It is idempotent (`hasTable` guards) and its `down()` drops `AuditLog` before `VerificationSession`, respecting the foreign key.
+`packages/kyc-server/src/knex/migrations.ts` (the package's programmatic migration source, named `20260905000000_create_verification_session_and_audit_tables`) creates both tables; `examples/full-service-demo/src/migrate.ts` applies it. It is idempotent (`hasTable` guards) and its `down()` drops `AuditLog` before `VerificationSession`, respecting the foreign key.
 
 ## Model: `VerificationSession`
 
@@ -96,7 +96,7 @@ Only these nine keys are ever persisted: `userId`, `provider`, `platform`, `leve
 ## Migration commands
 
 ```bash
-cd apps/api
+cd examples/full-service-demo
 npx tsx "$(command -v knex)" migrate:make -x ts <name>   # create
 npm run migrate                                          # apply (dev)
 npm run migrate:test                                     # apply (test DB on 5433)

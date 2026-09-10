@@ -13,7 +13,7 @@ reproduction steps and the affected package/version.
 
 - The published packages: `@blinkbitcoin/kyc-core`,
   `@blinkbitcoin/kyc-react-native`, `@blinkbitcoin/kyc-react`
-- The backend service in `apps/api`
+- The backend service in `examples/full-service-demo`
 
 ## Security model
 
@@ -26,7 +26,7 @@ the responsibilities that remain with the host app - are documented in
 
 The short version: applicant documents, selfies and liveness video never pass
 through this repository. They go from the device or browser straight to the
-provider. `apps/api` stores an applicant id and a status, never an image, a
+provider. `examples/full-service-demo` stores an applicant id and a status, never an image, a
 document number or a name.
 
 ## Supported versions

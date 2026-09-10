@@ -3,7 +3,7 @@
 // The page's SDK asks for a fresh token by posting `tokenExpired`; the app
 // answers by posting the full setToken envelope back into the iframe. The
 // envelope form (not the bare-token injected script the React Native package
-// uses) is what a cross-origin page can safely validate: apps/api's hosted
+// uses) is what a cross-origin page can safely validate: examples/full-service-demo's hosted
 // page checks `source` and `v` before touching the token.
 //
 // The target origin is ALWAYS session.allowedOrigin and never '*': a wildcard

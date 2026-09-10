@@ -40,7 +40,7 @@ const source = createSumsubNativeSource({ getAccessToken: fetchTokenFromYourApi 
 
 ### 2. Hosted page
 
-A page that speaks the `kyc-bridge` protocol (this repo's `apps/api` serves
+A page that speaks the `kyc-bridge` protocol (this repo's `examples/full-service-demo` serves
 one) is embedded in a hardened WebView.
 
 ```tsx

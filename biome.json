@@ -22,7 +22,7 @@
     "useEditorconfig": true,
     "includes": [
       "**",
-      "!apps/api/**",
+      "!examples/full-service-demo/**",
       "!**/ios/**",
       "!**/android/**",
       "!**/coverage/**",

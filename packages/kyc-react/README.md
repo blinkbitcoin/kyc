@@ -22,7 +22,7 @@ peers installed.
 
 ### 1. Hosted page
 
-A page that speaks the `kyc-bridge` protocol (this repo's `apps/api` serves
+A page that speaks the `kyc-bridge` protocol (this repo's `examples/full-service-demo` serves
 one) is embedded in an origin-pinned iframe.
 
 ```tsx
@@ -97,7 +97,7 @@ open the camera — or the frame does not load at all:
 2. **Your page must be served over HTTPS** (or `localhost`). Browsers do not
    grant `getUserMedia` on plain HTTP.
 3. **The verification page must allow being framed by you.** This repo's
-   `apps/api` serves it with `frame-ancestors *` and no `X-Frame-Options`, and
+   `examples/full-service-demo` serves it with `frame-ancestors *` and no `X-Frame-Options`, and
    with `Permissions-Policy: camera=(self "https://api.sumsub.com"),
    microphone=(self "https://api.sumsub.com")`. If your own page sets a CSP,
    add the verification origin to `frame-src`.
@@ -170,7 +170,7 @@ A hosted page that answers with HTTP 4xx or 5xx renders as an **empty frame**,
 not an error state: browsers fire `load` (not `error`) for a framed error
 response, so only a network-level failure — DNS, TLS, a connection that never
 completes — surfaces as `NETWORK_ERROR`. Serve the bridge's `sessionExpired` /
-`error` envelope from a 200 page (as `apps/api` does) if you need the flow to
+`error` envelope from a 200 page (as `examples/full-service-demo` does) if you need the flow to
 react.
 
 ## `useVerification(source, options)`

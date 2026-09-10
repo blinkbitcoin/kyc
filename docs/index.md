@@ -23,10 +23,10 @@
 - **`packages/kyc-react-native`** - `Verification` + `useVerification` over a hardened `react-native-webview`, and the Sumsub native-SDK source in `providers/sumsub/`. Entries: `.`, `./hosted`, `./sumsub`.
 - **`packages/kyc-react`** - the same pair over an origin-pinned iframe, plus the `MountableSource` seam; `providers/sumsub/` is reserved for the web-SDK adapter. Entries: `.`, `./sumsub`.
 
-#### Backend (`apps/api/`)
+#### The reference backend (`examples/full-service-demo/`)
 
 - **Framework:** Express 5 + Apollo Server 5, Knex 3 / PostgreSQL 15+
-- **Entry point:** `apps/api/src/index.ts`
+- **Entry point:** `examples/full-service-demo/src/index.ts`
 - **API:** GraphQL at `/graphql`, hosted page at `/hosted/:sessionId`, webhook at `/webhook/kyc/:provider`, health at `/health`
 - **Role:** the reference implementation of mode 3 - and the mock provider that drives every E2E suite
 
@@ -58,7 +58,7 @@ Organized by namespace - pick by what you are doing:
 |-----|--------|
 | [mobile.md](architecture/mobile.md) | The React Native package: the state machine, the hardened WebView, permissions, token refresh, test doubles |
 | [web.md](architecture/web.md) | The React web package: the origin-pinned iframe, the two web-specific machine rules, the mountable seam |
-| [backend.md](architecture/backend.md) | `apps/api`: the provider port, resolvers, webhook processing, the hosted page, observability |
+| [backend.md](architecture/backend.md) | `examples/full-service-demo`: the provider port, resolvers, webhook processing, the hosted page, observability |
 | [integration.md](architecture/integration.md) | How the parts communicate: the seam, the bridge, GraphQL, webhooks, the shared error contract |
 | [api-contracts.md](architecture/api-contracts.md) | The GraphQL schema and the three HTTP routes, field by field |
 | [data-models.md](architecture/data-models.md) | The two Knex tables, their columns, the audit allow-list, the repository functions |
@@ -73,7 +73,7 @@ Organized by namespace - pick by what you are doing:
 | [../packages/kyc-server/README.md](../packages/kyc-server/README.md) | The server package: minting tokens for the native SDK, the domain, the Knex store, the handlers and the router |
 | [../packages/kyc-react-native/README.md](../packages/kyc-react-native/README.md) | The React Native package: modes, permission setup, `Verification` props, the hook, the native-SDK source and its test double |
 | [../packages/kyc-react/README.md](../packages/kyc-react/README.md) | The web package: iframe/CSP requirements, origin pinning, `Verification` props |
-| [../apps/api/README.md](../apps/api/README.md) | Running and configuring the reference backend |
+| [../examples/full-service-demo/README.md](../examples/full-service-demo/README.md) | Running and configuring the reference backend |
 | [../examples/react-native-demo/README.md](../examples/react-native-demo/README.md) | The four `KYC_MODE` modes, the screen/testID contract, the Maestro suite |
 | [../examples/react-demo/README.md](../examples/react-demo/README.md) | The two web modes and the Playwright suites |
 
@@ -108,7 +108,7 @@ make web                    # or the Vite demo on :5173
 
 ```bash
 npm test                    # every workspace
-make coverage               # 100% on the packages and apps/api, 80% floor on the demos
+make coverage               # 100% on the packages and examples/full-service-demo, 80% floor on the demos
 make e2e-backend            # backend E2E, test DB lifecycle included
 make e2e-web                # Playwright, hosted mode
 make e2e-web-proxy          # Playwright, proxy mode
