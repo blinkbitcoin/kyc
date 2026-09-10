@@ -50,11 +50,12 @@ Sessions from a local run land in the tmpfs E2E database (dropped by
 | the signed-webhook test answers `401` | `SUMSUB_WEBHOOK_DIGEST_ALG` in the `.env` is not what the test should sign with, or the secret differs from the dashboard's | set both from the webhook's settings |
 | the signed-webhook test answers `200` with outcome `unknown_session` | the session row was not found by external user id (a stale DB, or `PUBLIC_BASE_URL` pointing at another instance) | run inside `e2e-live` (fresh DB) |
 | `port 5103 is taken` / the example never answers | a stale example process | `TOKEN_PORT=5113 make e2e-live` |
-| `server demos smoke: access-token mutation (sumsub)` fails while the check passed | the example reads `SUMSUB_*` from the environment, not the `.env` | `live.sh` exports the `.env`; run through it |
+| `server demos smoke: access-token mutation (sumsub)` fails with `SESSION_CREATION_FAILED` while the check passed | the example's tier maps onto a level this account does not have | `KYC_LEVEL_BASIC=<a level of this account>` (the smoke defaults it to `SUMSUB_LEVEL_NAME`) |
+| `server demos smoke: access-token mutation (sumsub)` fails otherwise | the example reads `SUMSUB_*` from the environment, not the `.env` | `live.sh` exports the `.env`; run through it |
 
-No live pass has been recorded from this repo yet: the first real run's
-findings go to `docs/integration/sumsub-lessons.md` (create it then), the
-way the DocuSign sibling keeps its lessons.
+Every live pass is recorded in `docs/integration/sumsub-lessons.md` (the
+first, 2026-09-10 against Blink's sandbox: level names are per account -
+the example's tier table became environment-driven).
 
 ## Where the manual matrix takes over
 

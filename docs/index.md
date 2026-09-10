@@ -55,6 +55,7 @@ Organized by namespace - pick by what you are doing:
 | [hosted.md](integration/hosted.md) | Mode 2: the `kyc-bridge` protocol, origin pinning, token refresh, what a host page and a hosted page must each allow |
 | [proxy.md](integration/proxy.md) | Mode 3: Apollo wiring, the three operations, running the reference backend, reading status later |
 | [sumsub.md](integration/sumsub.md) | Sumsub sandbox: dashboard setup, the automated live tier (`make e2e-live`), and the device matrix CI cannot run |
+| [sumsub-lessons.md](integration/sumsub-lessons.md) | What the live passes against real Sumsub taught, per pass, with the fixes |
 | [error-codes.md](integration/error-codes.md) | Every `onError` code, which layer produces it, the copy it renders, and the sensible host reaction |
 
 ### `architecture/` - how the system works inside

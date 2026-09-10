@@ -133,4 +133,6 @@ Run in **Chrome and Safari**, over HTTPS (or `localhost`).
 
 ## Recording the result
 
+What earlier passes taught, and their fixes: [sumsub-lessons.md](sumsub-lessons.md).
+
 Note, per release: the date, the app versions, the two device models and OS versions, the browsers, the level name, and any row that did not behave as described. A failing row is a release blocker for the mode it belongs to, not a known issue.
