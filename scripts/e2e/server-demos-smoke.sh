@@ -14,6 +14,8 @@ LOG_DIR="${RUNNER_TEMP:-/tmp}"
 PROVIDER="${PROVIDER:-mock}"
 if [ "$PROVIDER" = sumsub ]; then
   : "${SUMSUB_APP_TOKEN:?}" "${SUMSUB_SECRET_KEY:?}"
+  # The example's "basic" tier mints on the sandbox's configured level
+  export KYC_LEVEL_BASIC="${KYC_LEVEL_BASIC:-${SUMSUB_LEVEL_NAME:-basic-kyc-level}}"
   TOKEN_PATTERN='"accessToken":"[^"]+"'
 else
   TOKEN_PATTERN='"accessToken":"mock-token-'

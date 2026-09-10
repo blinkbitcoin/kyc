@@ -16,7 +16,9 @@ app runs the Sumsub Mobile SDK with the token:
 ```
 
 - `src/level.ts` - the host's own decision: which verification level a user
-  goes through (keyed on a product tier here; a real host looks it up).
+  goes through (keyed on a product tier here; a real host looks it up). The
+  level names come from `KYC_LEVEL_BASIC` / `KYC_LEVEL_ENHANCED`, because
+  they are whatever the Sumsub dashboard calls them and differ per account.
 - `src/session.ts` - `providerFromEnv(...)` over the package registry with
   this host's Sumsub entry, then `provider.createSession`, the one package
   call. `KYC_PROVIDER=mock` swaps in the mock provider so the mutation runs
