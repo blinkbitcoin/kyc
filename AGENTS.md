@@ -26,7 +26,7 @@ the current state is [docs/index.md](docs/index.md).
 │   ├── kyc-server/              # 📦 server half: the verification-session domain over provider + store ports, Sumsub adapter, hosted page, Fetch handlers, /express router, /knex store (entries ., /express, /knex, /sumsub)
 │   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode; providers/sumsub/ = the one Sumsub mapping (entry /sumsub)
 │   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (Verification + useVerification + hardened HostedWebView; entries ., /hosted and /sumsub = the native-SDK source in providers/sumsub/)
-│   └── kyc-react/               # 📦 THE PRODUCT - web (Verification + useVerification + origin-pinned HostedFrame; entries . and /sumsub, the reserved web-SDK seat)
+│   └── kyc-react/               # 📦 THE PRODUCT - web (Verification + useVerification + origin-pinned HostedFrame; entries ., /hosted (Apollo-free, same contract as RN) and /sumsub, the reserved web-SDK seat)
 ├── examples/
 │   ├── full-service-demo/       # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres), composed from packages/kyc-server: this service's policy (helmet, CORS, rate limits, JWT auth, fail-closed boot) around the package's router, schema, store and adapters
 │   │   └── src/
@@ -35,8 +35,8 @@ the current state is [docs/index.md](docs/index.md).
 │   │       ├── app.ts               # Apollo + the package router, under the service's middleware
 │   │       └── config.ts            # validateSecurityConfig (fail-closed boot)
 │   ├── access-token-demo/       # 🖥️ the other server shape: an existing GraphQL API adds one mutation that mints a provider access token (mode 1)
-│   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native; Maestro suite (.maestro/)
-│   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy; Playwright suites (e2e/)
+│   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native, KYC_UI default|themed; Maestro suite (.maestro/)
+│   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy, VITE_KYC_UI default|themed; Playwright suites on per-worktree ports (e2e/)
 ├── docs/                        # Current-state documentation (hand-maintained): architecture/, integration/, diagrams/ (sources in src/*.mmd), index.md is the map
 ├── scripts/                     # the `tooling` npm workspace: ci/, e2e/, release/ shell + node used by the Makefile and CI; lib/*.mjs is Vitest-covered at 100%, __tests__/ covers the shell scripts
 ├── Makefile                     # Root flows; packages/, examples/ and each workspace have their own
@@ -110,6 +110,11 @@ Underlying npm scripts (`npm test`, `npm run typecheck`, `npm run lint`,
   lives in `examples/*/src/`.
   `Verification` is provider-agnostic - adding a provider is a new
   `VerificationSource`, the component never changes
+- The default UI renders nothing hard-coded: every string is a
+  `VerificationLabels` key and every color a `VerificationTheme` key
+  (`theme` / `styles` / `labels` props on `Verification`, resolved by
+  core's `resolveLabelsWith` so both platforms agree); a host that needs
+  a different layout calls `useVerification`
 - `graphql` stays on 16.x repo-wide (Apollo Server 5 peer range)
 - The git hooks (lefthook) run format, lint, commitlint and typecheck; CI is
   the authoritative gate and every workflow must be green before merge
