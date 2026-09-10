@@ -62,6 +62,22 @@ describe('signPayload', () => {
       signPayload({ ...base, body: '' }),
     );
   });
+
+  it('signs a binary body byte for byte (a multipart document upload)', () => {
+    // Bytes above 0x7f would be mangled by a string round trip; the
+    // signature must cover exactly what goes on the wire
+    const base = { ts: 1, method: 'POST', pathWithQuery: '/x', secretKey: 'k' };
+    const bytes = Uint8Array.from([0xff, 0xd8, 0x00, 0x80, 0xfe]);
+    expect(signPayload({ ...base, body: bytes })).toBe(
+      createHmac('sha256', 'k')
+        .update('1POST/x', 'utf8')
+        .update(bytes)
+        .digest('hex'),
+    );
+    expect(signPayload({ ...base, body: 'abc' })).toBe(
+      signPayload({ ...base, body: Buffer.from('abc', 'utf8') }),
+    );
+  });
 });
 
 describe('request', () => {
