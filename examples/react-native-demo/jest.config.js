@@ -34,6 +34,8 @@ module.exports = {
       '<rootDir>/__mocks__/react-native-safe-area-context.tsx',
   },
   collectCoverageFrom: ['App.tsx', 'src/**/*.{ts,tsx}'],
+  // json-summary is what scripts/ci/coverage-empty.mjs reads
+  coverageReporters: ['text', 'lcov', 'json-summary'],
   coveragePathIgnorePatterns: ['/node_modules/'],
   coverageThreshold: {
     global: { statements: 100, branches: 100, functions: 100, lines: 100 },

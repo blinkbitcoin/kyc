@@ -33,12 +33,17 @@ export default defineConfig(({ command }) => {
       coverage: {
         provider: 'v8',
         include: ['src/**/*.{ts,tsx}', 'vite/**/*.ts', 'e2e/ports.ts'],
+        // main.tsx mounts the app (never imported by a test); declaration
+        // files have nothing to execute
         exclude: [
           'src/main.tsx',
+          'src/**/*.d.ts',
           'src/**/*.test.*',
           'vite/**/*.test.*',
           'e2e/**/*.test.*',
         ],
+        // json-summary is what scripts/ci/coverage-empty.mjs reads
+        reporter: ['text', 'json-summary', 'html'],
         thresholds: {
           statements: 100,
           branches: 100,
