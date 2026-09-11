@@ -155,6 +155,10 @@ make e2e-android            # Maestro (see make help for prerequisites)
 1. [integration/sumsub.md](integration/sumsub.md) - dashboard setup, the automated tier (`make e2e-live`), and the manual device checklist
 2. [operations/live-e2e-ci.md](operations/live-e2e-ci.md) - the same run as an opt-in CI job
 
+### "I want my backend to act on an approval"
+1. [architecture/backend.md](architecture/backend.md#what-the-host-does-with-a-status-change) - `effects.onStatusTransition`, what it guarantees and what it does not
+2. [integration/proxy.md](integration/proxy.md#acting-on-the-result-on-your-backend) - why the app's `onComplete` is advisory
+
 ### "I want to take this to production"
 1. [operations/production.md](operations/production.md) - pick a tier and a target, then the section for your role
 2. [../packages/kyc-service/README.md#deploy](../packages/kyc-service/README.md#deploy) - the copy-paste per target

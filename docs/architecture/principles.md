@@ -49,7 +49,9 @@ caller of the store's conditional `updateSessionStatus`; the terminal guard
 
 **Why:** a replayed or late webhook must never downgrade an approved user,
 whatever path it arrives on (webhook, status reconciliation, a future admin
-action).
+action). The same single path is where a host's side effects hang
+(`effects.onStatusTransition`, after the commit), so an entitlement can never
+be granted by a write the guard refused.
 **Enforced by:** `single-write-path.test.ts`, the Knex store's SQL tests,
 the E2E webhook suite on a real Postgres.
 

@@ -10,7 +10,8 @@ export type AuditAction =
   | 'token_refreshed'
   | 'status_updated'
   | 'webhook_rejected'
-  | 'creation_failed';
+  | 'creation_failed'
+  | 'effect_failed';
 
 export interface AuditMetadata {
   userId?: string;

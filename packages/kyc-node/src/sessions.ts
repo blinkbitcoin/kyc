@@ -7,7 +7,10 @@
 // Every status change goes through applyStatusTransition: the optional
 // binding, the store's conditional write (the terminal guard is inside it)
 // and the matching audit row, in ONE transaction. Nothing else in the
-// package writes a status (guard-tested).
+// package writes a status (guard-tested). A host's side effects hang off
+// that same path (effects.onStatusTransition, after the commit), so an
+// approval reaches them whether a webhook, a status read or a future admin
+// action produced it.
 
 import { randomUUID } from 'node:crypto';
 import {
@@ -43,6 +46,8 @@ export interface VerificationServiceDeps {
   logger?: Logger;
   // Id generator (UUIDs by default; injectable for deterministic tests)
   newId?: () => string;
+  /** What the host does when a status actually changes (see VerificationEffects). */
+  effects?: VerificationEffects;
 }
 
 /** What a client may see of a session - never the provider's token material. */
@@ -85,6 +90,28 @@ export type WebhookOutcome =
   | StatusTransitionOutcome;
 
 export type StatusSource = 'api' | 'webhook';
+
+/** A committed status change, as the host's effects see it. */
+export interface StatusTransitionEvent extends StatusTransition {
+  outcome: 'updated';
+  source: StatusSource;
+}
+
+/**
+ * The host's side effects of a status change - an entitlement, a
+ * notification, the next step of an onboarding - run by the single write
+ * path once its transaction has committed, and only when the row actually
+ * changed (`outcome === 'updated'`; an idempotent redelivery or a refused
+ * downgrade never reaches them). Delivery is at-least-once: a crash between
+ * the commit and the effect loses that one call, and a throwing effect is
+ * logged and audited (`effect_failed`) but never rolls the status back. A
+ * host that needs exactly-once keeps its own outbox keyed on the session
+ * and the status. Slow work belongs behind a queue: the call is awaited, so
+ * an effect that takes seconds delays the webhook's response.
+ */
+export interface VerificationEffects {
+  onStatusTransition?: (event: StatusTransitionEvent) => void | Promise<void>;
+}
 
 /**
  * What a host serves for GET /hosted/:sessionId. The unguessable session id
@@ -173,12 +200,49 @@ export const createVerificationService = (
     applicantId: session.providerApplicantId,
   });
 
-  const applyStatusTransition: VerificationService['applyStatusTransition'] = (
-    id,
-    status,
-    source,
-    options = {},
-  ) =>
+  const runEffects = async (
+    id: string,
+    source: StatusSource,
+    transition: StatusTransition,
+  ): Promise<void> => {
+    const onStatusTransition = deps.effects?.onStatusTransition;
+    if (transition.outcome !== 'updated' || !onStatusTransition) {
+      return;
+    }
+    try {
+      await onStatusTransition({ ...transition, outcome: 'updated', source });
+    } catch (error) {
+      const errorCode = getErrorCode(error) ?? 'UNKNOWN_ERROR';
+      logger.error('Status transition effect failed:', {
+        action: 'effect_failed',
+        errorCode,
+        sessionId: id,
+        status: transition.session.status,
+        timestamp: new Date().toISOString(),
+      });
+      await audit(store, id, 'effect_failed', {
+        status: transition.session.status,
+        previousStatus: transition.previousStatus,
+        source,
+        errorCode,
+      });
+    }
+  };
+
+  const applyStatusTransition: VerificationService['applyStatusTransition'] =
+    async (id, status, source, options = {}) => {
+      const transition = await writeStatus(id, status, source, options);
+      await runEffects(id, source, transition);
+      return transition;
+    };
+
+  // The transaction: binding, the conditional write, the audit row
+  const writeStatus = (
+    id: string,
+    status: VerificationStatus,
+    source: StatusSource,
+    options: ApplyStatusTransitionOptions,
+  ): Promise<StatusTransition> =>
     store.transaction(async tx => {
       if (options.bindApplicantId) {
         const bound = await tx.bindApplicantId(id, options.bindApplicantId);
