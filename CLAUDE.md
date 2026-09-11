@@ -19,7 +19,7 @@ release`, see [docs/releasing.md](docs/releasing.md)).
 | `@blinkbitcoin/kyc-node` | `packages/kyc-node/` | Node-only server half: `createVerificationService` over the `VerificationProvider` + `SessionStore` ports, the Sumsub and mock adapters under `providers/`, the hosted page, Fetch handlers, the `/express` router, the `/knex` store with its migrations, `providerFromEnv` + `defaultRegistry`. A backend with its own API imports it (`examples/access-token-demo`); `packages/kyc-service` is the whole service composed on it |
 | `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `IdentityVerification` component + `useIdentityVerification` hook + `HostedWebView` (hardened WebView, camera capture granted, origin-pinned); `providers/sumsub/` = `createSumsubNativeSource` over the optional Mobile SDK peer. Entries: `.`, `/hosted` (Apollo-free), `/sumsub` (Apollo-free, the native source + the hosted surface) |
 | `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Publishable React **web** library: `IdentityVerification` component + `useIdentityVerification` hook + `HostedFrame` (origin-pinned iframe, camera/microphone delegated) and the `MountableSource` seam; `providers/sumsub/` is the reserved seat of the web-SDK adapter (none in v1). Entries: `.`, `/hosted` (Apollo-free, the same import as React Native's), `/sumsub` (Apollo-free) |
-| `@blinkbitcoin/kyc-service` | `packages/kyc-service/` | The reference host: the whole service on the server package - Express 5 + Apollo Server 5 + Knex/PostgreSQL, this service's auth, CORS, rate limits and fail-closed boot around the package's router, schema and store; the backend every E2E suite runs against |
+| `@blinkbitcoin/kyc-service` | `packages/kyc-service/` | The deployable: the whole service on the server package as one Fetch core - access tokens always, sessions (Apollo Server 5 + Knex/PostgreSQL, the hosted page, the webhook) with `DATABASE_URL` - with this service's session verification, CORS, rate limits and fail-closed boot; runs as a container, a Node process, a Vercel route or a Cloudflare Worker; the backend every E2E suite runs against |
 | `kyc-access-token-example` | `examples/access-token-demo/` | An existing GraphQL API adds one mutation that mints a provider access token for the native SDK (the Blink shape); `make e2e-server-demos` boots it on the mock provider |
 | `kyc-react-native-example` | `examples/react-native-demo/` | RN demo app hosting the RN library (Maestro E2E target) |
 | `kyc-react-example` | `examples/react-demo/` | Vite web demo hosting the web library (`make web`) |
@@ -89,19 +89,22 @@ npm run migrate:test         # Same against the .env.test database
   audit row, token refresh, reconciliation, the webhook state machine) is
   `createVerificationService` from `@blinkbitcoin/kyc-node`, composed in
   `src/services.ts`; the GraphQL layer (`src/schema.ts`) and the routes
-  (the package router mounted in `src/app.ts`) only map inputs/outputs.
+  (`src/app.ts` for the Fetch core, `src/sessions.ts` for the session
+  capability) only map inputs/outputs.
 - DB access is the package's Knex `SessionStore` (`@blinkbitcoin/kyc-node/knex`),
-  composed over the shared client in `src/store.ts`; the schema is the
+  composed over a client built from the app's env in `src/store.ts`; the schema is the
   package's programmatic migration source (`src/migrate.ts` applies it, no
   migration files here). Never query inline in resolvers.
-- The API exposes `/health`, `/graphql` (`verificationSessionStart`,
-  `verificationSessionRefresh`, `verificationSession`), `GET
-  /hosted/:sessionId` (the provider's page speaking the `kyc-bridge`
-  protocol) and `POST /webhook/kyc/:provider` (signature-verified, the
-  configured provider only). `KYC_PROVIDER` selects the adapter through the
-  package's `providerFromEnv` over this service's registry
+- The API exposes `/health` (with the capabilities that are on) and
+  `POST /verification/token` always; with `DATABASE_URL`, `/graphql`
+  (`verificationSessionStart`, `verificationSessionRefresh`,
+  `verificationSession`), `GET /hosted/:sessionId` (the provider's page
+  speaking the `kyc-bridge` protocol) and `POST /webhook/kyc/:provider`
+  (signature-verified, the configured provider only). `KYC_PROVIDER` selects
+  the adapter through `selectProvider(env)` over this service's registry
   (`src/providers/index.ts`): the package adapters wired to the service's
-  config and policy, each wrapped in tracing.
+  config and policy, each wrapped in tracing, built per app from the env it
+  was handed - never a module-level singleton.
 - `approved` and `finallyRejected` are terminal: no webhook, replayed or
   late, may downgrade them. The guard is part of the store's conditional
   write, and `applyStatusTransition` on the service is the single write
@@ -117,12 +120,14 @@ npm run migrate:test         # Same against the .env.test database
   (the SDL lives in `packages/kyc-node/src/graphql.ts`, re-exported by
   `src/typeDefs.ts`). After schema changes run `make codegen`; drift fails
   backend tests, client parity tests, and a CI step.
-- Security is fail-closed by default: `validateSecurityConfig` (`src/config.ts`)
-  refuses to boot without `JWT_SECRET` and an absolute `http(s)`
-  `PUBLIC_BASE_URL` (and `SUMSUB_APP_TOKEN`, `SUMSUB_SECRET_KEY`,
-  `SUMSUB_WEBHOOK_SECRET` when `KYC_PROVIDER=sumsub`) unless
+- Security is fail-closed by default: `validateConfig` (`src/config.ts`,
+  pure) refuses to boot without a session source (`SESSION_JWKS_URL` or
+  `SESSION_HS256_SECRET`, alias `JWT_SECRET`), the Sumsub settings a mint
+  needs when `KYC_PROVIDER=sumsub`, and - once sessions are on - an
+  absolute `http(s)` `PUBLIC_BASE_URL` and `SUMSUB_WEBHOOK_SECRET`, unless
   `ALLOW_INSECURE_DEV=true` is explicitly set - which is also what the
-  forgeable `KYC_PROVIDER=mock` requires. This is NOT gated on `NODE_ENV`.
+  forgeable `KYC_PROVIDER=mock` requires. `KYC_ENV=production` refuses demo
+  settings. None of this is gated on `NODE_ENV`.
 
 ## Library specifics
 
@@ -272,8 +277,8 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   select it with `KYC_PROVIDER=<name>`.
 - **Safe Area**: `react-native-safe-area-context` (demo app concern)
 - **Entry points**: `examples/react-native-demo/index.js` (RN app),
-  `examples/react-demo/src/main.tsx` (web app), `packages/kyc-service/src/index.ts`
-  (service bootstrap), `examples/access-token-demo/src/index.ts` (the
+  `examples/react-demo/src/main.tsx` (web app), `packages/kyc-service/src/node.ts`
+  (service process entry; `src/index.ts` is the library barrel), `examples/access-token-demo/src/index.ts` (the
   mint-only API), `packages/kyc-{core,server,react-native,react}/src/index.ts`
   (library APIs)
 - **Adding a provider**: a `providers/<name>/` directory in core (the

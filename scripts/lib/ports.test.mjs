@@ -33,6 +33,7 @@ describe('the port table', () => {
       webProxy: 5102,
       token: 5103,
       testDb: 5104,
+      smoke: 5105,
     });
     expect(testDatabaseUrl(5104)).toBe(
       'postgresql://test:test@localhost:5104/kyc_test',
@@ -85,6 +86,7 @@ describe('envLines', () => {
       'export KYC_WEB_PROXY_PORT=5102',
       'export TOKEN_PORT=9000',
       'export KYC_TEST_DB_PORT=5104',
+      'export SMOKE_PORT=5105',
       'export KYC_TEST_DATABASE_URL=postgresql://test:test@localhost:5104/kyc_test',
     ]);
   });
@@ -133,6 +135,13 @@ describe('the consumers', () => {
     ],
     ['docker-compose.test.yml', `"\${KYC_TEST_DB_PORT:-${testDb}}:5432"`],
     ['scripts/ci/postgres-brew.sh', 'KYC_TEST_DB_PORT'],
+    ['scripts/ci/docker-smoke.sh', `CONTAINER_PORT="${'${2:-'}${api}}"`],
+    ['packages/kyc-service/Dockerfile', `EXPOSE ${api}`],
+    ['packages/kyc-service/deploy/docker-compose.yml', `"${api}:${api}"`],
+    [
+      'packages/kyc-service/deploy/k8s/deployment.yaml',
+      `containerPort: ${api}`,
+    ],
   ])('%s carries %s', (file, literal) => {
     expect(read(file)).toContain(literal);
   });

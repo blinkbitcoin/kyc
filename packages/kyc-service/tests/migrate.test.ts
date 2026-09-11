@@ -4,7 +4,10 @@
 import { vi } from 'vitest';
 
 const destroy = vi.fn(async () => undefined);
-vi.mock('../src/db', () => ({ knex: { destroy } }));
+vi.mock('../src/db', () => ({
+  DATABASE_URL: 'DATABASE_URL',
+  createKnexClient: () => ({ destroy }),
+}));
 const runKycMigrations = vi.fn();
 vi.mock('@blinkbitcoin/kyc-node/knex', () => ({
   runKycMigrations: (...args: unknown[]) => runKycMigrations(...args),
@@ -19,7 +22,7 @@ describe('migrate', () => {
     runKycMigrations.mockReset();
   });
 
-  it('applies the migrations through the shared knex client and closes it', async () => {
+  it('applies the migrations through a client built from the process env and closes it', async () => {
     runKycMigrations.mockResolvedValue([1, ['m']]);
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     await import('../src/migrate');

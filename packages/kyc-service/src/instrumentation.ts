@@ -9,10 +9,9 @@
 // - No exporter is constructed here - the NodeSDK derives it from the env,
 //   so swapping backends is a config change, never a code change.
 //
-// Must initialize BEFORE express/pg/graphql are loaded (they are patched at
-// require time) - index.ts guarantees this ordering.
+// Must initialize BEFORE http/pg/graphql are loaded (they are patched at
+// require time) - node.ts guarantees this ordering.
 
-import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
@@ -31,10 +30,9 @@ export const initTelemetry = (env: Env = process.env): NodeSDK | null => {
   }
 
   const sdk = new NodeSDK({
-    serviceName: env.OTEL_SERVICE_NAME || 'kyc-api',
+    serviceName: env.OTEL_SERVICE_NAME || 'kyc-service',
     instrumentations: [
       new HttpInstrumentation(),
-      new ExpressInstrumentation(),
       new GraphQLInstrumentation({ mergeItems: true }),
       new PgInstrumentation(),
       // fetch() goes through undici - HttpInstrumentation does not see it,

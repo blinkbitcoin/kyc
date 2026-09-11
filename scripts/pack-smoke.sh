@@ -127,7 +127,7 @@ if (typeof createVerificationService !== 'function') process.exit(1);
 if (mapSumsubStatus('completed', { reviewAnswer: 'GREEN' }) !== 'approved') process.exit(1);
 console.log('pack smoke: ESM imports of /hosted and /sumsub work');
 "
-# The service, in its own project: it brings express and pg as real
+# The service, in its own project: it brings pg, knex and Apollo as real
 # dependencies, so it cannot share the peer-free project above. It pins
 # kyc-node@0.0.0-development the way the platform packages pin core; the
 # override resolves that pin to the packed server, as the release stamp does
@@ -148,7 +148,10 @@ assert.ok('@blinkbitcoin/kyc-node' in servicePkg.dependencies, 'the service depe
 const serviceDir = dirname(require.resolve('@blinkbitcoin/kyc-service/package.json'));
 assert.equal(existsSync(`${serviceDir}/node_modules/@blinkbitcoin/kyc-node`), false, 'the service must share the one kyc-node install, not nest its own');
 assert.equal(typeof require('@blinkbitcoin/kyc-node').createVerificationService, 'function');
-assert.equal(typeof require('@blinkbitcoin/kyc-node/express').createKycRouter, 'function', 'the service install carries express, so /express loads');
+// The service is Fetch-native: it brings no express, so /express stays an optional peer here too
+let serviceExpress = false;
+try { require('@blinkbitcoin/kyc-node/express'); serviceExpress = true; } catch {}
+assert.equal(serviceExpress, false, 'the service install must not carry express');
 console.log('pack smoke: the service installs over the one packed kyc-node');
 NODE
 echo "PACK SMOKE PASSED"

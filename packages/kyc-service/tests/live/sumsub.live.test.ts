@@ -21,9 +21,9 @@
 // mapped error; the round trips go through the service.
 
 import { createSumsubClient, sumsubConfigFromEnv } from '@blinkbitcoin/kyc-node';
-import type { Express } from 'express';
-import request from 'supertest';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { KycApp } from '../../src/app';
+import { asJson, get, graphql, post } from '../support/app';
 import { signWebhook, type WebhookDigestAlg } from './sumsub-sandbox';
 
 const REQUIRED_ENV = ['SUMSUB_APP_TOKEN', 'SUMSUB_SECRET_KEY', 'SUMSUB_WEBHOOK_SECRET'] as const;
@@ -93,30 +93,33 @@ const STATUS = `
 describe.runIf(missing.length === 0 && hasDatabase)(
   'the service on the Sumsub provider (live, sandbox)',
   () => {
-    let app: Express;
+    let app: KycApp;
 
-    const call = (query: string, variables: object, user?: string) => {
-      const req = request(app).post('/graphql').send({ query, variables });
-      return user ? req.set('authorization', `Bearer ${user}`) : req;
-    };
+    // biome-ignore lint/suspicious/noExplicitAny: the GraphQL result shape these tests read, loosely
+    const call = async (query: string, variables: object, user?: string): Promise<any> =>
+      graphql(app, query, variables as Record<string, unknown>, user);
 
     beforeAll(async () => {
-      // The provider is selected when the composition root loads, so the
-      // environment is set before the app is imported. Insecure dev makes
-      // the bearer token the user id (no JWT) and keeps the localhost
-      // PUBLIC_BASE_URL default; the Sumsub credentials are the real ones.
+      // The provider is selected from the env the app is handed. Insecure
+      // dev makes the bearer token the user id (no JWT) and keeps the
+      // localhost PUBLIC_BASE_URL default; the Sumsub credentials are the
+      // real ones.
       process.env.KYC_PROVIDER = 'sumsub';
       process.env.ALLOW_INSECURE_DEV = 'true';
       delete process.env.JWT_SECRET;
-      const { createApp } = await import('../../src/app');
-      app = await createApp();
+      const { envApp } = await import('../support/app');
+      app = envApp();
+    });
+
+    afterAll(async () => {
+      await app?.stop();
     });
 
     it('starts a session with a real token, refreshes it, reads it back and serves its page', async () => {
       const user = liveUser('session');
       const started = await call(START, { input: { platform: 'IOS' } }, user);
-      expect(started.body.errors).toBeUndefined();
-      const session = started.body.data.verificationSessionStart;
+      expect(started.errors).toBeUndefined();
+      const session = started.data.verificationSessionStart;
       expect(session.provider).toBe('sumsub');
       expect(session.status).toBe('initial');
       expect(session.accessToken.length).toBeGreaterThan(0);
@@ -125,24 +128,24 @@ describe.runIf(missing.length === 0 && hasDatabase)(
       expect(session.url).toContain(`/hosted/${session.sessionId}`);
 
       const refreshed = await call(REFRESH, { sessionId: session.sessionId }, user);
-      expect(refreshed.body.errors).toBeUndefined();
-      expect(refreshed.body.data.verificationSessionRefresh.accessToken.length).toBeGreaterThan(0);
+      expect(refreshed.errors).toBeUndefined();
+      expect(refreshed.data.verificationSessionRefresh.accessToken.length).toBeGreaterThan(0);
 
       // Reconciled against Sumsub through the external-user-id lookup: no
       // applicant yet, so the stored `initial` stands
       const status = await call(STATUS, { id: session.sessionId }, user);
-      expect(status.body.data.verificationSession.status).toBe('initial');
+      expect(status.data.verificationSession.status).toBe('initial');
 
-      const page = await request(app).get(`/hosted/${session.sessionId}`);
+      const page = await get(app, `/hosted/${session.sessionId}`);
       expect(page.status).toBe(200);
-      expect(page.text).toContain('snsWebSdk');
-      expect(page.headers['content-security-policy']).toContain('frame-ancestors *');
+      expect(await page.text()).toContain('snsWebSdk');
+      expect(page.headers.get('content-security-policy')).toContain('frame-ancestors *');
     });
 
     it('accepts a webhook signed with the real secret and binds the applicant to the session', async () => {
       const user = liveUser('webhook');
       const started = await call(START, { input: { platform: 'ANDROID' } }, user);
-      const { sessionId } = started.body.data.verificationSessionStart;
+      const { sessionId } = started.data.verificationSessionStart;
 
       // What Sumsub sends on review, signed the way the dashboard signs it
       // (the secret and the digest algorithm registered there)
@@ -160,20 +163,18 @@ describe.runIf(missing.length === 0 && hasDatabase)(
         digestAlg
       );
 
-      const res = await request(app)
-        .post('/webhook/kyc/sumsub')
-        .set('Content-Type', 'application/json')
-        .set('x-payload-digest', digest)
-        .set('x-payload-digest-alg', alg)
-        .send(body);
+      const res = await post(app, '/webhook/kyc/sumsub', body, {
+        'x-payload-digest': digest,
+        'x-payload-digest-alg': alg,
+      });
       expect(res.status).toBe(200);
-      expect(res.body.outcome).toBe('updated');
+      expect(await asJson(res)).toMatchObject({ outcome: 'updated' });
 
       // First webhook of a session created before the applicant existed:
       // found through the external user id, bound, and approved (terminal,
       // so the read needs no provider lookup)
       const status = await call(STATUS, { id: sessionId }, user);
-      expect(status.body.data.verificationSession).toMatchObject({
+      expect(status.data.verificationSession).toMatchObject({
         status: 'approved',
         applicantId,
       });

@@ -13,8 +13,8 @@ mode literal) → `apollo.ts` (client + auth token) → `source.ts` (one
 
 The service these hosts run against is [`packages/kyc-service`](../packages/kyc-service/README.md),
 the reference host of the server package: this service's
-policy (helmet, CORS, rate limits, JWT auth, fail-closed boot) around the
-package's router, schema, store and adapters. It is **required for mode 3
+policy (session verification, CORS, rate limits, fail-closed boot) around
+the package's presets, schema, store and adapters, as one Fetch core. It is **required for mode 3
 only**, and is also the mock provider that drives every E2E suite in the
 repo - which is why the backend, web and mobile suites can run with no
 provider credentials at all.

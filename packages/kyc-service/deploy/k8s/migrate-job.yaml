@@ -1,0 +1,26 @@
+# Applies the session schema to DATABASE_URL. Run it once per database
+# (and after an upgrade that adds a migration); it is only needed when
+# session orchestration is on.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kyc-service-migrate
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: migrate
+          image: ghcr.io/blinkbitcoin/kyc-service:latest
+          command: ["node", "dist/node.js", "migrate"]
+          envFrom:
+            - secretRef:
+                name: kyc-service
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

@@ -11,3 +11,6 @@ const digits = (value: string | undefined): number | undefined =>
 
 export const resolvePort = (env: NodeJS.ProcessEnv = process.env): number =>
   digits(env.PORT) ?? (digits(env.KYC_PORT_BASE) ?? PORT_BASE_DEFAULT) + PORT_OFFSET;
+
+export const localOrigin = (env: NodeJS.ProcessEnv = process.env): string =>
+  `http://localhost:${resolvePort(env)}`;

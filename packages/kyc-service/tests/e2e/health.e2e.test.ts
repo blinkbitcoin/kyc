@@ -1,16 +1,14 @@
-// Backend E2E smoke against a real Postgres: the app boots, the migration
-// applied, and the health endpoints answer.
+// Backend E2E smoke against a real Postgres: the app boots with sessions on,
+// the migration applied, and the health endpoints answer.
 
-import type { Express } from 'express';
-import request from 'supertest';
-import { createApp } from '../../src/app';
+import { asJson, envApp, get, graphql } from '../support/app';
 import { knex } from './setup';
 
 describe('health (E2E)', () => {
-  let app: Express;
+  const app = envApp();
 
-  beforeAll(async () => {
-    app = await createApp();
+  afterAll(async () => {
+    await app.stop();
   });
 
   it('applied the VerificationSession and AuditLog tables', async () => {
@@ -18,14 +16,17 @@ describe('health (E2E)', () => {
     expect(await knex.schema.hasTable('AuditLog')).toBe(true);
   });
 
-  it('GET /health is ok', async () => {
-    const res = await request(app).get('/health');
-    expect(res.status).toBe(200);
-    expect(res.body.status).toBe('ok');
+  it('GET /health is ok and reports both capabilities', async () => {
+    const response = await get(app, '/health');
+    expect(response.status).toBe(200);
+    expect(await asJson(response)).toMatchObject({
+      status: 'ok',
+      capabilities: ['tokens', 'sessions'],
+    });
   });
 
   it('GraphQL health is ok', async () => {
-    const res = await request(app).post('/graphql').send({ query: '{ health { status } }' });
-    expect(res.body.data.health.status).toBe('ok');
+    const result = await graphql<{ health: { status: string } }>(app, '{ health { status } }');
+    expect(result.data?.health.status).toBe('ok');
   });
 });

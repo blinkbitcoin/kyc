@@ -1,7 +1,7 @@
 # Architecture - Backend (`@blinkbitcoin/kyc-node`, composed by `packages/kyc-service`)
 
 **Part:** backend
-**Type:** a Node package (ports and adapters) plus the Express 5 + Apollo Server 5 service built on it
+**Type:** a Node package (ports and adapters) plus the Fetch-native service (Apollo Server 5 over `executeHTTPGraphQLRequest`) built on it
 **Updated:** 2026-09-10
 
 ## Technology Stack
@@ -9,7 +9,7 @@
 | Category | Technology | Version |
 |----------|------------|---------|
 | Package | `@blinkbitcoin/kyc-node` (tsup, cjs + esm + dts) | Node ≥ 18, framework-free root |
-| Framework (service) | Express | 5.x |
+| Runtime bridge (service) | `@hono/node-server` (container); Vercel and Cloudflare entries | 2.x |
 | GraphQL (service) | Apollo Server | 5.x |
 | Language | TypeScript | 6.0.x |
 | Query builder | Knex.js | 3.3.x (optional peer of the package) |
@@ -22,12 +22,12 @@
 
 ## Architecture pattern
 
-**Ports and adapters in the package, composition in the service.** The package owns every rule; the service owns deployment policy (secrets, auth, rate limits, tracing) and wires the package into Express and Apollo.
+**Ports and adapters in the package, composition in the service.** The package owns every rule; the service owns deployment policy (secrets, auth, rate limits, tracing) and wires the package into one Fetch handler, with Apollo behind the sessions capability.
 
 ```
 HTTP request
     ↓
-packages/kyc-service: Express (helmet, per-route rate limit, CORS), Apollo, JWT, OTel
+packages/kyc-service: one Fetch core (security headers, CORS, session verification), Apollo behind DATABASE_URL, rate limits on the Node target, OTel
     ↓
 @blinkbitcoin/kyc-node: createVerificationService  ──►  SessionStore port  ──►  /knex store  ──►  PostgreSQL
     ↓                                                       (or the in-memory store)
@@ -69,10 +69,10 @@ The service (`packages/kyc-service/src/`), composition only:
 
 | Path | Role |
 |------|------|
-| `app.ts` | helmet, CORS allow-list, per-route rate limits, JWT → `userId`, Apollo over `createKycGraphQL`, `createKycRouter` mounted |
-| `services.ts` / `store.ts` / `migrate.ts` | The service instance over the Knex store; `runKycMigrations` |
+| `app.ts` / `sessions.ts` | The Fetch core: capabilities → routes, security headers, CORS, session verification → `userId`, the package's `createAccessTokenApp`; the sessions capability (Apollo over `createKycGraphQL`, the hosted-page and webhook handlers) behind a loader |
+| `services.ts` / `store.ts` / `migrate.ts` | The service instance over the Knex store, built per app from its env; `runKycMigrations` |
 | `providers/{index,mock,sumsub/*}.ts` | The service's registry: the package adapters wired to its config and policy (`assertMockProviderAllowed`, `validateConfig` fail-fast), each wrapped in tracing |
-| `config.ts` / `auth.ts` / `server.ts` / `index.ts` | `validateSecurityConfig`, CORS origins, `PUBLIC_BASE_URL`; JWT; boot (fail-closed) and the process entry |
+| `config.ts` / `session.ts` / `server.ts` / `node.ts` | `validateConfig` (pure boot guard), CORS origins, `PUBLIC_BASE_URL`; session verification (JWKS or HS256 via `jose`); the Node target (rate limits, SIGTERM drain) and the process entry; `vercel.ts` / `cloudflare.ts` are the function targets |
 | `tracing.ts` / `instrumentation.ts` | `withSpan`, `instrumentProvider`, the OTel bootstrap |
 | `schema.ts` / `typeDefs.ts` / `errors.ts` / `types.ts` / `providers/port.ts` | Thin re-exports of the package (the SDL re-export is what `schema:emit` reads) |
 
@@ -117,7 +117,7 @@ Three rules the service layer states, and the resolvers only relay:
 
 ## Webhook processing
 
-`POST /webhook/kyc/:provider` is rate-limited (120/min) and reads the body as **text**, not JSON, because the signature is over the raw bytes.
+`POST /webhook/kyc/:provider` is rate-limited (120/min, on the Node target) and reads the body as **text**, not JSON, because the signature is over the raw bytes.
 
 [![Webhook Flow](../diagrams/dist/webhook-flow.svg)](../diagrams/src/webhook-flow.mmd)
 
@@ -136,7 +136,7 @@ All six answer `200` with `{ received: true, outcome }`: a provider retry loop i
 
 ## The hosted page
 
-`GET /hosted/:sessionId` (rate-limited 60/min) renders a single-purpose HTML page from the provider's `hostedPage` renderer:
+`GET /hosted/:sessionId` (rate-limited 60/min on the Node target) renders a single-purpose HTML page from the provider's `hostedPage` renderer:
 
 - A session that is unknown, belongs to a different provider than the one configured, or is already terminal gets the not-found page (`404`), which emits `sessionExpired` over the bridge so the embedding component shows Restart rather than hanging on a session that can no longer progress.
 - The access token is minted **fresh on every render** through `provider.refreshToken`; a failure is a `502`, rendered as the same not-found page.
@@ -147,7 +147,7 @@ All six answer `200` with `{ received: true, outcome }`: a provider retry loop i
 
 ## Security features
 
-Fail-closed boot (`validateSecurityConfig`: JWT secret, the Sumsub credentials, an absolute `PUBLIC_BASE_URL`), the single `ALLOW_INSECURE_DEV=true` escape hatch, HS256 JWT verification with the raw-token fallback only in insecure dev, webhook signatures over the raw body with a constant-time compare and an algorithm allow-list, the provider-scoped webhook route, the origin pin on the client side, the hosted page's nonce CSP, rate limits per route, a 64 kb body limit, and no PII in logs, spans or the audit trail (a nine-key metadata allow-list). The threat model and each control's rationale are in [security.md](security.md).
+Fail-closed boot (`validateConfig`: a session source, the Sumsub settings a mint needs, an absolute `PUBLIC_BASE_URL` and the webhook secret once sessions are on, no demo settings under `KYC_ENV=production`), the single `ALLOW_INSECURE_DEV=true` escape hatch, session verification (JWKS or HS256 via `jose`, `exp` required) with the raw-token fallback only in insecure dev, webhook signatures over the raw body with a constant-time compare and an algorithm allow-list, the provider-scoped webhook route, the origin pin on the client side, the hosted page's nonce CSP, rate limits per route, a 64 kb body limit, and no PII in logs, spans or the audit trail (a nine-key metadata allow-list). The threat model and each control's rationale are in [security.md](security.md).
 
 ## Observability
 

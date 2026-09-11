@@ -1,0 +1,20 @@
+# wrangler deploy
+#
+# nodejs_compat is required: the Sumsub request signature and the webhook
+# digest are HMACs over node:crypto. The Worker's vars and secrets ARE the
+# environment - the same names a container reads from its env file.
+#
+# Secrets (wrangler secret put <NAME>), never vars:
+#   SESSION_HS256_SECRET (or nothing, when SESSION_JWKS_URL is used)
+#   SUMSUB_APP_TOKEN, SUMSUB_SECRET_KEY
+name = "kyc-service"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+KYC_ENV = "production"
+KYC_PROVIDER = "sumsub"
+SESSION_JWKS_URL = "https://id.example.com/.well-known/jwks.json"
+SUMSUB_LEVEL_NAME = "basic-kyc-level"
+CORS_ALLOWED_ORIGINS = "https://app.example.com"

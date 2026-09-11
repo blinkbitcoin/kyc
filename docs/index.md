@@ -12,7 +12,7 @@
 | **Type** | Monorepo (npm workspaces): five packages + three server/client example hosts + the tooling workspace |
 | **Domain** | Fintech / identity verification (KYC) |
 | **Primary Language** | TypeScript |
-| **Architecture** | React and React Native packages over a shared core; a ports-and-adapters server package that the Express/Apollo reference backend and the access-token example compose |
+| **Architecture** | React and React Native packages over a shared core; a ports-and-adapters server package that the Fetch-native reference backend and the access-token example compose |
 
 ### Quick Reference
 
@@ -25,7 +25,7 @@
 
 #### The reference backend (`packages/kyc-service/`)
 
-- **Framework:** Express 5 + Apollo Server 5, Knex 3 / PostgreSQL 15+
+- **Framework:** a Fetch-native core (`@hono/node-server` on the container), Apollo Server 5, Knex 3 / PostgreSQL 15+
 - **Entry point:** `packages/kyc-service/src/index.ts`
 - **API:** GraphQL at `/graphql`, hosted page at `/hosted/:sessionId`, webhook at `/webhook/kyc/:provider`, health at `/health`
 - **Role:** the reference implementation of mode 3 - and the mock provider that drives every E2E suite

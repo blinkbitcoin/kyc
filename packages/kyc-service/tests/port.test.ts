@@ -1,6 +1,6 @@
 // The service's port: PORT wins, else the repo's base port + offset 0.
 
-import { PORT_BASE_DEFAULT, PORT_OFFSET, resolvePort } from '../src/port';
+import { localOrigin, PORT_BASE_DEFAULT, PORT_OFFSET, resolvePort } from '../src/port';
 
 describe('resolvePort', () => {
   it('defaults to the repo base port (offset 0)', () => {
@@ -27,6 +27,7 @@ describe('resolvePort', () => {
     process.env.PORT = '5567';
     try {
       expect(resolvePort()).toBe(5567);
+      expect(localOrigin()).toBe('http://localhost:5567');
     } finally {
       if (before === undefined) {
         delete process.env.PORT;
@@ -34,5 +35,9 @@ describe('resolvePort', () => {
         process.env.PORT = before;
       }
     }
+  });
+
+  it('derives the local origin', () => {
+    expect(localOrigin({ KYC_PORT_BASE: '5300' })).toBe('http://localhost:5300');
   });
 });

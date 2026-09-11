@@ -10,10 +10,6 @@ export default defineConfig({
     // tests); the subpaths first so the bare name does not swallow them
     alias: [
       {
-        find: '@blinkbitcoin/kyc-node/express',
-        replacement: fromRoot('../../packages/kyc-node/src/express.ts'),
-      },
-      {
         find: '@blinkbitcoin/kyc-node/knex',
         replacement: fromRoot('../../packages/kyc-node/src/knex.ts'),
       },

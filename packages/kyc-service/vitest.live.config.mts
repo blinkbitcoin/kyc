@@ -17,10 +17,6 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: '@blinkbitcoin/kyc-node/express',
-        replacement: fromRoot('../../packages/kyc-node/src/express.ts'),
-      },
-      {
         find: '@blinkbitcoin/kyc-node/knex',
         replacement: fromRoot('../../packages/kyc-node/src/knex.ts'),
       },

@@ -2,16 +2,18 @@
 // service's configuration and webhook policy (ALLOW_INSECURE_DEV allows
 // unsigned webhooks; the credentials are read per call so rotation and tests
 // see the current environment).
+//
+// A factory: the adapter closes over the env the app was handed, never
+// over process.env at import time.
 
-import { createSumsubProvider } from '@blinkbitcoin/kyc-node';
-import { isWebhookSignatureRequired } from '../../config';
+import { createSumsubProvider, type SumsubProviderHandle } from '@blinkbitcoin/kyc-node';
+import { type Env, isWebhookSignatureRequired } from '../../env';
 import { getConfig } from './config';
 
-const handle = createSumsubProvider({
-  config: () => getConfig(),
-  webhook: { allowMissingSecret: () => !isWebhookSignatureRequired() },
-});
+export const createSumsub = (env: Env = process.env): SumsubProviderHandle =>
+  createSumsubProvider({
+    config: () => getConfig(env),
+    webhook: { allowMissingSecret: () => !isWebhookSignatureRequired(env) },
+  });
 
-export const SumsubProvider = handle;
-
-export { getConfig, validateConfig } from './config';
+export { assertSumsubSettings, getConfig } from './config';

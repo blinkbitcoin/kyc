@@ -1,128 +1,133 @@
+// Provider selection: KYC_PROVIDER → this service's registry entry, from the
+// env it is handed and nothing else. The boot checks each entry makes are
+// the reason selection is what the boot guard runs.
+
 import { vi } from 'vitest';
-import { getProvider, getProviderName, isKnownProvider, registry } from '../src/providers';
-import { clearApplicants } from '../src/providers/mock';
 
-const SUMSUB_ENV = {
-  SUMSUB_APP_TOKEN: 'app-token',
-  SUMSUB_SECRET_KEY: 'secret-key',
-  SUMSUB_WEBHOOK_SECRET: 'webhook-secret',
-};
+import { getProvider, selectProvider } from '../src/providers';
+import { createMock, getMockWebhookSecret, signMockWebhook } from '../src/providers/mock';
+import { assertSumsubSettings, createSumsub, getConfig } from '../src/providers/sumsub';
 
-const originalEnv = { ...process.env };
+const DEV = { ALLOW_INSECURE_DEV: 'true' };
+const SUMSUB = { SUMSUB_APP_TOKEN: 'app-token', SUMSUB_SECRET_KEY: 'secret-key' };
 
-beforeEach(() => clearApplicants());
+describe('selectProvider', () => {
+  it('selects the instrumented mock by default, with its handle and its hosted page', async () => {
+    const selected = selectProvider({ ...DEV });
 
-afterEach(() => {
-  process.env = { ...originalEnv };
-  vi.restoreAllMocks();
-});
-
-describe('isKnownProvider / getProviderName', () => {
-  it('knows exactly mock and sumsub, never a prototype property', () => {
-    expect(Object.keys(registry).sort()).toEqual(['mock', 'sumsub']);
-    expect(isKnownProvider('mock')).toBe(true);
-    expect(isKnownProvider('sumsub')).toBe(true);
-    expect(isKnownProvider('onfido')).toBe(false);
-    expect(isKnownProvider('constructor')).toBe(false);
-  });
-
-  it('defaults to mock, echoes a configured provider and reads an unknown one as mock, silently', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    expect(getProviderName({} as NodeJS.ProcessEnv)).toBe('mock');
-    expect(getProviderName({ KYC_PROVIDER: 'sumsub' } as NodeJS.ProcessEnv)).toBe('sumsub');
-    expect(getProviderName({ KYC_PROVIDER: 'nope' } as NodeJS.ProcessEnv)).toBe('mock');
-    expect(warn).not.toHaveBeenCalled();
-  });
-});
-
-describe('getProvider', () => {
-  it('returns an instrumented mock provider by default, with its hosted page', async () => {
-    const provider = getProvider();
-    const session = await provider.createSession('user-1', { platform: 'WEB' });
+    expect(selected.providerName).toBe('mock');
+    expect(selected.mock).toBeDefined();
+    const session = await selected.provider.createSession('user-1', { platform: 'WEB' });
     expect(session.accessToken).toMatch(/^mock-token-/);
-    expect(provider.getStatusByUserId).toBeUndefined();
-    expect(typeof provider.hostedPage?.render).toBe('function');
+    expect(selected.provider.getStatusByUserId).toBeUndefined();
+    expect(typeof selected.provider.hostedPage?.render).toBe('function');
   });
 
-  it('returns the instrumented Sumsub provider when configured', () => {
-    Object.assign(process.env, SUMSUB_ENV);
-    const provider = getProvider('sumsub');
-    expect(typeof provider.createSession).toBe('function');
-    expect(typeof provider.getStatusByUserId).toBe('function');
-    expect(typeof provider.hostedPage?.csp).toBe('function');
+  it('selects the instrumented Sumsub adapter when configured, with no mock handle', () => {
+    const selected = selectProvider({ KYC_PROVIDER: 'sumsub', ...SUMSUB });
+
+    expect(selected.providerName).toBe('sumsub');
+    expect(selected.mock).toBeUndefined();
+    expect(typeof selected.provider.createSession).toBe('function');
+    expect(typeof selected.provider.getStatusByUserId).toBe('function');
+    expect(typeof selected.provider.hostedPage?.csp).toBe('function');
   });
 
-  it('fails fast when the Sumsub credentials are missing', () => {
-    expect(() => getProvider('sumsub')).toThrow(/Missing required environment variables/);
+  it('fails fast when the settings a mint needs are missing', () => {
+    expect(() => selectProvider({ KYC_PROVIDER: 'sumsub' })).toThrow(
+      /missing required environment variables: SUMSUB_APP_TOKEN, SUMSUB_SECRET_KEY/
+    );
   });
 
   it('refuses to hand out the forgeable mock provider outside insecure dev', () => {
-    delete process.env.ALLOW_INSECURE_DEV;
-    expect(() => getProvider('mock')).toThrow(/KYC_PROVIDER=mock/);
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    expect(() => getProvider('nope')).toThrow(/KYC_PROVIDER=mock/);
+    expect(() => selectProvider({})).toThrow(/KYC_PROVIDER=mock/);
   });
 
   it('KYC_ENV=production refuses the mock and a sandbox token unless demo is allowed', () => {
-    process.env.KYC_ENV = 'production';
-    expect(() => getProvider('mock')).toThrow(/the mock provider is a demo provider/);
-    Object.assign(process.env, SUMSUB_ENV, { SUMSUB_APP_TOKEN: 'sbx:app-token' });
-    expect(() => getProvider('sumsub')).toThrow(/SUMSUB_APP_TOKEN=sbx:… is a demo setting/);
-    process.env.KYC_ALLOW_DEMO = 'true';
-    expect(() => getProvider('sumsub')).not.toThrow();
-    expect(() => getProvider('mock')).not.toThrow();
-    delete process.env.KYC_ALLOW_DEMO;
-    process.env.SUMSUB_APP_TOKEN = 'prd:app-token';
-    expect(() => getProvider('sumsub')).not.toThrow();
+    expect(() => selectProvider({ ...DEV, KYC_ENV: 'production' })).toThrow(
+      /the mock provider is a demo provider/
+    );
+    const sandbox = { KYC_PROVIDER: 'sumsub', ...SUMSUB, SUMSUB_APP_TOKEN: 'sbx:app-token' };
+    expect(() => selectProvider({ ...sandbox, KYC_ENV: 'production' })).toThrow(
+      /SUMSUB_APP_TOKEN=sbx:… is a demo setting/
+    );
+    expect(() =>
+      selectProvider({ ...sandbox, KYC_ENV: 'production', KYC_ALLOW_DEMO: 'true' })
+    ).not.toThrow();
+    expect(() =>
+      selectProvider({ ...DEV, KYC_ENV: 'production', KYC_ALLOW_DEMO: 'true' })
+    ).not.toThrow();
+    expect(() =>
+      selectProvider({ KYC_PROVIDER: 'sumsub', ...SUMSUB, KYC_ENV: 'production' })
+    ).not.toThrow();
   });
 
-  it('warns and falls back to mock for an unknown provider name', async () => {
+  it('warns and falls back to the mock for an unknown name, or reports it through onUnknown', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const provider = getProvider('nope');
-    await expect(provider.createSession('u', { platform: 'WEB' })).resolves.toMatchObject({
-      accessToken: expect.stringMatching(/^mock-token-/),
-    });
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Unknown KYC_PROVIDER: nope'));
+    const selected = selectProvider({ ...DEV, KYC_PROVIDER: 'onfido' });
+    expect(selected.providerName).toBe('mock');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Unknown KYC_PROVIDER: onfido'));
+    warn.mockRestore();
+
+    const onUnknown = vi.fn();
+    expect(selectProvider({ ...DEV, KYC_PROVIDER: 'onfido' }, { onUnknown }).providerName).toBe(
+      'mock'
+    );
+    expect(onUnknown).toHaveBeenCalledWith('onfido', 'mock');
   });
 
-  it('reads KYC_PROVIDER when no name is passed', () => {
-    Object.assign(process.env, SUMSUB_ENV, { KYC_PROVIDER: 'sumsub' });
-    expect(typeof getProvider().getStatusByUserId).toBe('function');
+  it('reads process.env by default (tests/setup.ts puts the suite in insecure dev)', () => {
+    expect(selectProvider().providerName).toBe('mock');
+    expect(typeof getProvider().createSession).toBe('function');
   });
 });
 
 describe('the service adapters', () => {
-  it('mock: signs its webhooks with MOCK_WEBHOOK_SECRET and posts to PUBLIC_BASE_URL', async () => {
-    const { getMockWebhookSecret, MockProvider, signMockWebhook } = await import(
-      '../src/providers/mock'
-    );
-    expect(getMockWebhookSecret({} as NodeJS.ProcessEnv)).toBe('mock');
-    expect(getMockWebhookSecret({ MOCK_WEBHOOK_SECRET: 'other' } as NodeJS.ProcessEnv)).toBe(
-      'other'
-    );
+  it('mock: signs its webhooks with MOCK_WEBHOOK_SECRET and posts to PUBLIC_BASE_URL', () => {
+    expect(getMockWebhookSecret({})).toBe('mock');
+    expect(getMockWebhookSecret({ MOCK_WEBHOOK_SECRET: 'other' })).toBe('other');
+    const env = { ...DEV, PUBLIC_BASE_URL: 'https://kyc.example.com', MOCK_WEBHOOK_SECRET: 'k' };
+    const handle = createMock(env);
     const body = '{"applicantId":"a1","status":"approved"}';
-    expect(MockProvider.verifyWebhook({ 'x-mock-signature': signMockWebhook(body) }, body)).toBe(
+    // A fresh handle under the same env signs what the app's handle verifies
+    expect(handle.verifyWebhook({ 'x-mock-signature': signMockWebhook(body, env) }, body)).toBe(
       true
     );
-    process.env.PUBLIC_BASE_URL = 'https://kyc.example.com';
+    // A bad signature is a security event on the console
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(
-      MockProvider.hostedPage!.render({ sessionId: 's', userId: 'u', accessToken: 't', nonce: 'n' })
+      handle.verifyWebhook(
+        { 'x-mock-signature': signMockWebhook(body, { ...env, MOCK_WEBHOOK_SECRET: 'z' }) },
+        body
+      )
+    ).toBe(false);
+    expect(error).toHaveBeenCalledWith('Security event:', expect.stringContaining('Mock webhook'));
+    error.mockRestore();
+    expect(
+      handle.hostedPage.render({ sessionId: 's', userId: 'u', accessToken: 't', nonce: 'n' })
     ).toContain('https://kyc.example.com/webhook/kyc/mock');
+    // process.env by default: the suite's insecure dev gives the local origin
+    expect(
+      createMock().hostedPage.render({ sessionId: 's', userId: 'u', accessToken: 't', nonce: 'n' })
+    ).toContain('http://localhost:5100/webhook/kyc/mock');
+    expect(typeof signMockWebhook(body)).toBe('string');
   });
 
-  it('sumsub: reads the environment per call and follows the insecure-dev webhook policy', async () => {
-    const { getConfig, SumsubProvider, validateConfig } = await import('../src/providers/sumsub');
-    expect(getConfig({} as NodeJS.ProcessEnv).levelName).toBe('basic-kyc-level');
-    expect(() => validateConfig({} as NodeJS.ProcessEnv)).toThrow(
-      /SUMSUB_APP_TOKEN, SUMSUB_SECRET_KEY, SUMSUB_WEBHOOK_SECRET/
-    );
-    expect(() => validateConfig({ ...SUMSUB_ENV } as NodeJS.ProcessEnv)).not.toThrow();
-    // No secret + insecure dev (tests/setup.ts): unsigned webhooks pass with a warning
+  it('sumsub: reads the environment it was handed per call and follows the insecure-dev webhook policy', () => {
+    expect(getConfig({}).levelName).toBe('basic-kyc-level');
+    expect(getConfig().levelName).toBe('basic-kyc-level');
+    expect(() => assertSumsubSettings({})).toThrow(/SUMSUB_APP_TOKEN, SUMSUB_SECRET_KEY/);
+    expect(() => assertSumsubSettings()).toThrow(/SUMSUB_APP_TOKEN/);
+    expect(() => assertSumsubSettings({ ...SUMSUB })).not.toThrow();
+    // No secret + insecure dev: unsigned webhooks pass with a warning
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    expect(SumsubProvider.verifyWebhook({}, '{}')).toBe(true);
+    expect(createSumsub({ ...DEV, ...SUMSUB }).verifyWebhook({}, '{}')).toBe(true);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('disabled'));
-    delete process.env.ALLOW_INSECURE_DEV;
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(SumsubProvider.verifyWebhook({}, '{}')).toBe(false);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(createSumsub({ ...SUMSUB }).verifyWebhook({}, '{}')).toBe(false);
+    // process.env by default: the suite's insecure dev
+    expect(createSumsub().verifyWebhook({}, '{}')).toBe(true);
+    error.mockRestore();
+    warn.mockRestore();
   });
 });
