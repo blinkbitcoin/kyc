@@ -184,4 +184,4 @@ Signature headers: `x-payload-digest` with optional `x-payload-digest-alg` (`HMA
 
 ## Audit log actions
 
-`session_created`, `token_refreshed`, `status_updated`, `webhook_rejected`, `creation_failed`, `effect_failed`. Metadata is restricted to a nine-key allow-list (`userId`, `provider`, `platform`, `levelName`, `status`, `previousStatus`, `source`, `errorCode`, `reason`) - see [data-models.md](data-models.md).
+`session_created`, `token_refreshed`, `status_updated`, `webhook_rejected`, `creation_failed`, `effect_failed`. Metadata is restricted to a ten-key allow-list (`userId`, `provider`, `platform`, `levelName`, `status`, `previousStatus`, `source`, `errorCode`, `reason`, `rejectLabels`) - see [data-models.md](data-models.md).

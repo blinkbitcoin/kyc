@@ -42,6 +42,7 @@ describe('sanitizeAuditMetadata', () => {
       'previousStatus',
       'provider',
       'reason',
+      'rejectLabels',
       'source',
       'status',
       'userId',

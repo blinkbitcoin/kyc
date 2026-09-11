@@ -297,6 +297,49 @@ describe('parseWebhookEvent', () => {
     });
   });
 
+  it('carries the level and the reject labels when the payload has them', () => {
+    expect(
+      provider.parseWebhookEvent(
+        JSON.stringify({
+          type: 'applicantReviewed',
+          applicantId: 'a1',
+          levelName: 'card-kyc',
+          reviewStatus: 'completed',
+          reviewResult: {
+            reviewAnswer: 'RED',
+            reviewRejectType: 'RETRY',
+            rejectLabels: ['BAD_SELFIE', 'DOCUMENT_DAMAGED'],
+          },
+        }),
+      ),
+    ).toMatchObject({
+      status: 'declined',
+      levelName: 'card-kyc',
+      rejectLabels: ['BAD_SELFIE', 'DOCUMENT_DAMAGED'],
+    });
+  });
+
+  it('leaves the level and the labels out when absent, empty or not strings', () => {
+    for (const reviewResult of [
+      { reviewAnswer: 'RED', rejectLabels: [] },
+      { reviewAnswer: 'RED', rejectLabels: ['ok', 7] },
+      { reviewAnswer: 'RED', rejectLabels: 'BAD' },
+      { reviewAnswer: 'RED' },
+    ]) {
+      const event = provider.parseWebhookEvent(
+        JSON.stringify({
+          type: 'applicantReviewed',
+          applicantId: 'a1',
+          levelName: '',
+          reviewStatus: 'completed',
+          reviewResult,
+        }),
+      );
+      expect(event).not.toHaveProperty('rejectLabels');
+      expect(event).not.toHaveProperty('levelName');
+    }
+  });
+
   it('reports a non-actionable event with a null status', () => {
     expect(
       provider.parseWebhookEvent(

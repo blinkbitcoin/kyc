@@ -23,6 +23,8 @@ export interface AuditMetadata {
   source?: 'api' | 'webhook';
   errorCode?: string;
   reason?: string;
+  /** The provider's decline reasons, verbatim (a `status_updated` to declined / finallyRejected). */
+  rejectLabels?: string[];
 }
 
 export const ALLOWED_METADATA_KEYS: ReadonlySet<string> = new Set([
@@ -35,6 +37,7 @@ export const ALLOWED_METADATA_KEYS: ReadonlySet<string> = new Set([
   'source',
   'errorCode',
   'reason',
+  'rejectLabels',
 ]);
 
 /** The metadata with every key outside the allow-list dropped. */
