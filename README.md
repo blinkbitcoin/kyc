@@ -340,5 +340,3 @@ workflow, environment variables and troubleshooting.
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Conventional Commits (enforced by hooks and CI), the quality gates, the PR checklist
 - [SECURITY.md](SECURITY.md) - reporting a vulnerability privately
 - [LICENSE](LICENSE) - MIT
-
-Built the way [blinkbitcoin/esign](https://github.com/blinkbitcoin/esign) was.
