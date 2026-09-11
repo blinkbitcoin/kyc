@@ -15,11 +15,11 @@ release`, see [docs/releasing.md](docs/releasing.md)).
 
 | Workspace | Path | Role |
 |-----------|------|------|
-| `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: the shared verification state machine, `VerificationSource` + capability guards, `kyc-bridge` protocol, hosted + proxy sources, Apollo client factory, GraphQL operations, `ErrorCode` contract (no React/DOM); `providers/sumsub/` is the one Sumsub↔normalized mapping (used by `examples/full-service-demo` too). Entries: `.`, `/hosted` (Apollo-free), `/testing` (fake source), `/sumsub` (Apollo-free, the mapping + the hosted layer) |
-| `@blinkbitcoin/kyc-server` | `packages/kyc-server/` | Node-only server half: `createVerificationService` over the `VerificationProvider` + `SessionStore` ports, the Sumsub and mock adapters under `providers/`, the hosted page, Fetch handlers, the `/express` router, the `/knex` store with its migrations, `providerFromEnv` + `defaultRegistry`. A backend with its own API imports it (`examples/access-token-demo`); `examples/full-service-demo` is the whole service composed on it |
+| `@blinkbitcoin/kyc-core` | `packages/kyc-core/` | Platform-agnostic core: the shared verification state machine, `VerificationSource` + capability guards, `kyc-bridge` protocol, hosted + proxy sources, Apollo client factory, GraphQL operations, `ErrorCode` contract (no React/DOM); `providers/sumsub/` is the one Sumsub↔normalized mapping (used by `packages/kyc-service` too). Entries: `.`, `/hosted` (Apollo-free), `/testing` (fake source), `/sumsub` (Apollo-free, the mapping + the hosted layer) |
+| `@blinkbitcoin/kyc-node` | `packages/kyc-node/` | Node-only server half: `createVerificationService` over the `VerificationProvider` + `SessionStore` ports, the Sumsub and mock adapters under `providers/`, the hosted page, Fetch handlers, the `/express` router, the `/knex` store with its migrations, `providerFromEnv` + `defaultRegistry`. A backend with its own API imports it (`examples/access-token-demo`); `packages/kyc-service` is the whole service composed on it |
 | `@blinkbitcoin/kyc-react-native` | `packages/kyc-react-native/` | Publishable RN library: `IdentityVerification` component + `useIdentityVerification` hook + `HostedWebView` (hardened WebView, camera capture granted, origin-pinned); `providers/sumsub/` = `createSumsubNativeSource` over the optional Mobile SDK peer. Entries: `.`, `/hosted` (Apollo-free), `/sumsub` (Apollo-free, the native source + the hosted surface) |
 | `@blinkbitcoin/kyc-react` | `packages/kyc-react/` | Publishable React **web** library: `IdentityVerification` component + `useIdentityVerification` hook + `HostedFrame` (origin-pinned iframe, camera/microphone delegated) and the `MountableSource` seam; `providers/sumsub/` is the reserved seat of the web-SDK adapter (none in v1). Entries: `.`, `/hosted` (Apollo-free, the same import as React Native's), `/sumsub` (Apollo-free) |
-| `kyc-full-service-example` | `examples/full-service-demo/` | The reference host: the whole service on the server package - Express 5 + Apollo Server 5 + Knex/PostgreSQL, this service's auth, CORS, rate limits and fail-closed boot around the package's router, schema and store; the backend every E2E suite runs against |
+| `@blinkbitcoin/kyc-service` | `packages/kyc-service/` | The reference host: the whole service on the server package - Express 5 + Apollo Server 5 + Knex/PostgreSQL, this service's auth, CORS, rate limits and fail-closed boot around the package's router, schema and store; the backend every E2E suite runs against |
 | `kyc-access-token-example` | `examples/access-token-demo/` | An existing GraphQL API adds one mutation that mints a provider access token for the native SDK (the Blink shape); `make e2e-server-demos` boots it on the mock provider |
 | `kyc-react-native-example` | `examples/react-native-demo/` | RN demo app hosting the RN library (Maestro E2E target) |
 | `kyc-react-example` | `examples/react-demo/` | Vite web demo hosting the web library (`make web`) |
@@ -27,7 +27,7 @@ release`, see [docs/releasing.md](docs/releasing.md)).
 - **Language**: TypeScript everywhere (TS 6.0)
 - **Node**: ^22.22.2 || >= 24.15.0 (floor set by jsdom 30)
 - **Env management**: direnv (house convention) - `.envrc` at root (`use
-  flake` + workspace bins on PATH) and in `examples/full-service-demo/` (loads `.env`); the
+  flake` + workspace bins on PATH) and in `packages/kyc-service/` (loads `.env`); the
   backend also self-loads `.env` via dotenv as a non-direnv fallback
 - **Toolchain**: pinned by `flake.nix` (node 24, jdk 17, ruby 3.3, watchman);
   entered automatically via direnv, or `nix develop`. CI uses plain
@@ -43,7 +43,7 @@ release`, see [docs/releasing.md](docs/releasing.md)).
 Makefiles exist at three levels: the root (repo-wide flows), the group dirs
 (`packages/`, `examples/` - fan common targets out to auto-discovered
 children), and each workspace (thin delegates to its npm scripts). So
-`make -C packages coverage` runs all four libraries, `cd examples/full-service-demo && make dev`
+`make -C packages coverage` runs all five packages, `cd packages/kyc-service && make dev`
 runs the service. `make help` lists every root target with a description.
 The ones that matter most: `make test` (unit + check-code), `make coverage`,
 `make check-ci` (actionlint + shellcheck of `scripts/**`), `make codeql`
@@ -75,22 +75,22 @@ npm run test:e2e             # Maestro mobile E2E (needs backend + simulator/emu
 ```
 
 Single test file: `npm test -w @blinkbitcoin/kyc-react -- useIdentityVerification` or
-`npm test -w examples/full-service-demo -- tests/schema.test.ts`.
+`npm test -w packages/kyc-service -- tests/schema.test.ts`.
 
 ## Backend specifics
 
 ```bash
-cd examples/full-service-demo
+cd packages/kyc-service
 npm run migrate              # Knex migrations (TS, run via tsx)
 npm run migrate:test         # Same against the .env.test database
 ```
 
 - The domain (authorization, validation, persist-first creation with its
   audit row, token refresh, reconciliation, the webhook state machine) is
-  `createVerificationService` from `@blinkbitcoin/kyc-server`, composed in
+  `createVerificationService` from `@blinkbitcoin/kyc-node`, composed in
   `src/services.ts`; the GraphQL layer (`src/schema.ts`) and the routes
   (the package router mounted in `src/app.ts`) only map inputs/outputs.
-- DB access is the package's Knex `SessionStore` (`@blinkbitcoin/kyc-server/knex`),
+- DB access is the package's Knex `SessionStore` (`@blinkbitcoin/kyc-node/knex`),
   composed over the shared client in `src/store.ts`; the schema is the
   package's programmatic migration source (`src/migrate.ts` applies it, no
   migration files here). Never query inline in resolvers.
@@ -108,13 +108,13 @@ npm run migrate:test         # Same against the .env.test database
   path for a status change (guard-tested in the package); a terminal
   session also stops minting tokens (hosted page 404,
   `verificationSessionRefresh` -> `VALIDATION_ERROR`).
-- The api resolves `@blinkbitcoin/kyc-server` (and core's `/sumsub` and
+- The api resolves `@blinkbitcoin/kyc-node` (and core's `/sumsub` and
   `/hosted` entries) from source for typecheck, tests and `tsx` dev
   (`tsconfig.json` paths + vitest aliases); `npm run build`
   (`tsconfig.build.json`) needs the packages' dist, so build them first
   (`npm run build` at the root).
-- The wire contract is the `ErrorCode` enum in `examples/full-service-demo/schema.graphql`
-  (the SDL lives in `packages/kyc-server/src/graphql.ts`, re-exported by
+- The wire contract is the `ErrorCode` enum in `packages/kyc-service/schema.graphql`
+  (the SDL lives in `packages/kyc-node/src/graphql.ts`, re-exported by
   `src/typeDefs.ts`). After schema changes run `make codegen`; drift fails
   backend tests, client parity tests, and a CI step.
 - Security is fail-closed by default: `validateSecurityConfig` (`src/config.ts`)
@@ -208,9 +208,9 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   never inline in a workflow; `make check-ci` runs actionlint + shellcheck
 - `graphql` is pinned to 16.x repo-wide (Apollo Server 5's peer range) - do
   not bump it to 17 until Apollo Server supports it
-- **Sumsub semantics live in one place.** `packages/kyc-core/src/providers/sumsub/mapping.ts` is the only implementation of the Sumsub status/webhook/event tables. `examples/full-service-demo` imports it (`@blinkbitcoin/kyc-core/sumsub`) and the hosted page embeds a JSON table *generated* from `mapSumsubStatus` at render time — never a second hand-written copy.
-- **Provider boundary, everywhere.** Nothing Sumsub-specific outside a `providers/sumsub/` directory - in core (the mapping), the RN package (the native-SDK source), the web package (reserved) and `examples/full-service-demo`. Generic layers never import a provider and each package's `src/sumsub.ts` is a one-line re-export of its `providers/sumsub/` surface; guard tests enforce both.
-- **`examples/full-service-demo` is composition only.** `src/{services,store,migrate,schema,typeDefs,errors,types}.ts` and `src/providers/*` are a few lines each over `@blinkbitcoin/kyc-server`; the rules live in the package and are tested there. The service resolves the package from source (tsconfig paths, vitest aliases, tsx), so `npm run backend`, `scripts/e2e/backend-up.sh` and Playwright's `webServer` need no build; only `npm run build` does.
+- **Sumsub semantics live in one place.** `packages/kyc-core/src/providers/sumsub/mapping.ts` is the only implementation of the Sumsub status/webhook/event tables. `packages/kyc-service` imports it (`@blinkbitcoin/kyc-core/sumsub`) and the hosted page embeds a JSON table *generated* from `mapSumsubStatus` at render time — never a second hand-written copy.
+- **Provider boundary, everywhere.** Nothing Sumsub-specific outside a `providers/sumsub/` directory - in core (the mapping), the RN package (the native-SDK source), the web package (reserved) and `packages/kyc-service`. Generic layers never import a provider and each package's `src/sumsub.ts` is a one-line re-export of its `providers/sumsub/` surface; guard tests enforce both.
+- **`packages/kyc-service` is composition only.** `src/{services,store,migrate,schema,typeDefs,errors,types}.ts` and `src/providers/*` are a few lines each over `@blinkbitcoin/kyc-node`; the rules live in the package and are tested there. The service resolves the package from source (tsconfig paths, vitest aliases, tsx), so `npm run backend`, `scripts/e2e/backend-up.sh` and Playwright's `webServer` need no build; only `npm run build` does.
 
 ## CI and releases
 
@@ -241,7 +241,7 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   merging the `chore(release): X.Y.Z` PR that release-please opens once a
   feat/fix lands (`make release`). That tags `vX.Y.Z`, writes the GitHub
   Release from `CHANGELOG.md`, and dispatches `ci.yml` at the tag - the tag
-  is the version, CI stamps it before building the packages, the four
+  is the version, CI stamps it before building the packages, the five
   publishable `package.json` files stay at `0.0.0-development`. Never
   hand-edit `CHANGELOG.md` or the root `package.json` version. A release
   ships only once the commit's main run is green (`release.yml`'s retry
@@ -263,8 +263,8 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   Sumsub's client code sits under `providers/sumsub/` in core (the mapping)
   and the RN package (the native source), reached through the `/sumsub`
   entries. The server's equivalent
-  is `VerificationProvider` (`packages/kyc-server/src/provider.ts`) with the
-  mock and Sumsub adapters under `packages/kyc-server/src/providers/`; the
+  is `VerificationProvider` (`packages/kyc-node/src/provider.ts`) with the
+  mock and Sumsub adapters under `packages/kyc-node/src/providers/`; the
   optional `getStatusByUserId` and `hostedPage` capabilities are detected
   with `supportsUserStatusLookup` / `supportsHostedPage`. A new provider is
   an adapter directory under `providers/<name>/` (server: the port, its
@@ -272,7 +272,7 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   select it with `KYC_PROVIDER=<name>`.
 - **Safe Area**: `react-native-safe-area-context` (demo app concern)
 - **Entry points**: `examples/react-native-demo/index.js` (RN app),
-  `examples/react-demo/src/main.tsx` (web app), `examples/full-service-demo/src/index.ts`
+  `examples/react-demo/src/main.tsx` (web app), `packages/kyc-service/src/index.ts`
   (service bootstrap), `examples/access-token-demo/src/index.ts` (the
   mint-only API), `packages/kyc-{core,server,react-native,react}/src/index.ts`
   (library APIs)

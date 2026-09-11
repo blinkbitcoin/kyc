@@ -17,7 +17,7 @@ flowchart TB
         NATIVE[createSumsubNativeSource<br/>kyc-react-native /sumsub]
     end
 
-    subgraph Backend["examples/full-service-demo - hosted and proxy modes"]
+    subgraph Backend["packages/kyc-service - hosted and proxy modes"]
         GQL[/"POST /graphql"/]
         PAGE[/"GET /hosted/:sessionId"/]
         WH[/"POST /webhook/kyc/:provider"/]

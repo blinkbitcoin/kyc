@@ -12,9 +12,9 @@
     "noEmit": true,
     "types": ["vitest/globals", "node"],
     "paths": {
-      "@blinkbitcoin/kyc-server": ["../../packages/kyc-server/src/index.ts"],
-      "@blinkbitcoin/kyc-server/sumsub": [
-        "../../packages/kyc-server/src/sumsub.ts"
+      "@blinkbitcoin/kyc-node": ["../../packages/kyc-node/src/index.ts"],
+      "@blinkbitcoin/kyc-node/sumsub": [
+        "../../packages/kyc-node/src/sumsub.ts"
       ],
       "@blinkbitcoin/kyc-core/sumsub": [
         "../../packages/kyc-core/src/sumsub.ts"

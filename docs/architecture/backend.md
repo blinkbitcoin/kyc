@@ -1,4 +1,4 @@
-# Architecture - Backend (`@blinkbitcoin/kyc-server`, composed by `examples/full-service-demo`)
+# Architecture - Backend (`@blinkbitcoin/kyc-node`, composed by `packages/kyc-service`)
 
 **Part:** backend
 **Type:** a Node package (ports and adapters) plus the Express 5 + Apollo Server 5 service built on it
@@ -8,7 +8,7 @@
 
 | Category | Technology | Version |
 |----------|------------|---------|
-| Package | `@blinkbitcoin/kyc-server` (tsup, cjs + esm + dts) | Node ≥ 18, framework-free root |
+| Package | `@blinkbitcoin/kyc-node` (tsup, cjs + esm + dts) | Node ≥ 18, framework-free root |
 | Framework (service) | Express | 5.x |
 | GraphQL (service) | Apollo Server | 5.x |
 | Language | TypeScript | 6.0.x |
@@ -27,9 +27,9 @@
 ```
 HTTP request
     ↓
-examples/full-service-demo: Express (helmet, per-route rate limit, CORS), Apollo, JWT, OTel
+packages/kyc-service: Express (helmet, per-route rate limit, CORS), Apollo, JWT, OTel
     ↓
-@blinkbitcoin/kyc-server: createVerificationService  ──►  SessionStore port  ──►  /knex store  ──►  PostgreSQL
+@blinkbitcoin/kyc-node: createVerificationService  ──►  SessionStore port  ──►  /knex store  ──►  PostgreSQL
     ↓                                                       (or the in-memory store)
 VerificationProvider port  ──►  providers/sumsub (Sumsub REST) | providers/mock
 ```
@@ -40,16 +40,16 @@ Two host shapes use the same package: the full service here, and an existing API
 
 | Import | Contents | Needs |
 |--------|----------|-------|
-| `@blinkbitcoin/kyc-server` | `createVerificationService`, the `VerificationProvider` / `SessionStore` / `Tracing` / `Logger` ports, `createMemorySessionStore`, the mock provider, the registry (`providerFromEnv`, `defaultRegistry`), `typeDefs` + `createKycGraphQL`, the Fetch handlers and the `*Http` decision functions, `KycError` + `ErrorCodes`, `verifyHexDigest`, `withRetry`, the hosted-page primitives | nothing (Node ≥ 18) |
-| `@blinkbitcoin/kyc-server/express` | `createKycRouter` (`/health`, `/hosted/:sessionId`, `/webhook/kyc/:provider`) | `express` (optional peer) |
-| `@blinkbitcoin/kyc-server/knex` | `createKnexSessionStore`, `KYC_MIGRATIONS`, `createKycMigrationSource`, `runKycMigrations` | `knex` (optional peer) |
-| `@blinkbitcoin/kyc-server/sumsub` | `createSumsubProvider`, `createSumsubClient`, `sumsubConfigFromEnv`, `assertSumsubConfig`, `sumsubHostedPage`, `buildSumsubStatusTable` | nothing |
+| `@blinkbitcoin/kyc-node` | `createVerificationService`, the `VerificationProvider` / `SessionStore` / `Tracing` / `Logger` ports, `createMemorySessionStore`, the mock provider, the registry (`providerFromEnv`, `defaultRegistry`), `typeDefs` + `createKycGraphQL`, the Fetch handlers and the `*Http` decision functions, `KycError` + `ErrorCodes`, `verifyHexDigest`, `withRetry`, the hosted-page primitives | nothing (Node ≥ 18) |
+| `@blinkbitcoin/kyc-node/express` | `createKycRouter` (`/health`, `/hosted/:sessionId`, `/webhook/kyc/:provider`) | `express` (optional peer) |
+| `@blinkbitcoin/kyc-node/knex` | `createKnexSessionStore`, `KYC_MIGRATIONS`, `createKycMigrationSource`, `runKycMigrations` | `knex` (optional peer) |
+| `@blinkbitcoin/kyc-node/sumsub` | `createSumsubProvider`, `createSumsubClient`, `sumsubConfigFromEnv`, `assertSumsubConfig`, `sumsubHostedPage`, `buildSumsubStatusTable` | nothing |
 
-`packages/kyc-server/README.md` documents each surface; nothing reachable from any entry imports Apollo or `graphql` (guard test + `scripts/pack-smoke.sh`).
+`packages/kyc-node/README.md` documents each surface; nothing reachable from any entry imports Apollo or `graphql` (guard test + `scripts/pack-smoke.sh`).
 
 ## Source structure
 
-The package (`packages/kyc-server/src/`):
+The package (`packages/kyc-node/src/`):
 
 | Path | Role |
 |------|------|
@@ -65,7 +65,7 @@ The package (`packages/kyc-server/src/`):
 | `pages.ts` / `html.ts` / `bridge/script.ts` | The hosted page's neutral layer: params, nonce CSP, permissions policy, not-found page; escaping; the `kyc-bridge` page script |
 | `errors.ts` / `validation.ts` / `signature.ts` / `http.ts` / `audit.ts` / `auth.ts` / `log.ts` / `tracing.ts` | `KycError` + `ErrorCodes`, `validateStartInput`, `verifyHexDigest`, `HttpError` + `withRetry`, the audit vocabulary and allow-list, `bearerToken`, the `Logger` and `Tracing` ports |
 
-The service (`examples/full-service-demo/src/`), composition only:
+The service (`packages/kyc-service/src/`), composition only:
 
 | Path | Role |
 |------|------|

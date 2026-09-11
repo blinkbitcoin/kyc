@@ -9,7 +9,7 @@ export const getErrorMessage = (
   serverMessage?: string,
 ): string => {
   switch (code) {
-    // --- schema-borne (examples/full-service-demo ErrorCode enum) ---
+    // --- schema-borne (packages/kyc-service ErrorCode enum) ---
     case ErrorCodes.UNAUTHORIZED:
       return 'You are not authorized to start identity verification.';
     case ErrorCodes.VALIDATION_ERROR:

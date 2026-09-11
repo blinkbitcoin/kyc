@@ -16,7 +16,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 # shellcheck source=scripts/e2e/ports-env.sh
 . scripts/e2e/ports-env.sh
-SERVICE=examples/full-service-demo
+SERVICE=packages/kyc-service
 ENV_FILE="${LIVE_ENV_FILE:-$SERVICE/.env}"
 
 # Two ways in: the service's .env (make sumsub-env), or the SUMSUB_* values

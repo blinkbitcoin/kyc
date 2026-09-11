@@ -6,8 +6,8 @@ description: Use when running or debugging the live Sumsub verification (make su
 # Live Sumsub verification: running and debugging
 
 Everything lives behind four targets (`scripts/e2e/live.sh`,
-`examples/full-service-demo/scripts/sumsub-check.ts`,
-`examples/full-service-demo/tests/live/sumsub.live.test.ts` and
+`packages/kyc-service/scripts/sumsub-check.ts`,
+`packages/kyc-service/tests/live/sumsub.live.test.ts` and
 `sumsub-submission.live.test.ts` over `sumsub-sandbox.ts`; docs in
 `docs/integration/sumsub.md`):
 
@@ -26,7 +26,7 @@ make live-android   # + adb reverse + Metro + the APK on the attached Android ph
 In CI the same runner reads the `SUMSUB_*` values from the environment (job
 `E2E / Live Sumsub`, opt-in; `docs/operations/live-e2e-ci.md`).
 
-Prerequisites locally: `examples/full-service-demo/.env` from
+Prerequisites locally: `packages/kyc-service/.env` from
 `make sumsub-env` (skill `sumsub-sandbox-setup`), Docker for the E2E
 Postgres, nothing else - no device, no browser, no build.
 
@@ -49,7 +49,7 @@ Sessions from a local run land in the tmpfs E2E database (dropped by
 | Symptom | Cause | Fix |
 |---|---|---|
 | `sumsub check: missing SUMSUB_…` | no `.env` and nothing in the environment | `make sumsub-env` |
-| `no examples/full-service-demo/.env (make sumsub-env) and no SUMSUB_* in the environment` | `live.sh` found neither | same |
+| `no packages/kyc-service/.env (make sumsub-env) and no SUMSUB_* in the environment` | `live.sh` found neither | same |
 | `HTTP 401 … not accepted` | wrong token/secret, wrong base URL for that token, or the token was revoked | regenerate (skill `sumsub-sandbox-setup`, step 2) |
 | `HTTP 4xx … SUMSUB_LEVEL_NAME` | the level name is not in this sandbox | the exact name from the dashboard |
 | `[live] Skipping … missing:` in `make test-live` | the `.env` has no `SUMSUB_WEBHOOK_SECRET` (the check does not need it, the tests do) | add it |

@@ -97,9 +97,9 @@ describe('the consumers', () => {
   const { base, api, webHosted, webProxy, token, testDb } = resolvePorts({});
 
   it.each([
-    ['examples/full-service-demo/src/port.ts', `PORT_BASE_DEFAULT = ${base}`],
+    ['packages/kyc-service/src/port.ts', `PORT_BASE_DEFAULT = ${base}`],
     [
-      'examples/full-service-demo/src/port.ts',
+      'packages/kyc-service/src/port.ts',
       `PORT_OFFSET = ${SERVICES.api.offset}`,
     ],
     ['examples/access-token-demo/src/index.ts', `PORT_BASE_DEFAULT = ${base}`],
@@ -119,16 +119,16 @@ describe('the consumers', () => {
     ['examples/react-demo/vite.config.ts', `PORT_BASE_DEFAULT = ${base}`],
     ['examples/react-demo/src/config.ts', `http://localhost:${api}`],
     ['examples/react-demo/e2e/ports.ts', `BASE_DEFAULT = ${base}`],
-    ['packages/kyc-server/src/registry.ts', `http://localhost:${api}`],
-    ['examples/full-service-demo/.env.example', `PORT=${api}`],
-    ['examples/full-service-demo/.env.test', `http://localhost:${api}`],
+    ['packages/kyc-node/src/registry.ts', `http://localhost:${api}`],
+    ['packages/kyc-service/.env.example', `PORT=${api}`],
+    ['packages/kyc-service/.env.test', `http://localhost:${api}`],
     [
-      'examples/full-service-demo/.env.test',
+      'packages/kyc-service/.env.test',
       `http://localhost:${webHosted},http://localhost:${webProxy}`,
     ],
     ['examples/access-token-demo/.env.example', `PORT=${token}`],
     [
-      'examples/full-service-demo/.env.test',
+      'packages/kyc-service/.env.test',
       `DATABASE_URL=${testDatabaseUrl(testDb)}`,
     ],
     ['docker-compose.test.yml', `"\${KYC_TEST_DB_PORT:-${testDb}}:5432"`],

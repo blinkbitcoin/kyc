@@ -216,7 +216,7 @@ describe('docs-freshness.sh', () => {
     const { dir } = createFixtureRepo();
     writeFile(
       dir,
-      'packages/kyc-server/src/knex/migrations.ts',
+      'packages/kyc-node/src/knex/migrations.ts',
       'export const m = 1;\n',
     );
     commit(dir, 'feat(server): add a column');
@@ -225,7 +225,7 @@ describe('docs-freshness.sh', () => {
 
     expect(result.status).toBe(0);
     expect(result.summary).toContain(
-      'packages/kyc-server/src/knex/migrations.ts',
+      'packages/kyc-node/src/knex/migrations.ts',
     );
   });
 

@@ -10,9 +10,9 @@ Budget about 90 minutes for a full manual pass. Record the result of each number
 
 ```bash
 # Blink's sandbox, ready-made: the non-secret values are committed in
-# examples/full-service-demo/.env.sumsub.example, the three secrets live in the
+# packages/kyc-service/.env.sumsub.example, the three secrets live in the
 # team secret manager ("kyc-library sandbox (Sumsub)") - or make your own token
-cp examples/full-service-demo/.env.sumsub.example examples/full-service-demo/.env  # then fill in the three secrets
+cp packages/kyc-service/.env.sumsub.example packages/kyc-service/.env  # then fill in the three secrets
 # ...or write it from the values:
 make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=… LEVEL_NAME=01-upgrade-to-level-TWO [PUBLIC_BASE_URL=…]
 make sumsub-check   # app-token auth + the level: mints a throwaway token, says what is wrong otherwise
@@ -31,7 +31,7 @@ Ctrl-C tears them down.
 
 It then runs **actual verifications** (`tests/live/sumsub-submission.live.test.ts`): for each case a session starts through the service, the test does what the SDK does for a real user - creates the applicant on `SUMSUB_E2E_LEVEL_NAME` (a document-only level; the App Token needs the *Create applicants* permission), uploads Sumsub's own accepted passport template (`tests/live/fixtures/sumsub/`), requests the check - and what the reviewer does, through the sandbox-only review simulation. The service's status read finds the applicant by external user id, binds it and follows Sumsub: GREEN → `approved` (then no refresh, no hosted page); RED/RETRY → `declined`, still refreshable, a later GREEN → `approved`; RED/FINAL → `finallyRejected`, a later signed approval answered `rejected_terminal`; a reset on Sumsub never downgrades `approved`. With `PUBLIC_BASE_URL` public (the funnel) Sumsub's real `applicantReviewed` webhooks land too; without it the reconciling read carries the run, which is how CI does it. That is rows 3.5-3.8 below without the camera: what stays manual is the camera, the SDK screens and the WebView/iframe embedding.
 
-In CI the same run is the opt-in `E2E / Live Sumsub` job ([operations/live-e2e-ci.md](../operations/live-e2e-ci.md)). The tests live in `examples/full-service-demo/tests/live/`; the repo skill `.claude/skills/sumsub-live-verification` is the runbook.
+In CI the same run is the opt-in `E2E / Live Sumsub` job ([operations/live-e2e-ci.md](../operations/live-e2e-ci.md)). The tests live in `packages/kyc-service/tests/live/`; the repo skill `.claude/skills/sumsub-live-verification` is the runbook.
 
 Sections 1 and 2 below are the setup the automated tier needs too (`.claude/skills/sumsub-sandbox-setup` walks them); 2.1, 2.4 and 2.5 are what the unit and E2E suites already cover.
 
@@ -152,7 +152,7 @@ Run in **Chrome and Safari**, over HTTPS (or `localhost`).
 |---|------|
 | 6.1 | Remove `@sumsub/react-native-mobilesdk-module` from the demo again and restore `package-lock.json` (`git checkout -- examples/react-native-demo/package.json package-lock.json`) |
 | 6.2 | Delete or disable the sandbox webhook if the tunnel URL was temporary |
-| 6.3 | Never commit the credentials. `examples/full-service-demo/.env` is gitignored - keep them there or in a secret manager |
+| 6.3 | Never commit the credentials. `packages/kyc-service/.env` is gitignored - keep them there or in a secret manager |
 
 ## Recording the result
 

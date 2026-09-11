@@ -7,7 +7,7 @@ import { createServer as createHttpServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express5';
-import { bearerToken } from '@blinkbitcoin/kyc-server';
+import { bearerToken } from '@blinkbitcoin/kyc-node';
 import express from 'express';
 import { type Context, resolvers, typeDefs } from './schema';
 import type { StartSession } from './session';

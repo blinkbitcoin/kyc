@@ -35,7 +35,7 @@ npm ci
 # Enable direnv (once per machine) - loads .env files, enters the nix
 # flake dev shell (pinned node/jdk/ruby/watchman), and puts workspace
 # bins (tsx, knex, biome, ...) on PATH
-direnv allow . && direnv allow examples/full-service-demo
+direnv allow . && direnv allow packages/kyc-service
 ```
 
 Without direnv/nix, any Node 22.22+ or 24.15+ plus a JDK 17 and Ruby 3.2+ works -
@@ -54,7 +54,7 @@ cd ios && bundle exec pod install  # iOS native deps
 
 ```bash
 # Start development database
-cd examples/full-service-demo
+cd packages/kyc-service
 docker-compose up -d
 
 # Run migrations
@@ -68,7 +68,7 @@ Environment is managed with **direnv** (house convention): `.envrc` files load
 `dotenv/config` as a fallback for non-direnv environments (CI, IDE launchers) -
 dotenv never overrides direnv-exported values, so precedence is consistent.
 
-**Backend (`examples/full-service-demo/.env`, see `examples/full-service-demo/.env.example`):**
+**Backend (`packages/kyc-service/.env`, see `packages/kyc-service/.env.example`):**
 ```env
 DATABASE_URL=postgresql://dev:dev@localhost:5432/kyc
 KYC_PROVIDER=mock            # 'sumsub' for the real integration
@@ -89,7 +89,7 @@ PORT=5100
 ### Start Backend
 
 ```bash
-cd examples/full-service-demo
+cd packages/kyc-service
 npm run dev
 # Server runs at http://localhost:5100
 # GraphQL Playground at http://localhost:5100/graphql
@@ -184,7 +184,7 @@ npm test -- --watch
 ### Backend Unit Tests
 
 ```bash
-cd examples/full-service-demo
+cd packages/kyc-service
 
 # Run all tests
 npm test
@@ -255,7 +255,7 @@ origins to allow. The app and the hosted page are genuinely cross-origin
 ### Live Sumsub (opt-in)
 
 ```bash
-make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=…   # writes examples/full-service-demo/.env
+make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=…   # writes packages/kyc-service/.env
 make sumsub-check                                            # credentials + level, in one call
 make e2e-live                                                # the whole live run against the sandbox API
 make live-web                                                # the web demo on the sandbox, waiting for the browser rows
@@ -278,7 +278,7 @@ emulator -avd <avd> &
 make e2e-android-local     # test DB + backend + debug APK + Metro (hosted) + Maestro, then teardown
 
 # ...or step by step, which is what CI's jobs do:
-make test-db-up && npm run migrate:test -w examples/full-service-demo
+make test-db-up && npm run migrate:test -w packages/kyc-service
 make e2e-backend-up        # the backend on KYC_API_PORT (CI's iOS job feeds it Homebrew Postgres instead)
 make android-build         # debug APK for the emulator's ABI
 make e2e-metro-up          # Metro in hosted mode, bundle prewarmed
@@ -344,7 +344,7 @@ npm run lint:fix
 ### Knex Commands
 
 ```bash
-cd examples/full-service-demo
+cd packages/kyc-service
 
 # Create migration
 npx tsx "$(command -v knex)" migrate:make -x ts <migration-name>
@@ -393,7 +393,7 @@ npm install
 
 ### Migration Issues
 ```bash
-cd examples/full-service-demo
+cd packages/kyc-service
 npx tsx "$(command -v knex)" migrate:status
 npm run migrate
 ```
@@ -576,7 +576,7 @@ make release
    same). `release.yml` then tags `v0.1.0`, creates the GitHub Release
    from the changelog entry, and dispatches `ci.yml` at the tag with
    `release_tag=v0.1.0`. The tag *is* the version: that run stamps `0.1.0`
-   into all four packages before building them and pins each one's
+   into all five packages before building them and pins each one's
    `@blinkbitcoin/kyc-core` dependency to exactly `0.1.0`, so the packages'
    own `package.json` files stay at `0.0.0-development`.
 

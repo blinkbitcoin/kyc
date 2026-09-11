@@ -13,10 +13,10 @@ Who reads which section:
 | On call | [7. Failure modes](#7-failure-modes) |
 
 Everything below is taken from the code: the boot guard in
-`examples/full-service-demo/src/config.ts`, the env in
-`examples/full-service-demo/.env.example`, the controls in
+`packages/kyc-service/src/config.ts`, the env in
+`packages/kyc-service/.env.example`, the controls in
 [../architecture/security.md](../architecture/security.md), and the
-package's own [README](../../packages/kyc-server/README.md). When they
+package's own [README](../../packages/kyc-node/README.md). When they
 disagree with this page, the code wins - fix the page.
 
 ## 1. What runs where
@@ -27,7 +27,7 @@ both - only the `VerificationSource` changes.
 
 ### Tier A: your API calls the package in-process
 
-`@blinkbitcoin/kyc-server` inside your own Node backend (Node ≥ 18, no
+`@blinkbitcoin/kyc-node` inside your own Node backend (Node ≥ 18, no
 framework requirement, no peers).
 
 - **Mode 2, the native SDK:** one authenticated mutation or route that
@@ -42,7 +42,7 @@ framework requirement, no peers).
 
 ### Tier B: the reference service is deployed
 
-[`examples/full-service-demo`](../../examples/full-service-demo/README.md):
+[`packages/kyc-service`](../../packages/kyc-service/README.md):
 Express 5 + Apollo Server 5 + Knex/PostgreSQL composed on the package, with
 this service's auth, CORS allow-list, rate limits and fail-closed boot. It
 serves all four routes and is the backend every E2E suite runs against.
@@ -93,7 +93,7 @@ The whole surface is the access-token example's `src/session.ts`:
 `providerFromEnv(...)` over the package registry, then
 `provider.createSession(...)`. Your existing session check decides who the
 caller is; the user's id becomes the applicant's external id. Read
-[the package README](../../packages/kyc-server/README.md) for the call and
+[the package README](../../packages/kyc-node/README.md) for the call and
 [native-sdk.md](../integration/native-sdk.md) for the app side.
 
 ### Tier A - the session domain over your store
@@ -126,15 +126,15 @@ the four libraries, and the service's `npm run build` needs their dist):
 ```sh
 npm ci
 npm run build                                   # the packages
-npm run build -w examples/full-service-demo     # tsc -> examples/full-service-demo/dist
-npm run migrate -w examples/full-service-demo   # applies the package's migrations to DATABASE_URL, then exits
-npm run start -w examples/full-service-demo     # node dist/index.js
+npm run build -w packages/kyc-service     # tsc -> packages/kyc-service/dist
+npm run migrate -w packages/kyc-service   # applies the package's migrations to DATABASE_URL, then exits
+npm run start -w packages/kyc-service     # node dist/index.js
 ```
 
 `npm run migrate` is idempotent and safe to run before every start; run it
 once per database change, not on every replica. The schema is the
 package's programmatic migration source (`runKycMigrations` from
-`@blinkbitcoin/kyc-server/knex`), so there are no migration files to ship.
+`@blinkbitcoin/kyc-node/knex`), so there are no migration files to ship.
 
 ### The environment
 
@@ -229,7 +229,7 @@ Before switching a real app to a real account, in this order:
 2. `make e2e-live`: the full live tier (token, status, hosted page, a signed
    webhook, the access-token example) passes against the sandbox.
 3. The service boots with the production `.env` and **only** that env:
-   `npm run start -w examples/full-service-demo` prints no
+   `npm run start -w packages/kyc-service` prints no
    `ALLOW_INSECURE_DEV` warning and does not throw
    `Refusing to start: missing required security configuration`.
 4. `curl https://<PUBLIC_BASE_URL>/health` returns `200` through the proxy.

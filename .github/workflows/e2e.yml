@@ -70,11 +70,11 @@ jobs:
 
       - name: Run database migrations
         run: npm run migrate:test
-        working-directory: examples/full-service-demo
+        working-directory: packages/kyc-service
 
       - name: Run E2E tests
         run: npm run test:e2e
-        working-directory: examples/full-service-demo
+        working-directory: packages/kyc-service
 
       - name: Stop test database
         if: always()
@@ -158,7 +158,7 @@ jobs:
         run: bash scripts/pack-smoke.sh
 
       - name: Pack the publishable tarballs
-        run: mkdir -p "$RUNNER_TEMP/tarballs" && npm pack -w packages/kyc-core -w packages/kyc-server -w packages/kyc-react-native -w packages/kyc-react --pack-destination "$RUNNER_TEMP/tarballs"
+        run: mkdir -p "$RUNNER_TEMP/tarballs" && npm pack -w packages/kyc-core -w packages/kyc-node -w packages/kyc-react-native -w packages/kyc-react -w packages/kyc-service --pack-destination "$RUNNER_TEMP/tarballs"
 
       - name: Publish dist for the Web job
         uses: actions/upload-artifact@v7
@@ -166,7 +166,7 @@ jobs:
           name: packages-dist
           path: |
             packages/kyc-core/dist
-            packages/kyc-server/dist
+            packages/kyc-node/dist
             packages/kyc-react/dist
             packages/kyc-react-native/lib
           retention-days: 1 # only the Web job of this run needs it
@@ -272,7 +272,7 @@ jobs:
         run: make test-db-up
 
       - name: Run migrations (test database)
-        run: npm run migrate:test -w examples/full-service-demo
+        run: npm run migrate:test -w packages/kyc-service
 
       - name: Run browser E2E (Playwright starts the backend, builds + previews the demo)
         run: npm run test:e2e -w examples/react-demo
@@ -423,7 +423,7 @@ jobs:
 
       - name: Run database migrations
         run: npm run migrate:test
-        working-directory: examples/full-service-demo
+        working-directory: packages/kyc-service
 
       - name: Start backend with mock provider
         run: make e2e-backend-up
@@ -600,7 +600,7 @@ jobs:
 
       - name: Run database migrations
         run: npm run migrate:test
-        working-directory: examples/full-service-demo
+        working-directory: packages/kyc-service
 
       - name: Start backend with mock provider
         run: make e2e-backend-up

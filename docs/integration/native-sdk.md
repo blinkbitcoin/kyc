@@ -8,7 +8,7 @@ The provider's SDK runs **in-process**: on React Native, `@sumsub/react-native-m
 
 1. `@blinkbitcoin/kyc-react-native` - the native source is its `/sumsub` entry.
 2. The provider SDK peer: `@sumsub/react-native-mobilesdk-module` (≥1.40), plus `pod install` on iOS.
-3. **A backend that mints provider access tokens.** This repo's `examples/full-service-demo` does, but any backend of yours will do - the package only ever calls a callback you supply.
+3. **A backend that mints provider access tokens.** This repo's `packages/kyc-service` does, but any backend of yours will do - the package only ever calls a callback you supply.
 
 ```sh
 npm i @blinkbitcoin/kyc-react-native \

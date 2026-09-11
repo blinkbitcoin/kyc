@@ -7,6 +7,7 @@
 # right), so the contract asserted is the one the registry can deliver:
 #   1. a default install never LOADS Apollo through /hosted
 #   2. `--omit=peer` yields the documented Apollo-free install
+#   3. the service installs and its pinned kyc-node is the same version
 # Usage: registry-smoke.sh <version>. Needs npm configured for the
 # @blinkbitcoin scope (setup-node registry-url in CI; ~/.npmrc locally).
 # CI: Verify job. Local: make registry-smoke V=<version>
@@ -18,7 +19,7 @@ WORK=$(mktemp -d)
 echo "--- npm $(npm -v) / node $(node -v)"
 mkdir "$WORK/smoke" && cd "$WORK/smoke"
 npm init -y > /dev/null
-npm install "@blinkbitcoin/kyc-core@$VERSION" "@blinkbitcoin/kyc-server@$VERSION" > /dev/null
+npm install "@blinkbitcoin/kyc-core@$VERSION" "@blinkbitcoin/kyc-node@$VERSION" > /dev/null
 echo "--- published manifest peer metadata:"
 node -p "JSON.stringify(require('@blinkbitcoin/kyc-core/package.json').peerDependenciesMeta ?? 'MISSING')"
 echo "--- @apollo/client in the tree (expected: yes, registry drops peerDependenciesMeta):"
@@ -27,5 +28,10 @@ VERSION="$VERSION" node "$ASSERT" default
 
 mkdir "$WORK/smoke-lean" && cd "$WORK/smoke-lean"
 npm init -y > /dev/null
-npm install --omit=peer "@blinkbitcoin/kyc-core@$VERSION" "@blinkbitcoin/kyc-server@$VERSION" > /dev/null
+npm install --omit=peer "@blinkbitcoin/kyc-core@$VERSION" "@blinkbitcoin/kyc-node@$VERSION" > /dev/null
 VERSION="$VERSION" node "$ASSERT" lean
+
+mkdir "$WORK/smoke-service" && cd "$WORK/smoke-service"
+npm init -y > /dev/null
+npm install "@blinkbitcoin/kyc-service@$VERSION" > /dev/null
+VERSION="$VERSION" node "$ASSERT" server

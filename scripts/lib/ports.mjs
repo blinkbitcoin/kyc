@@ -14,7 +14,7 @@ export const BASE_DEFAULT = 5100;
 
 /** key → { offset from the base, the override variable, what listens there } */
 export const SERVICES = {
-  api: { offset: 0, env: 'KYC_API_PORT', what: 'full-service-demo' },
+  api: { offset: 0, env: 'KYC_API_PORT', what: 'kyc-service' },
   webHosted: {
     offset: 1,
     env: 'KYC_WEB_PORT',

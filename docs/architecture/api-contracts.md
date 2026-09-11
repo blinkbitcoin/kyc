@@ -5,7 +5,7 @@
 
 ## Overview
 
-`examples/full-service-demo` exposes one GraphQL endpoint and three HTTP routes; the SDL and the routes come from `@blinkbitcoin/kyc-server` (`typeDefs` in `packages/kyc-server/src/graphql.ts`, the router in `src/express.ts`), the service only mounts them. The SDL is re-exported by the service's `src/typeDefs.ts` and emitted to `examples/full-service-demo/schema.graphql` by `npm run schema:emit -w examples/full-service-demo`; `make codegen` then regenerates `packages/kyc-core/src/generated/`. `make codegen-check` fails if either artifact drifts.
+`packages/kyc-service` exposes one GraphQL endpoint and three HTTP routes; the SDL and the routes come from `@blinkbitcoin/kyc-node` (`typeDefs` in `packages/kyc-node/src/graphql.ts`, the router in `src/express.ts`), the service only mounts them. The SDL is re-exported by the service's `src/typeDefs.ts` and emitted to `packages/kyc-service/schema.graphql` by `npm run schema:emit -w packages/kyc-service`; `make codegen` then regenerates `packages/kyc-core/src/generated/`. `make codegen-check` fails if either artifact drifts.
 
 ## GraphQL API
 

@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "rootDir": "../..",
+    "resolveJsonModule": true,
+    "declaration": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@blinkbitcoin/kyc-node": ["../../packages/kyc-node/src/index.ts"],
+      "@blinkbitcoin/kyc-node/express": ["../../packages/kyc-node/src/express.ts"],
+      "@blinkbitcoin/kyc-node/knex": ["../../packages/kyc-node/src/knex.ts"],
+      "@blinkbitcoin/kyc-node/sumsub": ["../../packages/kyc-node/src/sumsub.ts"],
+      "@blinkbitcoin/kyc-core/sumsub": ["../../packages/kyc-core/src/sumsub.ts"],
+      "@blinkbitcoin/kyc-core/hosted": ["../../packages/kyc-core/src/hosted.ts"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests"]
+}

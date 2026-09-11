@@ -6,7 +6,8 @@ export default {
       'always',
       [
         'core', // packages/kyc-core
-        'server', // packages/kyc-server
+        'node', // packages/kyc-node
+        'service', // packages/kyc-service (the deployable service)
         'rn', // packages/kyc-react-native
         'react', // packages/kyc-react
         'demo', // examples/*
@@ -17,7 +18,7 @@ export default {
         'docs',
         'release',
         // Retired scopes, still in history: the reference backend was
-        // `api` before it became examples/full-service-demo on kyc-server,
+        // `api` before it became examples/full-service-demo on kyc-node,
         // and the Sumsub package was `sumsub` before the provider fold.
         // The PR range that carries that history must still lint clean.
         'api',

@@ -7,17 +7,17 @@ export default defineConfig({
       // The workspace packages straight from source (no build needed); the
       // subpaths first so the bare name does not swallow them
       {
-        find: '@blinkbitcoin/kyc-server/sumsub',
+        find: '@blinkbitcoin/kyc-node/sumsub',
         replacement: path.resolve(
           import.meta.dirname,
-          '../../packages/kyc-server/src/sumsub.ts',
+          '../../packages/kyc-node/src/sumsub.ts',
         ),
       },
       {
-        find: /^@blinkbitcoin\/kyc-server$/,
+        find: /^@blinkbitcoin\/kyc-node$/,
         replacement: path.resolve(
           import.meta.dirname,
-          '../../packages/kyc-server/src/index.ts',
+          '../../packages/kyc-node/src/index.ts',
         ),
       },
       {

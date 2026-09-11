@@ -18,10 +18,10 @@ if (mode === 'default') {
     sumsub.mapSumsubStatus('completed', { reviewAnswer: 'GREEN' }),
     'approved',
   );
-  const server = consumer('@blinkbitcoin/kyc-server');
+  const server = consumer('@blinkbitcoin/kyc-node');
   assert.equal(typeof server.createVerificationService, 'function');
   assert.equal(
-    typeof consumer('@blinkbitcoin/kyc-server/knex').runKycMigrations,
+    typeof consumer('@blinkbitcoin/kyc-node/knex').runKycMigrations,
     'function',
   );
   const loaded = Object.keys(require.cache).filter(f =>
@@ -39,7 +39,7 @@ if (mode === 'default') {
 } else if (mode === 'lean') {
   consumer('@blinkbitcoin/kyc-core/hosted');
   consumer('@blinkbitcoin/kyc-core/testing');
-  consumer('@blinkbitcoin/kyc-server');
+  consumer('@blinkbitcoin/kyc-node');
   let express = false;
   try {
     consumer.resolve('express');
@@ -53,7 +53,23 @@ if (mode === 'default') {
   } catch {}
   assert.equal(apollo, false, '--omit=peer install must not contain Apollo');
   console.log('verify: --omit=peer install is Apollo-free');
+} else if (mode === 'server') {
+  // The service's manifest pins the server at the published version and the
+  // install resolved that pin to one shared copy of the same version
+  const service = consumer('@blinkbitcoin/kyc-service/package.json');
+  assert.equal(service.version, process.env.VERSION);
+  assert.equal(
+    service.dependencies['@blinkbitcoin/kyc-node'],
+    process.env.VERSION,
+    'the service must pin kyc-node at its own version',
+  );
+  const server = consumer('@blinkbitcoin/kyc-node/package.json');
+  assert.equal(server.version, process.env.VERSION);
+  console.log(
+    'verify: the service installs over kyc-node',
+    process.env.VERSION,
+  );
 } else {
-  console.error('usage: registry-smoke-assert.cjs <default|lean>');
+  console.error('usage: registry-smoke-assert.cjs <default|lean|server>');
   process.exit(2);
 }

@@ -2,7 +2,7 @@
 
 The smallest server-side footprint for the native SDK mode (mode 2): an
 existing GraphQL API (Apollo Server here, any framework works) adds one
-mutation whose resolver makes one call into `@blinkbitcoin/kyc-server`. No
+mutation whose resolver makes one call into `@blinkbitcoin/kyc-node`. No
 session store, no webhooks, no hosted page, no service to run - the shape
 for a backend that already exists (Blink's API) and only needs to hand the
 app a provider access token.
@@ -58,5 +58,5 @@ to end (`scripts/e2e/server-demos-smoke.sh`, `make e2e-server-demos`).
 
 ## The other server shape
 
-[`full-service-demo`](../full-service-demo/README.md) runs the whole
+[`packages/kyc-service`](../../packages/kyc-service/README.md) runs the whole
 service: sessions, the hosted page, webhooks, a Postgres store.

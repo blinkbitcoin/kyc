@@ -5,9 +5,9 @@ import { vi } from 'vitest';
 const { createSumsubProvider } = vi.hoisted(() => ({
   createSumsubProvider: vi.fn(),
 }));
-vi.mock('@blinkbitcoin/kyc-server', async importOriginal => {
+vi.mock('@blinkbitcoin/kyc-node', async importOriginal => {
   const original =
-    await importOriginal<typeof import('@blinkbitcoin/kyc-server')>();
+    await importOriginal<typeof import('@blinkbitcoin/kyc-node')>();
   createSumsubProvider.mockImplementation(original.createSumsubProvider);
   return {
     ...original,

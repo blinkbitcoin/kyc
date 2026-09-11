@@ -1,7 +1,7 @@
 import type { CodegenConfig } from '@graphql-codegen/cli';
 
 // Generates the client types from the backend's emitted schema artifact
-// (examples/full-service-demo/schema.graphql). Run via `npm run codegen` (root) after schema
+// (packages/kyc-service/schema.graphql). Run via `npm run codegen` (root) after schema
 // changes; the parity test fails if the ErrorCode output drifts.
 //
 // - src/generated/graphql.ts: the operation result and variable types for
@@ -27,7 +27,7 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
 //   from here); the string-union versions consumers actually see live in
 //   generated/graphql.ts (via `enumsAsTypes` above).
 const config: CodegenConfig = {
-  schema: '../../examples/full-service-demo/schema.graphql',
+  schema: '../../packages/kyc-service/schema.graphql',
   documents: ['src/operations.ts'],
   generates: {
     'src/generated/graphql.ts': {

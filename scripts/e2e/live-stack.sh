@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sourced by live-web.sh and live-ios.sh: the real-Sumsub stack on a laptop.
 # Defines
-#   live_env        load examples/full-service-demo/.env (make sumsub-env, or the
+#   live_env        load packages/kyc-service/.env (make sumsub-env, or the
 #                   committed .env.sumsub.example + the secrets) and export it
 #   live_public_url PUBLIC_BASE_URL for real webhooks: LIVE_PUBLIC_URL if set,
 #                   else a Tailscale Funnel on the backend port (started here,
@@ -11,7 +11,7 @@
 #                   PUBLIC_BASE_URL and CORS for the web demo, waits for /health
 #   live_down       stop what live_*_up started (trap it on EXIT)
 # Ports: scripts/lib/ports.mjs (KYC_PORT_BASE + offsets).
-SERVICE=examples/full-service-demo
+SERVICE=packages/kyc-service
 LOG_DIR="${RUNNER_TEMP:-/tmp}"
 # shellcheck source=scripts/e2e/wait-lib.sh
 . scripts/e2e/wait-lib.sh

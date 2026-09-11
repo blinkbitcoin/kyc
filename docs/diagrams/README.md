@@ -14,7 +14,7 @@ and in Obsidian). Regenerate with `make diagrams`.
 
 Mode 1 runs the provider SDK in-process (the host supplies the access
 token); mode 2 embeds a page speaking the `kyc-bridge` protocol; mode 3
-adds the proxy GraphQL session on `examples/full-service-demo`. Only `createProxySource`
+adds the proxy GraphQL session on `packages/kyc-service`. Only `createProxySource`
 loads Apollo - the `/hosted` entries never reach it.
 
 ---

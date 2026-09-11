@@ -23,7 +23,7 @@ const SECTIONS = [
     outro:
       'Mode 1 runs the provider SDK in-process (the host supplies the access\n' +
       'token); mode 2 embeds a page speaking the `kyc-bridge` protocol; mode 3\n' +
-      'adds the proxy GraphQL session on `examples/full-service-demo`. Only `createProxySource`\n' +
+      'adds the proxy GraphQL session on `packages/kyc-service`. Only `createProxySource`\n' +
       'loads Apollo - the `/hosted` entries never reach it.',
   },
   {

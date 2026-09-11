@@ -1,6 +1,6 @@
 // Demo configuration. A real host app would take this from its own
 // environment/config system; here the backend is always the local reference
-// backend from examples/full-service-demo.
+// backend from packages/kyc-service.
 
 import { Platform } from 'react-native';
 
