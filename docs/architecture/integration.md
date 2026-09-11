@@ -10,7 +10,7 @@
 | `core` | `packages/kyc-core/` | Publishable TS package | The vocabulary: `VerificationSource`, the capability guards, the `kyc-bridge` protocol, the shared state machine, the error-code contract, the proxy source; `providers/sumsub/` is the one Sumsub status/event mapping (`/sumsub` entry) |
 | `react-native` | `packages/kyc-react-native/` | Publishable RN library | The product on mobile: `IdentityVerification` + `useIdentityVerification` over a hardened WebView; `providers/sumsub/` is the Sumsub native-SDK source (`/sumsub` entry) |
 | `react` | `packages/kyc-react/` | Publishable web library | The product on the web: the same pair over an origin-pinned iframe |
-| `backend` | `packages/kyc-service/` | Express 5 + Apollo Server 5 | The reference service: session issuance, token refresh, provider webhooks, the hosted page |
+| `backend` | `packages/kyc-service/` | Fetch-native core (`@hono/node-server` on Node), Apollo Server 5 with `DATABASE_URL` | The deployable tier: the access-token mint always; session issuance, token refresh, provider webhooks and the hosted page with sessions on. The in-process tier is `packages/kyc-node/` inside a host's own API (`examples/access-token-demo/`) |
 | `demos` | `examples/react-native-demo/`, `examples/react-demo/` | Host apps | Executable integration docs and the Maestro / Playwright E2E targets |
 
 [![System Architecture](../diagrams/dist/system-architecture.svg)](../diagrams/src/system-architecture.mmd)

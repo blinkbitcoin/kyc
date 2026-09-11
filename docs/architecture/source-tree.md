@@ -37,7 +37,7 @@ kyc/
 │       ├── codegen.ts
 │       └── dist/                    # tsup output (gitignored)
 │
-├── 🖥️ SERVER PACKAGE - what a backend imports; the reference backend below is built on it
+├── 🖥️ SERVER PACKAGE - what a backend imports (the in-process tier); the service below is built on it
 │   │
 │   └── packages/kyc-node/
 │       ├── src/
@@ -103,26 +103,31 @@ kyc/
 │       │       └── HostedFrame.tsx
 │       └── dist/                    # tsup output (gitignored)
 │
-├── 🖥️ REFERENCE BACKEND
+├── 🖥️ THE SERVICE - the deployable tier on the server package
 │   │
 │   └── packages/kyc-service/
 │       ├── src/
-│       │   ├── app.ts               # helmet, CORS, rate limits, JWT, Apollo over createKycGraphQL, createKycRouter ⭐
-│       │   ├── services.ts / store.ts / migrate.ts   # The service instance over the Knex store; runKycMigrations
+│       │   ├── app.ts               # createKycApp(env, deps): capabilities → routes, security headers, CORS, session verification, the package's createAccessTokenApp ⭐
+│       │   ├── capabilities.ts / config.ts   # tokens always, sessions with DATABASE_URL; validateConfig (pure boot guard), CORS origins
+│       │   ├── sessions.ts / loadSessions.ts # The sessions capability (Apollo, the hosted page, the webhook) behind a loader the edge entry never passes
+│       │   ├── session.ts / proxy.ts / port.ts   # JWKS / HS256 session verification (jose); TRUST_PROXY; PORT from KYC_PORT_BASE
+│       │   ├── node.ts / server.ts  # The process entry (also `kyc-service migrate`); the Node target: rate limits, SIGTERM drain
+│       │   ├── vercel.ts / cloudflare.ts   # The two function targets
+│       │   ├── services.ts / store.ts / db.ts / migrate.ts   # The service instance over the Knex store, per app; runKycMigrations
 │       │   ├── providers/
-│       │   │   ├── index.ts         # The service's registry: package adapters + policy + tracing ⭐
+│       │   │   ├── index.ts         # selectProvider(env): package adapters + policy + tracing, one set per app ⭐
 │       │   │   ├── mock.ts          # assertMockProviderAllowed around the package's mock
-│       │   │   └── sumsub/{index,config}.ts   # The package adapter wired to SUMSUB_* + validateConfig
-│       │   ├── config.ts / auth.ts  # validateSecurityConfig, CORS origins, PUBLIC_BASE_URL; JWT
+│       │   │   └── sumsub/{index,config}.ts   # The package adapter wired to SUMSUB_* + the boot checks
 │       │   ├── tracing.ts / instrumentation.ts   # withSpan, instrumentProvider, the OTel bootstrap
-│       │   ├── schema.ts / typeDefs.ts / errors.ts / types.ts   # Thin re-exports of the package
-│       │   └── server.ts / index.ts # Boot (fail-closed) and the process entry
+│       │   └── schema.ts / typeDefs.ts / errors.ts / types.ts   # Thin re-exports of the package
+│       ├── deploy/                  # One template per target: compose, k8s, nix, vercel, cloudflare (shipped in the tarball)
+│       ├── Dockerfile               # The ghcr.io/blinkbitcoin/kyc-service image, built from the repo root
 │       ├── scripts/                 # emit-schema.ts, sumsub-check.ts
 │       ├── schema.graphql           # Emitted artifact - the wire contract ⭐
 │       └── tests/ , tests/e2e/ , tests/live/   # unit (composition), real Postgres, real Sumsub sandbox (opt-in)
 │
-│   └── examples/access-token-demo/  # 🖥️ server shape 2: an existing GraphQL API adds one mint mutation (mode 2's backend)
-│       └── src/{level,session,schema,server}.ts   # tier → level, one provider.createSession call
+│   └── examples/access-token-demo/  # 🖥️ the in-process tier as a host: an existing GraphQL API adds one mint mutation (mode 2's backend)
+│       └── src/{level,session,schema,server}.ts   # tier → level, accessTokenProviderFromEnv, one provider.createSession call
 │
 ├── 🧪 DEMOS - executable integration docs and E2E hosts
 │   │
@@ -143,7 +148,7 @@ kyc/
 │       ├── development-guide.md
 │       ├── architecture/            # This directory (principles.md = the rules behind the layout)
 │       ├── integration/             # Consumer guides
-│       ├── operations/              # For whoever runs the GitHub settings (the live Sumsub job)
+│       ├── operations/              # production.md (the runbook, by audience) and live-e2e-ci.md (the live Sumsub job)
 │       ├── diagrams/{src,dist}/     # .mmd sources → rendered SVGs
 │       ├── assets/readme-hero.svg
 │       └── superpowers/             # The approved design and the phase plans

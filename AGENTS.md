@@ -5,10 +5,10 @@ Instructions for AI agents working with this codebase.
 ## Project Overview
 
 Identity verification (KYC) integration monorepo (npm workspaces): a backend
-GraphQL service, a platform-agnostic core package, a Sumsub adapter package,
+GraphQL service, a platform-agnostic core package, the Node server package,
 publishable React Native and React web libraries, and one demo app per
-platform for manual and E2E testing. **Status: v1 complete** - all four
-packages, the reference backend, both demos, the full E2E suite and the
+platform for manual and E2E testing. **Status: v1 complete** - all five
+packages (the service included), both demos, the full E2E suite and the
 documentation set are implemented. The design this repo followed is
 [docs/superpowers/specs/2026-09-05-kyc-design.md](docs/superpowers/specs/2026-09-05-kyc-design.md);
 the current state is [docs/index.md](docs/index.md).
@@ -23,11 +23,11 @@ the current state is [docs/index.md](docs/index.md).
 
 ```
 ├── packages/
-│   ├── kyc-node/              # 📦 server half: the verification-session domain over provider + store ports, Sumsub adapter, hosted page, Fetch handlers, /express router, /knex store (entries ., /express, /knex, /sumsub)
+│   ├── kyc-node/              # 📦 server half, the in-process tier: the verification-session domain over provider + store ports, Sumsub adapter, hosted page, Fetch handlers + the access-token preset, /express router, /knex store, the production guard (entries ., /express, /knex, /sumsub)
 │   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode; providers/sumsub/ = the one Sumsub mapping (entry /sumsub)
 │   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (IdentityVerification + useIdentityVerification + hardened HostedWebView; entries ., /hosted and /sumsub = the native-SDK source in providers/sumsub/)
 │   ├── kyc-react/               # 📦 THE PRODUCT - web (IdentityVerification + useIdentityVerification + origin-pinned HostedFrame; entries ., /hosted (Apollo-free, same contract as RN) and /sumsub, the reserved web-SDK seat)
-│   └── kyc-service/             # 🖥️ THE SERVICE, one Fetch-native deployable composed from packages/kyc-node: tokens always, sessions (Apollo + Knex/Postgres) with DATABASE_URL; container, Node, Vercel or Cloudflare target
+│   └── kyc-service/             # 🖥️ THE SERVICE, the deployable tier: one Fetch-native app composed from packages/kyc-node - tokens always, sessions (Apollo + Knex/Postgres) with DATABASE_URL; container (Dockerfile → ghcr.io/blinkbitcoin/kyc-service), Node, Vercel or Cloudflare target; deploy/ templates ship in the tarball; runbook docs/operations/production.md
 │       └── src/
 │           ├── providers/           # The registry: the package adapters wired to this service's config + tracing, selected per app from its env
 │           ├── app.ts               # The Fetch core: capabilities → routes, security headers, CORS, session verification

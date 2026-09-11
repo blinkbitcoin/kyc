@@ -19,14 +19,18 @@ framework, no peers:
   reconciliation and the webhook state machine (terminal statuses never
   downgrade; the guard lives inside the write).
 
-The kyc service (`packages/kyc-service`) is this package plus Express, Apollo
-and a Postgres store; a backend that already exists (Blink's GraphQL API)
-imports the package instead of running that service.
+The kyc service (`packages/kyc-service`) is this package plus a Fetch
+runtime, Apollo and a Postgres store; a backend that already exists (Blink's
+GraphQL API) imports the package instead of running that service.
 
-Two worked hosts live in this repo, one per shape:
+Two worked hosts live in this repo, one per tier:
 [`examples/access-token-demo`](../../examples/access-token-demo/README.md)
 (one mutation on an existing API) and
-[`packages/kyc-service`](../kyc-service/README.md) (the whole service).
+[`packages/kyc-service`](../kyc-service/README.md) (the whole service, also
+shipped as the `kyc-service` image; its
+[Deploy table](../kyc-service/README.md#deploy) has one row per target).
+Taking either live is the runbook,
+[docs/operations/production.md](../../docs/operations/production.md).
 
 ## Mint a token for the native SDK (mode 2)
 

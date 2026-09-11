@@ -1,182 +1,336 @@
 # Running identity verification in production
 
-Who reads which section:
+For the people who take a working sandbox integration live: the Sumsub
+account owner, the backend developer, whoever operates the deployment, and
+the mobile developer. Everything below is about the **access token** - the
+one server-side call every mode needs, minted for a user your backend has
+authenticated - and, where a deployment also runs sessions, the service
+around it.
 
-| You are | Read |
-|---------|------|
-| Deciding what to run | [1. What runs where](#1-what-runs-where) |
-| The Sumsub account owner | [2. Sumsub go-live](#2-sumsub-go-live-account-owner) |
-| The backend developer | [3. Backend developer](#3-backend-developer) |
-| DevOps, deploying the reference service | [4. DevOps](#4-devops) |
-| The mobile or web developer | [5. App developer](#5-app-developer) |
-| Everyone, before the switch | [6. Verification checklist](#6-verification-checklist) |
-| On call | [7. Failure modes](#7-failure-modes) |
+Two shapes, both supported, same environment contract:
 
-Everything below is taken from the code: the boot guard in
-`packages/kyc-service/src/config.ts`, the env in
-`packages/kyc-service/.env.example`, the controls in
-[../architecture/security.md](../architecture/security.md), and the
-package's own [README](../../packages/kyc-node/README.md). When they
-disagree with this page, the code wins - fix the page.
+- **Tier A - in-process.** The host's own Node API mints. Nothing extra is
+  deployed; the recipe is the
+  [`kyc-node` README](../../packages/kyc-node/README.md#mint-a-token-for-the-native-sdk-mode-1)
+  and the runnable example is
+  [`examples/access-token-demo`](../../examples/access-token-demo/README.md).
+- **Tier B - the service.** `@blinkbitcoin/kyc-service` runs as a function
+  or a container next to the host's API, which keeps the session. Its deploy
+  targets are in
+  [`packages/kyc-service/README.md`](../../packages/kyc-service/README.md#deploy).
+
+> **Unverified against a production Sumsub account.** Every finding this
+> repository documents comes from the sandbox; the production behaviour is
+> assumed to match and stays unverified until a production account runs the
+> checklist in section 6 ([sumsub-lessons.md](../integration/sumsub-lessons.md)
+> is the record of what the sandbox passes taught). Treat that checklist as
+> the thing that closes it.
+
+---
 
 ## 1. What runs where
 
-Modes 2 and 3 need code on a backend you control; mode 1 needs a hosted
-page somewhere. Two tiers cover all of it, and the app code is the same in
-both - only the `VerificationSource` changes.
+### Tier A: the host's API mints in-process
 
-### Tier A: your API calls the package in-process
+```mermaid
+flowchart LR
+  App[Mobile / web app] -->|session token| API[Your Node API]
+  API -->|provider.createSession| SS[Sumsub REST]
+  SS -->|access token| API
+  API -->|accessToken| App
+  App -->|runs the SDK with the token| SS
+```
 
-`@blinkbitcoin/kyc-node` inside your own Node backend (Node ≥ 18, no
-framework requirement, no peers).
+The host API imports `@blinkbitcoin/kyc-node` and gains one endpoint's worth
+of behaviour inside its own process: the mint, plus a health check if it
+mounts the preset. Nothing else is deployed, no database is involved, and
+the Sumsub credentials never leave the API's own secret store. The SDK asks
+the app for a token again when one expires, so the mint is also the refresh.
 
-- **Mode 2, the native SDK:** one authenticated mutation or route that
-  calls `provider.createSession` and returns `{ accessToken }`. Nothing to
-  store, no webhook, no page: the SDK asks the app for a fresh token when
-  the old one expires, so that one call is also the refresh.
-  Runnable shape: [`examples/access-token-demo`](../../examples/access-token-demo/README.md).
-- **Mode 3, the proxy session, over your own store:** `createVerificationService`
-  over the provider and store ports, the Fetch handlers or the `/express`
-  router, `/knex` if you want the package's store and migrations. You keep
-  your auth, your CORS, your rate limits.
+### Tier B: the service is deployed
 
-### Tier B: the reference service is deployed
+```mermaid
+flowchart LR
+  App[Mobile / web app] -->|session token| SVC[kyc-service]
+  SVC -->|verify token via SESSION_JWKS_URL| IDP[Your identity provider]
+  SVC -->|mint| SS[Sumsub REST]
+  SS -->|access token| SVC
+  SVC -->|accessToken, or a hosted page URL| App
+  App -->|SDK, or the page in a WebView / iframe| SS
+  SS -.->|webhook, with DATABASE_URL| SVC
+  SVC -.->|status| DB[(PostgreSQL)]
+```
 
-[`packages/kyc-service`](../../packages/kyc-service/README.md):
-Express 5 + Apollo Server 5 + Knex/PostgreSQL composed on the package, with
-this service's auth, CORS allow-list, rate limits and fail-closed boot. It
-serves all four routes and is the backend every E2E suite runs against.
+The service holds the Sumsub credentials; the host keeps the one thing only
+it knows - who the caller is (a JWKS endpoint or a shared HS256 secret).
+Access tokens are always on; setting `DATABASE_URL` adds the sessions half
+(the hosted page, the provider webhook, the GraphQL API, the Postgres
+store).
 
-There is **no container image yet**. Tier B is a Node process you build and
-run (section 4); a Dockerfile and a published image are the stated
-follow-up, not something to wait for.
+### Pick a tier and a target
 
-### Pick a tier
+| Situation | Tier | Target |
+|---|---|---|
+| The host API is Node and can take a<br>dependency | A | its own deployment |
+| The host API is not Node, or must not hold<br>Sumsub credentials | B | the [deploy table](../../packages/kyc-service/README.md#deploy) |
+| The hosted page, webhooks, the status query<br>or the GraphQL API are wanted (modes 1 and 3) | B | a target with Postgres |
+| Only access tokens, on an edge runtime | B | Cloudflare (tokens only) |
+| The host is NixOS and the fleet is declared<br>in Nix | B | the [NixOS row](../../packages/kyc-service/README.md#deploy),<br>template `packages/kyc-service/deploy/nix/` |
 
-| You have | Tier |
-|----------|------|
-| An API already, and only the native SDK (mode 2) | A |
-| An API already, and you want sessions and webhook status in your own DB | A, `/knex` or your own store |
-| No backend, or you want the whole thing as one service | B |
-| Mode 1 only, with a page you serve yourself | neither - your page speaks the [bridge protocol](../integration/hosted.md) |
+Tier A and Tier B mint the same token and are indistinguishable to the app:
+the mobile side in section 5 is identical for both.
+
+---
 
 ## 2. Sumsub go-live (account owner)
 
-1. **Two Sumsub apps.** The sandbox app token is what
-   [`make sumsub-env`](../integration/sumsub.md) writes for the live test
-   tier; production gets its own app token and secret key, created in the
-   production dashboard, never copied from the sandbox item.
-2. **App token permissions.** The token must be allowed to create
-   applicants and access tokens; a token without it answers `403` on
-   `POST /resources/applicants`, which the service reports as
-   `PROVIDER_UNAVAILABLE` (section 7).
-3. **Levels.** `SUMSUB_LEVEL_NAME` is the default level a session uses
-   when `verificationSessionStart` does not name one. Level names are
-   whatever the dashboard calls them and differ per account; in tier A the
-   host maps its own tiers to level names (`KYC_LEVEL_BASIC` /
-   `KYC_LEVEL_ENHANCED` in the access-token example).
-4. **Webhook.** Register `https://<PUBLIC_BASE_URL>/webhook/kyc/sumsub`
-   with a secret key; that secret is `SUMSUB_WEBHOOK_SECRET`. The service
-   verifies `X-Payload-Digest` over the raw body with the algorithm the
-   request header names, so the digest algorithm you pick in the dashboard
-   needs no configuration on the server. Without the webhook, statuses
-   never advance past `pending`.
-5. **Retention.** The service stores an applicant id and a status, never a
-   document, an image or a name. Document retention is a dashboard
-   setting on the Sumsub side.
+Going live is mostly Sumsub's process, not ours. Do not expect any of it to
+be a code change here. The sandbox steps this repo was verified against are
+[sumsub.md](../integration/sumsub.md) section 1; production repeats them in
+the production space of the dashboard.
+
+**Sumsub's steps** (in the Sumsub dashboard, production space):
+
+1. **The production App Token.** Create it in the production space (App
+   Tokens) and copy the token and its secret key - the secret is shown
+   once. A sandbox token starts with `sbx:`; a production token does not,
+   and that prefix is the one tell the boot guard uses (section 4): under
+   `KYC_ENV=production` a `sbx:` token refuses to boot.
+2. **The verification levels.** Level names are per account and per space:
+   the production space has its own, and `basic-kyc-level` (this repo's
+   default) exists only if you created it there. Every name the backend
+   uses - `SUMSUB_LEVEL_NAME`, whatever a `levelFor` hook or the
+   `access-token-demo`'s `KYC_LEVEL_*` returns - must exist in production.
+   Confirm each level has both an identity document and a liveness step;
+   a document-only level never opens the camera.
+3. **The webhook** (Tier B with sessions only): register
+   `<PUBLIC_BASE_URL>/webhook/kyc/sumsub`, method POST, subscribed to at
+   least `applicantReviewed`, `applicantPending`, `applicantCreated`,
+   `applicantOnHold` and `applicantReset`; copy its secret key and note the
+   digest algorithm. The backend reads the algorithm from the
+   `x-payload-digest-alg` header and supports SHA-1, SHA-256 and SHA-512;
+   the secret is `SUMSUB_WEBHOOK_SECRET`.
+4. **Allowed origins for the Web SDK** (the hosted page on the web): if the
+   production space restricts the domains the Web SDK may load from, add
+   the origin of `PUBLIC_BASE_URL` - the page is served from there, inside
+   the host's iframe.
+5. **The review policy.** Sandbox applicants are auto-reviewed; production
+   ones go through the account's review queue and its rules. Nothing here
+   changes, but the statuses the app sees (`pending`, then a terminal one)
+   now take as long as that review does.
+
+**Our rule**: the dashboards are sandbox-only for everyone working in this
+repository. A production token never touches a developer machine, a `.env`
+file, or CI (`make sumsub-env` writes a sandbox `.env`; the live tier
+[live-e2e-ci.md](live-e2e-ci.md) runs on sandbox secrets and must stay
+that way).
+
+---
 
 ## 3. Backend developer
 
-### Tier A - mint for the native SDK
+### Tier A - the host API mints
 
-The whole surface is the access-token example's `src/session.ts`:
-`providerFromEnv(...)` over the package registry, then
-`provider.createSession(...)`. Your existing session check decides who the
-caller is; the user's id becomes the applicant's external id. Read
-[the package README](../../packages/kyc-node/README.md) for the call and
-[native-sdk.md](../integration/native-sdk.md) for the app side.
+Two names from `@blinkbitcoin/kyc-node`, wired once at boot:
 
-### Tier A - the session domain over your store
+```ts
+import { accessTokenProviderFromEnv } from '@blinkbitcoin/kyc-node';
+import { createAccessTokenRouter } from '@blinkbitcoin/kyc-node/express';
 
-`createVerificationService` needs a `VerificationProvider` (the package's
-Sumsub adapter, or the mock) and a `SessionStore` (the package's Knex store
-via `/knex`, or yours). The service is the single write path for a status
-change: the terminal-state guard (`approved` and `finallyRejected` never
-downgrade) is part of the store's conditional write, so implement it as
-such if you bring your own store. Mount the `/express` router or the Fetch
-handlers for the hosted page and the webhook.
+const provider = accessTokenProviderFromEnv(process.env); // checked at boot
 
-### Tier B - the two things the host must supply
+app.use(createAccessTokenRouter({
+  provider,
+  authenticate: req => yourAuth(req.headers.authorization),   // user id or null
+  levelFor: (input, { userId }) => yourLevelFor(userId),       // the host decides
+}));
+```
 
-- **The bearer token.** With `JWT_SECRET` set, the service verifies the
-  app's `Authorization: Bearer` token as HS256 and takes the `sub` claim as
-  the user id. Every session read and refresh is owner-scoped against it.
-  Your app's session token must therefore be an HS256 JWT signed with that
-  secret, or you put the service behind your own auth that mints one.
-- **The webhook route reachable from Sumsub**, at the public base URL,
-  unauthenticated (it is signature-verified), rate-limited at 120/min.
+`createAccessTokenApp` is the same surface with no framework - one Fetch
+entry point for a route handler, a Worker or a plain Node server. Both
+serve `POST /verification/token` and `GET /health`, and nothing else.
+
+**The mutation alternative.** A host that already has a GraphQL API adds
+one mutation instead of mounting a route: the mint without any HTTP
+surface is `provider.createSession(userId, { platform, levelName })`,
+called from the resolver once the resolver has authenticated the caller
+and picked the level from the host's own data.
+
+```ts
+// examples/access-token-demo/src/session.ts
+export const createStartSession = (env = process.env) => {
+  const provider = accessTokenProviderFromEnv(env);          // once, at startup
+  return (userId, platform, levelName) =>
+    provider.createSession(userId, { platform, levelName });
+};
+
+// examples/access-token-demo/src/schema.ts (the resolver)
+verificationAccessToken: async (_parent, { platform, tier }, context) => {
+  if (!context.userId) throw new Error('Unauthenticated');
+  const levelName = levelFor(tier);                          // the host's own decision
+  return context.startSession(context.userId, platform, levelName);
+},
+```
+
+The whole runnable shape is
+[`examples/access-token-demo`](../../examples/access-token-demo/README.md)
+(`src/session.ts`, `src/level.ts`, `src/schema.ts`).
+
+What the host still owns, in every spelling:
+
+- **The session.** `authenticate` returns the user id or `null`; the
+  package never sees the token. `null` is `401`. The user id is the
+  external user id Sumsub files the applicant under, so it must be stable
+  for the user's lifetime and must never be a session id.
+- **The level.** The `levelFor` hook receives the caller's *validated*
+  input and returns the level actually minted, so a client value can never
+  pick a cheaper level. To refuse the request - the user is not eligible,
+  say - throw `Errors.validationError(message)`, which comes back as
+  `400 { error: 'VALIDATION_ERROR', message }` (`Errors.unauthorized()` →
+  `401`); a provider failure is `502`.
+- **The edge concerns**: CORS, security headers, rate limits. The worked
+  policy is the service's own (`packages/kyc-service/src/app.ts` and
+  `src/server.ts`) - copy from it rather than inventing one.
+- **Timing.** An access token lives `SUMSUB_TOKEN_TTL_SECS` (default 600
+  s) and the SDK asks for a new one through the same callback when it
+  expires, so mint when the user opens the verification screen, never
+  earlier, and never cache one.
+
+### Tier B - the host API answers one callback
+
+The host does not mint. It exposes, instead, a **JWKS endpoint**
+(`SESSION_JWKS_URL`) or shares an HS256 secret (`SESSION_HS256_SECRET`,
+alias `JWT_SECRET`) so the service can turn the app's bearer token into a
+user id - the id Sumsub sees as the external user id. `SESSION_ISSUER`,
+`SESSION_AUDIENCE` and `SESSION_USER_CLAIM` (default `sub`) pin which
+tokens count.
+
+With sessions on, the host also decides whether to read status from the
+service's GraphQL API (`verificationSession`, mode 3) or from its own
+systems fed by the same webhook - the service persists one row per
+attempt and the terminal-state guard means a replayed callback never
+downgrades an `approved` user ([proxy.md](../integration/proxy.md)).
+
+Rotation in both tiers is a restart: the Sumsub settings are checked once
+at boot (the adapter reads them per call, but the guard does not re-run),
+so replacing the token means rolling the deployment.
+
+---
 
 ## 4. DevOps
 
-### Build and run
+### Tier B: deploy
 
-From a checkout with the packages built (`npm run build` at the root builds
-the four libraries, and the service's `npm run build` needs their dist):
+Every target runs the same image or the same package, on the same
+environment contract, with the same `/health`. The table of targets - the
+image, Compose, Kubernetes, NixOS, Cloud Run/Fly/Render/Railway, Lambda,
+Vercel, Cloudflare - and the exact command per row lives with the templates
+it refers to:
+[`packages/kyc-service/README.md#deploy`](../../packages/kyc-service/README.md#deploy).
+The templates themselves are
+[`packages/kyc-service/deploy/`](../../packages/kyc-service/deploy/) and
+ship in the published tarball; their only inputs are environment
+variables. `make deploy-check` validates them, `make docker-build` and
+`make docker-smoke` boot the image in both capability modes.
 
-```sh
-npm ci
-npm run build                                   # the packages
-npm run build -w packages/kyc-service     # tsc -> packages/kyc-service/dist
-npm run migrate -w packages/kyc-service   # applies the package's migrations to DATABASE_URL, then exits
-npm run start -w packages/kyc-service     # node dist/index.js
-```
+Two things the table decides for you:
 
-`npm run migrate` is idempotent and safe to run before every start; run it
-once per database change, not on every replica. The schema is the
-package's programmatic migration source (`runKycMigrations` from
-`@blinkbitcoin/kyc-node/knex`), so there are no migration files to ship.
+- **Capabilities.** Every row serves access tokens. Sessions need
+  `DATABASE_URL` and a runtime that can open a Postgres connection, so
+  Cloudflare is tokens-only - the boot guard refuses `DATABASE_URL` there
+  and names the target to use instead.
+- **The migrate step.** Only when sessions are on, once per database (and
+  after an upgrade that adds a migration): `node dist/node.js migrate` in
+  the image, `npx kyc-service migrate` from the package. The templates
+  wrap it as Compose's `migrate` profile and the Kubernetes
+  `kyc-service-migrate` Job.
 
 ### The environment
 
-The service **refuses to boot** when any required value is missing or
-malformed (`validateSecurityConfig`); it does not consult `NODE_ENV` for
-that decision. `NODE_ENV=production` separately turns on `trust proxy 1`
-and turns off GraphQL introspection and stack traces.
+`packages/kyc-service/.env.example` is the authoritative list, with
+comments. In production the ones that matter:
 
-| Variable | Required | What it does |
-|----------|----------|--------------|
-| `DATABASE_URL` | yes | PostgreSQL 15+, `postgresql://user:pass@host:5432/kyc` |
-| `KYC_PROVIDER` | yes, `sumsub` | `mock` is for development only and itself requires `ALLOW_INSECURE_DEV=true` |
-| `SUMSUB_APP_TOKEN`, `SUMSUB_SECRET_KEY` | with `sumsub` | The REST credentials (app-token auth) |
-| `SUMSUB_WEBHOOK_SECRET` | with `sumsub` | Verifies `X-Payload-Digest` on every webhook |
-| `JWT_SECRET` | yes | HS256 key the app's bearer tokens are verified with |
-| `PUBLIC_BASE_URL` | yes | Absolute `http(s)` URL this service is reachable at. The hosted page URL is `<PUBLIC_BASE_URL>/hosted/<sessionId>` and its origin is the `allowedOrigin` the apps pin `postMessage` to - no localhost fallback outside insecure dev |
-| `CORS_ALLOWED_ORIGINS` | for web apps | Comma-separated browser origins; empty means no cross-origin browser access at all |
-| `PORT` | no | Default `5100` |
-| `SUMSUB_LEVEL_NAME` | no | Default level when the session input names none (`basic-kyc-level`) |
-| `SUMSUB_BASE_URL`, `SUMSUB_TOKEN_TTL_SECS`, `SUMSUB_REQUEST_TIMEOUT_MS` | no | `https://api.sumsub.com`, `600`, `10000` |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, `OTEL_TRACES_EXPORTER` | no | OpenTelemetry; tracing is off unless set |
-| `ALLOW_INSECURE_DEV` | **never** | Bypasses the JWT and webhook checks; the only place it belongs is a developer's `.env` |
+| Variable | Production setting |
+|---|---|
+| `KYC_PROVIDER` | `sumsub` |
+| `KYC_ENV` | `production` (the image already sets it) |
+| `KYC_ALLOW_DEMO` | unset; `true` only for staging on the sandbox |
+| `SESSION_JWKS_URL` | the host's key set; or `SESSION_HS256_SECRET` |
+| `SESSION_ISSUER`,<br>`SESSION_AUDIENCE` | enforced when set - set them |
+| `SESSION_USER_CLAIM` | the claim carrying the user id (default `sub`) |
+| `DATABASE_URL` | only when sessions are wanted |
+| `PUBLIC_BASE_URL` | the deployment's public https base; required once<br>sessions are on (the hosted page URL and the origin<br>clients pin `postMessage` to derive from it) |
+| `SUMSUB_APP_TOKEN`,<br>`SUMSUB_SECRET_KEY` | the production token from section 2 (no `sbx:`) |
+| `SUMSUB_WEBHOOK_SECRET` | required when sessions are on |
+| `SUMSUB_LEVEL_NAME` | a level that exists in the production space |
+| `SUMSUB_BASE_URL`,<br>`SUMSUB_TOKEN_TTL_SECS`,<br>`SUMSUB_REQUEST_TIMEOUT_MS` | tuning; `https://api.sumsub.com`, 600 s, 10 000 ms |
+| `CORS_ALLOWED_ORIGINS` | the app origins; empty = same-origin only |
+| `ALLOW_INSECURE_DEV` | never set in production |
+| `OTEL_*` | standard OpenTelemetry; tracing off unless set |
+| `PORT`, `TRUST_PROXY`,<br>`RATE_LIMIT_*_PER_MIN` | container only (defaults 5100; 60/60/120/100 per min) |
 
-A production `.env` is therefore at minimum:
+**Tier A** takes the same table **minus everything only the service
+reads**: `SESSION_*`, `DATABASE_URL`, `PUBLIC_BASE_URL`,
+`SUMSUB_WEBHOOK_SECRET`, `CORS_ALLOWED_ORIGINS`, `ALLOW_INSECURE_DEV`,
+`OTEL_*` and the container-only row. The host API already has a session,
+picks its own level in the `levelFor` hook, and brings its own CORS,
+telemetry, port, proxy and limits. What is left is `KYC_PROVIDER`,
+`KYC_ENV`, `KYC_ALLOW_DEMO` and the `SUMSUB_*` settings, applied to the
+host API's own deployment.
 
-```env
-DATABASE_URL=postgresql://user:pass@host:5432/kyc
-KYC_PROVIDER=sumsub
-SUMSUB_APP_TOKEN=...
-SUMSUB_SECRET_KEY=...
-SUMSUB_WEBHOOK_SECRET=...
-JWT_SECRET=...
-PUBLIC_BASE_URL=https://kyc.example.com
-CORS_ALLOWED_ORIGINS=https://app.example.com
-NODE_ENV=production
-```
+### The secrets, per platform
+
+Every secret is a one-line value, so there is no file to mount anywhere:
+
+| Platform | How |
+|---|---|
+| Docker / Compose | `--env-file` (the image reads nothing else), or Compose<br>`secrets` exported into the environment by an entrypoint<br>of your own |
+| Kubernetes | one Secret, `deploy/k8s/secret.yaml`, consumed with<br>`envFrom` by the Deployment and the migrate Job |
+| NixOS | the environment file `deploy/nix/configuration.nix` names,<br>written by agenix / sops-nix or root-owned |
+| Vercel, Cloudflare,<br>other PaaS | the platform's env UI (Cloudflare: `wrangler secret put`) |
+
+`SUMSUB_SECRET_KEY` signs every REST call and `SUMSUB_WEBHOOK_SECRET`
+verifies every delivery: rotating either in the dashboard is a redeploy
+with the new value, and the old one stops working the moment Sumsub
+retires it.
+
+### The boot guard
+
+`validateConfig` runs from the environment alone and lists **every**
+problem at once, with the capabilities that were on, then refuses to
+start - a container fails to boot, a function fails at first import. It
+refuses:
+
+- no session source (`SESSION_JWKS_URL` / `SESSION_HS256_SECRET`) unless
+  `ALLOW_INSECURE_DEV=true`;
+- with sessions on: no `PUBLIC_BASE_URL`, or one that is not an absolute
+  http(s) URL;
+- an unknown `KYC_PROVIDER`, or `sumsub` without the settings a mint
+  needs (`SUMSUB_APP_TOKEN`, `SUMSUB_SECRET_KEY`);
+- the mock provider unless `ALLOW_INSECURE_DEV=true` - it signs its own
+  webhooks with a default key, so anyone who can reach the route could
+  forge an `approved`;
+- under `KYC_ENV=production`: the mock provider, and a Sumsub app token
+  still carrying the sandbox `sbx:` prefix - `KYC_ALLOW_DEMO=true` is the
+  one bypass, for a production-shaped staging deployment;
+- sessions on with Sumsub and no `SUMSUB_WEBHOOK_SECRET` (unless
+  `ALLOW_INSECURE_DEV=true`);
+- `DATABASE_URL` on the Cloudflare runtime.
+
+`KYC_ENV=production` does one more thing that is not a refusal: GraphQL
+introspection is off, so a deployment with sessions on does not publish its
+schema.
+
+`NODE_ENV` gates none of this: every Node image sets it, so it says nothing
+about the verification configuration. Tier A gets the same provider checks
+from `accessTokenProviderFromEnv` (`SumsubConfigError`,
+`ProductionConfigError`), at the host's own boot.
 
 ### In front of the service
 
 - **TLS terminates at your proxy**; the service listens on plain HTTP on
-  `PORT`. `trust proxy 1` (production only) makes rate limiting key on the
-  first `X-Forwarded-For` hop, so run exactly one trusted proxy in front.
+  `PORT`. `TRUST_PROXY=1` makes rate limiting key on the first
+  `X-Forwarded-For` hop, so run exactly one trusted proxy in front.
 - **Do not add `X-Frame-Options` or a `frame-ancestors` restriction** on
   `/hosted/*`. The page is meant to be embedded by host apps whose origin
   the service cannot know; it ships `frame-ancestors *` on purpose, and the
@@ -187,17 +341,29 @@ NODE_ENV=production
   proxy that rewrites it breaks capture inside the iframe.
 - **`Cache-Control: no-store`** is set by the page; keep it. The session id
   in the URL is a bearer capability handed to one client.
-- **Rate limits are built in** (`/graphql` 100/min, `/hosted/:sessionId`
-  60/min, the webhook 120/min, 64 kB bodies) and `helmet` is on every
+- **Rate limits are built in** (`/verification/token` 60/min, `/hosted/:sessionId`
+  60/min, the webhook 120/min, `/graphql` 100/min - `RATE_LIMIT_*_PER_MIN`
+  tunes them - and 64 kB bodies), and the security headers are on every
   response. Add your own edge limits on top, not instead.
 
-### Health and lifecycle
+### Health and shutdown
 
-`GET /health` is the liveness probe; `make e2e-backend-up` polls it, so
-your orchestrator can too. The process is a plain Node server: a supervisor
-(systemd, a container runtime, a PaaS) restarts it, and the boot guard makes
-a misconfigured restart fail loudly rather than serve. Migrations run as a
-separate step before the new version starts.
+- `GET /health` answers `{ status, capabilities, timestamp }`, so a
+  deployment says which capabilities it is serving. It is the readiness
+  and liveness probe in the Kubernetes template and the image's
+  `HEALTHCHECK`.
+- **SIGTERM** stops the listener and drains in-flight requests before
+  exiting, so a rolling deploy loses nothing. Give the orchestrator a
+  grace period longer than the slowest Sumsub call
+  (`SUMSUB_REQUEST_TIMEOUT_MS` plus retries).
+- An access token is a credential for the applicant's own verification:
+  the service does not log one, and anything that captures the service's
+  output (a log shipper, a CI artifact) should be treated as carrying one
+  anyway - which is why [live-e2e-ci.md](live-e2e-ci.md) does not upload
+  the service log. Applicant ids never reach logs or spans either
+  ([security.md](../architecture/security.md)).
+
+---
 
 ### Observability
 
@@ -205,59 +371,111 @@ Set the three `OTEL_*` variables to export traces; every provider call and
 webhook is a span. Applicant data never reaches spans or the audit log (the
 allow-list is the package's `audit.ts`).
 
-## 5. App developer
+## 5. Mobile developer
 
-What the app needs from the people above, per mode:
+Nothing about production changes on the app side. Mode 2 (the native SDK)
+installs the package and the provider SDK peer:
 
-| Mode | From the backend | In the app |
-|------|------------------|------------|
-| 1 hosted | A `{ url }` for the session (the service's `verificationSessionStart` returns it) and, optionally, a refresh endpoint | `createHostedSource({ getSession, refreshToken })`; the `allowedOrigin` is derived from the URL unless you pin it yourself |
-| 2 native SDK | One authenticated call that returns `{ accessToken }` | `createSumsubNativeSource({ getAccessToken })` plus the Sumsub SDK peer and the iOS pod |
-| 3 proxy | The GraphQL URL and an HS256 JWT signed with `JWT_SECRET` (tier B) | `createKycApolloClient({ uri, getAuthToken })` + `createProxySource({ client, platform })` |
+```sh
+npm i @blinkbitcoin/kyc-react-native @sumsub/react-native-mobilesdk-module
+cd ios && bundle exec pod install
+```
 
-Web hosts also need their own page to allow `camera` and `microphone` to be
-delegated to the frame, and the service's `CORS_ALLOWED_ORIGINS` to include
-their origin. The exact list is in
-[../../packages/kyc-react/README.md](../../packages/kyc-react/README.md#what-the-host-page-must-allow).
+Point the source at the mint - the host API in Tier A, the service in
+Tier B - and render the component:
+
+```tsx
+import { Verification } from '@blinkbitcoin/kyc-react-native';
+import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
+
+const source = createSumsubNativeSource({
+  // POST /verification/token on your backend, with the app's own session token
+  getAccessToken: async () => (await yourApi.verificationAccessToken('IOS')).accessToken,
+});
+
+<Verification
+  source={source}
+  onComplete={({ status }) => {}}
+  onError={({ code, message }) => {}}
+  onCancel={() => {}}
+/>
+```
+
+`getAccessToken` doubles as the SDK's own expiry handler, so there is
+nothing to refresh: the SDK calls it again and the backend mints again.
+
+Mode 1 (the hosted page) needs Tier B with sessions and the `/hosted`
+entry - `createHostedSource({ getSession })` over the service's start
+mutation, the `allowedOrigin` derived from `PUBLIC_BASE_URL`
+([hosted.md](../integration/hosted.md)); mode 3 adds the Apollo peers and
+`createProxySource` ([proxy.md](../integration/proxy.md)). Web is the same
+code from `@blinkbitcoin/kyc-react`. Error codes:
+[error-codes.md](../integration/error-codes.md).
+
+---
 
 ## 6. Verification checklist
 
-Before switching a real app to a real account, in this order:
+Nothing here is confirmed until these pass against the **production**
+account, levels and token. Do not run the automated live tier against
+production: `make e2e-live` submits real applicants and exists for the
+sandbox.
 
-1. `make sumsub-check` against the **sandbox** `.env`: app-token auth and
-   the level resolve, a throwaway token mints.
-2. `make e2e-live`: the full live tier (token, status, hosted page, a signed
-   webhook, the access-token example) passes against the sandbox.
-3. The service boots with the production `.env` and **only** that env:
-   `npm run start -w packages/kyc-service` prints no
-   `ALLOW_INSECURE_DEV` warning and does not throw
-   `Refusing to start: missing required security configuration`.
-4. `curl https://<PUBLIC_BASE_URL>/health` returns `200` through the proxy.
-5. `curl -I https://<PUBLIC_BASE_URL>/hosted/nonexistent` returns the
-   not-found page with `Permissions-Policy` and `Cache-Control: no-store`
-   intact - proof the proxy is not rewriting the hosted route.
-6. A webhook test delivery from the Sumsub dashboard reaches
-   `/webhook/kyc/sumsub` and is answered `200`; a tampered body is answered
-   `401`.
-7. One real journey per platform you ship, on a device, with a test
-   applicant: the app reaches `approved` or `declined`, and
-   `verificationSession` reports the same status afterwards.
-8. `CORS_ALLOWED_ORIGINS` lists exactly the web origins that embed the
-   component, and nothing else.
+- [ ] `make sumsub-check` with the production `SUMSUB_*` values in the
+      environment (never in a committed file): app-token auth and the
+      level resolve, and a throwaway token mints.
+- [ ] `curl` the mint with a **real session token** and confirm a `200`
+      with an access token:
+
+      ```sh
+      curl -s https://kyc.example.com/verification/token \
+        -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+        -d '{"platform":"IOS"}'
+      ```
+
+      An expired or wrong-issuer token must answer `401`.
+- [ ] The **level actually minted** is the host's: a request naming a
+      different `levelName` gets the level `levelFor` decided (or the
+      provider's default), visible on the applicant in the dashboard.
+- [ ] One **real applicant** on a phone: the SDK opens on the token, the
+      document and liveness steps run, the applicant appears in the
+      production space under the app's user id, and the app's
+      `onComplete` fires.
+- [ ] The **guard refuses demo values**: boot the same deployment with the
+      sandbox token or `KYC_PROVIDER=mock` and confirm it refuses to start,
+      naming the offending setting.
+- [ ] `GET /health` reports the capabilities the deployment is meant to
+      serve (and only those).
+- [ ] With sessions on: the migrate step ran, `POST /webhook/kyc/mock`
+      answers `404`, an unsigned `POST /webhook/kyc/sumsub` answers `401`,
+      and a reviewed applicant's webhook reaches the service and updates
+      the stored status (`verificationSession` over GraphQL, or the
+      hosted page's completion).
+
+When the first four items pass, add a production pass to
+[sumsub-lessons.md](../integration/sumsub-lessons.md) - it is the record of
+what remains unverified.
+
+---
 
 ## 7. Failure modes
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `Refusing to start: missing required security configuration: …` | A required variable is unset, or `PUBLIC_BASE_URL` is not an absolute http(s) URL | The message names the variable; never "fix" it with `ALLOW_INSECURE_DEV` |
-| `PROVIDER_UNAVAILABLE` on every start, `403` in the provider span | The app token lacks the permission to create applicants or access tokens, or sandbox credentials are pointed at the production base URL | Reissue the token with the permission; check `SUMSUB_BASE_URL` |
-| Sessions stay `pending` forever | The webhook is not registered, not reachable, or answered `401` (secret mismatch) | Section 2 step 4; compare `SUMSUB_WEBHOOK_SECRET` with the dashboard |
-| Webhook answered `200` but the status did not change | The terminal-state guard: the session is already `approved` or `finallyRejected`, or the delivery is a replay | By design; the audit log shows `webhook_rejected` with `reason: 'terminal_status'` |
-| `UNAUTHORIZED` from the app | The bearer token is not an HS256 JWT signed with `JWT_SECRET`, or has no `sub` | Mint the app's session token accordingly (section 3, tier B) |
-| `SESSION_NOT_FOUND` for a session that exists | Owner-scoping: the token's `sub` is not the session's user | Intentional; the two cases are indistinguishable to the caller |
-| Camera never opens inside the hosted page on web | The host page does not delegate `camera`/`microphone` to the frame, or a proxy rewrote `Permissions-Policy` | Host page requirements in the web package README; section 4 |
-| `TOKEN_EXPIRED` mid-flow | The refresh path is missing: no `refreshToken` on the hosted source, or the proxy refresh mutation is blocked | Wire the refresh; the built-in error screen already offers "Try again" |
-| `SDK_UNAVAILABLE` on mobile | The Sumsub native module is not installed or the iOS pod was not run | `npm i @sumsub/react-native-mobilesdk-module && cd ios && bundle exec pod install` |
+| Symptom | Meaning | Fix |
+|---|---|---|
+| Refuses to boot naming<br>`SUMSUB_APP_TOKEN=sbx:…` | `KYC_ENV=production` with the<br>sandbox token | the production token<br>(section 2) |
+| Refuses to boot naming the<br>mock provider | `KYC_ENV=production` with<br>`KYC_PROVIDER=mock`, or the mock<br>without `ALLOW_INSECURE_DEV` | set `KYC_PROVIDER=sumsub`<br>and its settings |
+| Refuses to boot: no session<br>verification | neither `SESSION_JWKS_URL` nor<br>`SESSION_HS256_SECRET` is set | the host's key set or secret<br>(section 3, Tier B) |
+| `401` from the mint | the host rejected the token: wrong<br>issuer, audience, claim or expiry | check `SESSION_*` against the<br>token the app actually sends |
+| `400 VALIDATION_ERROR` from<br>the mint | a platform outside `WEB`, `IOS`,<br>`ANDROID`, or the `levelFor` hook<br>refused the user | the message says which |
+| `502 PROVIDER_UNAVAILABLE` | Sumsub refused or timed out<br>(credentials, a level that does not<br>exist in this space, an outage) | the service log names the<br>upstream status; check the<br>level and the token's space |
+| The SDK opens and closes at<br>once | the level has no steps the SDK<br>can run, or the token was minted<br>for another platform | check the level (section 2)<br>and the `platform` the app sends |
+| Status never leaves `pending` | production review is manual and<br>slow, or the webhook never arrived | the dashboard's review queue;<br>section 6's webhook checks |
+| `404` from the webhook | the URL names a provider other<br>than the configured one | register<br>`/webhook/kyc/sumsub` |
+| `401` from the webhook | the signature did not verify: wrong<br>secret, or a body re-serialised on<br>the way in | `SUMSUB_WEBHOOK_SECRET`; a<br>proxy must pass the raw body |
+| Refuses to boot on Cloudflare<br>naming `DATABASE_URL` | sessions asked for on a runtime<br>with no Postgres driver | the container or the Node<br>target for sessions |
 
-The full code table with the layer each code comes from:
-[../integration/error-codes.md](../integration/error-codes.md).
+More detail per layer:
+[error-codes.md](../integration/error-codes.md) (app-facing codes),
+[sumsub-lessons.md](../integration/sumsub-lessons.md) (the Sumsub rules
+behind them), [live-e2e-ci.md](live-e2e-ci.md) (the same failures as seen
+from CI).

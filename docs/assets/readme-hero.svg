@@ -145,7 +145,7 @@
   <line x1="818" y1="170" x2="818" y2="128" stroke="#64748b" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
   <text x="826" y="152" font-size="10.5" fill="#64748b">REST + webhooks</text>
 
-  <!-- ===== Footer: the four packages ===== -->
+  <!-- ===== Footer: the five packages ===== -->
   <line x1="300" y1="340" x2="920" y2="340" stroke="#e2e8f0"/>
-  <text x="610" y="366" text-anchor="middle" font-size="11.5" fill="#64748b">@blinkbitcoin/kyc-core · kyc-node · kyc-react-native · kyc-react</text>
+  <text x="610" y="366" text-anchor="middle" font-size="11.5" fill="#64748b">@blinkbitcoin/kyc-core · kyc-node · kyc-service · kyc-react-native · kyc-react</text>
 </svg>

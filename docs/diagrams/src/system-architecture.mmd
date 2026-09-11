@@ -17,7 +17,8 @@ flowchart TB
         NATIVE[createSumsubNativeSource<br/>kyc-react-native /sumsub]
     end
 
-    subgraph Backend["packages/kyc-service - hosted and proxy modes"]
+    subgraph Backend["packages/kyc-service - the deployable tier: tokens always, sessions with DATABASE_URL"]
+        TOKEN[/"POST /verification/token"/]
         GQL[/"POST /graphql"/]
         PAGE[/"GET /hosted/:sessionId"/]
         WH[/"POST /webhook/kyc/:provider"/]
@@ -39,7 +40,9 @@ flowchart TB
     SRC --> HOSTED & PROXY
     RN -- "mode 2: native SDK" --> NATIVE
     NATIVE --> NATIVEMAP
+    NATIVE -- "getAccessToken" --> TOKEN
     NATIVE -- "in-process" --> SDK
+    TOKEN --> PROV
     HOSTED -. "mode 1: kyc-bridge" .-> PAGE
     PROXY -- "mode 3: GraphQL" --> GQL
     GQL --> PROV
@@ -54,6 +57,7 @@ flowchart TB
 
     style SRC fill:#e7f5ff
     style MACHINE fill:#e7f5ff
+    style TOKEN fill:#fff3bf
     style GQL fill:#fff3bf
     style PAGE fill:#fff3bf
     style WH fill:#fff3bf

@@ -34,14 +34,14 @@ packages/kyc-service: one Fetch core (security headers, CORS, session verificati
 VerificationProvider port  ──►  providers/sumsub (Sumsub REST) | providers/mock
 ```
 
-Two host shapes use the same package: the full service here, and an existing API that only mints access tokens for the native SDK (`examples/access-token-demo` - one mutation, one `provider.createSession` call, no store).
+Two host tiers use the same package: the deployable tier - the service here - and the in-process tier, an existing API that mints access tokens through `accessTokenProviderFromEnv` and the `createAccessTokenApp` / `createAccessTokenRouter` presets or one mutation (`examples/access-token-demo` - one `provider.createSession` call, no store). Taking either live: [../operations/production.md](../operations/production.md).
 
 ## Entry points
 
 | Import | Contents | Needs |
 |--------|----------|-------|
 | `@blinkbitcoin/kyc-node` | `createVerificationService`, the `VerificationProvider` / `SessionStore` / `Tracing` / `Logger` ports, `createMemorySessionStore`, the mock provider, the registry (`providerFromEnv`, `defaultRegistry`), `typeDefs` + `createKycGraphQL`, the Fetch handlers and the `*Http` decision functions, `KycError` + `ErrorCodes`, `verifyHexDigest`, `withRetry`, the hosted-page primitives | nothing (Node ≥ 18) |
-| `@blinkbitcoin/kyc-node/express` | `createKycRouter` (`/health`, `/hosted/:sessionId`, `/webhook/kyc/:provider`) | `express` (optional peer) |
+| `@blinkbitcoin/kyc-node/express` | `createKycRouter` (`/health`, `/hosted/:sessionId`, `/webhook/kyc/:provider`), `createAccessTokenRouter` (`POST /verification/token`, `/health`) | `express` (optional peer) |
 | `@blinkbitcoin/kyc-node/knex` | `createKnexSessionStore`, `KYC_MIGRATIONS`, `createKycMigrationSource`, `runKycMigrations` | `knex` (optional peer) |
 | `@blinkbitcoin/kyc-node/sumsub` | `createSumsubProvider`, `createSumsubClient`, `sumsubConfigFromEnv`, `assertSumsubConfig`, `sumsubHostedPage`, `buildSumsubStatusTable` | nothing |
 
@@ -59,9 +59,9 @@ The package (`packages/kyc-node/src/`):
 | `provider.ts` | The `VerificationProvider` port, the `HostedPageRenderer` capability, `supportsUserStatusLookup` / `supportsHostedPage` |
 | `providers/mock/{provider,page}.ts` | The deterministic provider (per-handle applicant map, `signWebhook`, `setApplicantStatus`) and its page |
 | `providers/sumsub/{config,client,provider,page}.ts` | SUMSUB_* config, the app-token-signed REST client with retries, the adapter, the page over the Sumsub web SDK |
-| `registry.ts` | `ProviderRegistry`, `providerFromEnv` / `providerNameFromEnv` keyed by `KYC_PROVIDER`, `defaultRegistry` |
+| `registry.ts` / `production.ts` | `ProviderRegistry`, `providerFromEnv` / `providerNameFromEnv` keyed by `KYC_PROVIDER`, `defaultRegistry` (selection is a boot check), `accessTokenProviderFromEnv`; the production guard (`KYC_ENV`, `KYC_ALLOW_DEMO`) |
 | `graphql.ts` | The SDL (`typeDefs`) and `createKycGraphQL({ sessions })` - resolvers that map I/O only |
-| `handlers.ts` / `express.ts` | Framework-neutral Fetch handlers and `*Http` decisions; the Express router over them |
+| `handlers.ts` / `express.ts` | Framework-neutral Fetch handlers and `*Http` decisions, the `createAccessTokenApp` preset; the Express router and `createAccessTokenRouter` over them |
 | `pages.ts` / `html.ts` / `bridge/script.ts` | The hosted page's neutral layer: params, nonce CSP, permissions policy, not-found page; escaping; the `kyc-bridge` page script |
 | `errors.ts` / `validation.ts` / `signature.ts` / `http.ts` / `audit.ts` / `auth.ts` / `log.ts` / `tracing.ts` | `KycError` + `ErrorCodes`, `validateStartInput`, `verifyHexDigest`, `HttpError` + `withRetry`, the audit vocabulary and allow-list, `bearerToken`, the `Logger` and `Tracing` ports |
 

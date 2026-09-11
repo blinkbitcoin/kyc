@@ -5,7 +5,7 @@
 
 ## Overview
 
-`packages/kyc-service` exposes one GraphQL endpoint and three HTTP routes; the SDL and the routes come from `@blinkbitcoin/kyc-node` (`typeDefs` in `packages/kyc-node/src/graphql.ts`, the router in `src/express.ts`), the service only mounts them. The SDL is re-exported by the service's `src/typeDefs.ts` and emitted to `packages/kyc-service/schema.graphql` by `npm run schema:emit -w packages/kyc-service`; `make codegen` then regenerates `packages/kyc-core/src/generated/`. `make codegen-check` fails if either artifact drifts.
+`packages/kyc-service` exposes the access-token mint (`POST /verification/token`, always on) and, with `DATABASE_URL`, one GraphQL endpoint and three HTTP routes; the SDL and the routes come from `@blinkbitcoin/kyc-node` (`typeDefs` in `packages/kyc-node/src/graphql.ts`, the Fetch handlers and presets in `src/handlers.ts`, the Express router in `src/express.ts`), the service only mounts them. A host on the in-process tier serves the same mint from its own API (`createAccessTokenApp` / `createAccessTokenRouter`, or one mutation as in `examples/access-token-demo`). The SDL is re-exported by the service's `src/typeDefs.ts` and emitted to `packages/kyc-service/schema.graphql` by `npm run schema:emit -w packages/kyc-service`; `make codegen` then regenerates `packages/kyc-core/src/generated/`. `make codegen-check` fails if either artifact drifts.
 
 ## GraphQL API
 
