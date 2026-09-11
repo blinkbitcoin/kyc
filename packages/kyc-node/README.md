@@ -97,6 +97,7 @@ const store: SessionStore = createMemorySessionStore(); // or your own, over you
 const sessions = createVerificationService({
   provider, providerName, store,
   publicBaseUrl: () => 'https://api.example.com', // the hosted page lives under it
+  // hostedUrlFor: id => `https://app.example.com/kyc/${id}`, // when you serve the page elsewhere
   effects: {
     // Your policy, on the package's write path: runs after the commit, once
     // per real change, for webhooks and reconciled reads alike.

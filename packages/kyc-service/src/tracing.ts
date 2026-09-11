@@ -78,9 +78,9 @@ export const instrumentProvider = (
         'kyc.provider.get_status_by_user_id',
         { 'kyc.provider': name, 'enduser.id': userId },
         async (span) => {
-          const status = await provider.getStatusByUserId!(userId);
-          span.setAttribute('kyc.status', status);
-          return status;
+          const found = await provider.getStatusByUserId!(userId);
+          span.setAttribute('kyc.status', found.status);
+          return found;
         }
       ),
   }),

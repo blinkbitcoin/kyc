@@ -89,6 +89,12 @@ export type WebhookHeaders = Record<string, string | string[] | undefined>;
  * provider to retry). `externalUserId` lets the handler bind the first
  * event to a session created before the provider knew an applicant.
  */
+/** What a provider knows about a user before any webhook: the status, and the applicant it filed the user under once one exists. */
+export interface UserStatusLookup {
+  status: VerificationStatus;
+  providerApplicantId?: string;
+}
+
 export interface WebhookEvent {
   providerApplicantId: string;
   externalUserId?: string;

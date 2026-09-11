@@ -85,12 +85,12 @@ export interface VerificationProvider {
   getStatus(providerApplicantId: string): Promise<VerificationStatus>;
   verifyWebhook(headers: WebhookHeaders, rawBody: string, ip?: string): boolean;
   parseWebhookEvent(rawBody: string): WebhookEvent | null;
-  getStatusByUserId?(userId: string): Promise<VerificationStatus>;
+  getStatusByUserId?(userId: string): Promise<UserStatusLookup>; // { status, providerApplicantId? }
   hostedPage?: HostedPageRenderer;
 }
 ```
 
-`getStatusByUserId` and `hostedPage` are **optional capabilities**, detected with `supportsUserStatusLookup` / `supportsHostedPage` - the same Interface-Segregation shape the client packages use for `isLaunchable` / `isTokenRefreshable`. No generic layer branches on a provider name: the status query uses the lookup when it exists, the hosted route renders the provider's page when it exists and the not-found page otherwise.
+`getStatusByUserId` answers with the status *and* the applicant id once the provider has one, so a reconciling read binds the session without waiting for its first webhook. It and `hostedPage` are **optional capabilities**, detected with `supportsUserStatusLookup` / `supportsHostedPage` - the same Interface-Segregation shape the client packages use for `isLaunchable` / `isTokenRefreshable`. No generic layer branches on a provider name: the status query uses the lookup when it exists, the hosted route renders the provider's page when it exists and the not-found page otherwise.
 
 The service's `instrumentProvider(provider, name)` wraps every method in a span (`kyc.provider.create_session`, `…refresh_token`, `…get_status`, `…get_status_by_user_id`, `…verify_webhook`, `…parse_webhook_event`) so observability is a decorator on the service side, never a concern of an adapter.
 
@@ -111,6 +111,7 @@ Four operations plus `health`: `verificationSessionStart`, `verificationSessionR
 
 Three rules the service layer states, and the resolvers only relay:
 
+- **The hosted page lives where the host says.** `start` hands back `<publicBaseUrl>/hosted/<sessionId>` unless the service was composed with `hostedUrlFor(sessionId)`, and the client's postMessage pin (`allowedOrigin`) follows that URL's origin - so a host can serve the page under its own path or domain without re-implementing the URL.
 - **Persist first, then call the provider.** The row and its `session_created` audit entry are written *before* the provider is contacted, so a provider outage still leaves an auditable trail (`creation_failed` with the coded reason) instead of a silent gap.
 - **Ownership is checked on every read.** `verificationSession` and `verificationSessionRefresh` load by `(id, userId)`; a session belonging to someone else is indistinguishable from a missing one (`SESSION_NOT_FOUND`). A terminal session refuses a refresh (`VALIDATION_ERROR`) rather than minting a live token for a decision that cannot change.
 - **`verificationSession` self-heals a non-terminal session.** When the stored status is not `approved`/`finallyRejected`, the service asks the provider (`getStatus(applicantId)` once an applicant id is bound, else `getStatusByUserId` when supported) and applies any change through `applyStatusTransition`. Best-effort reconciliation, not the source of truth - **webhooks are** - and a lookup failure leaves the stored status in place.

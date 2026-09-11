@@ -25,6 +25,7 @@ import { supportsUserStatusLookup } from './provider';
 import type { SessionRecord, SessionStore, StatusWriteOutcome } from './store';
 import { noopTracing, type Tracing } from './tracing';
 import type {
+  UserStatusLookup,
   VerificationSessionStartInput,
   VerificationStatus,
   WebhookEvent,
@@ -48,6 +49,12 @@ export interface VerificationServiceDeps {
   newId?: () => string;
   /** What the host does when a status actually changes (see VerificationEffects). */
   effects?: VerificationEffects;
+  /**
+   * Where a session's hosted page lives, when not `<publicBaseUrl>/hosted/<id>`:
+   * a host that mounts the page under its own path or domain. The client's
+   * postMessage pin (`allowedOrigin`) follows the URL's origin.
+   */
+  hostedUrlFor?: (sessionId: string) => string;
 }
 
 /** What a client may see of a session - never the provider's token material. */
@@ -180,6 +187,23 @@ export const createVerificationService = (
   const tracing = deps.tracing ?? noopTracing;
   const logger = deps.logger ?? consoleLogger;
   const newId = deps.newId ?? randomUUID;
+
+  // The page URL and the origin a client pins postMessage to. The default
+  // derives the origin from the base (a bare host name stays what it is);
+  // a host-placed page pins to the origin of the URL the host chose.
+  const hostedUrl = (
+    sessionId: string,
+  ): { url: string; allowedOrigin: string } => {
+    if (deps.hostedUrlFor) {
+      const url = deps.hostedUrlFor(sessionId);
+      return { url, allowedOrigin: publicOrigin(url) };
+    }
+    const base = publicBaseUrl();
+    return {
+      url: `${base}/hosted/${sessionId}`,
+      allowedOrigin: publicOrigin(base),
+    };
+  };
 
   const requireUser = (userId: string | null): string => {
     if (!userId) {
@@ -319,33 +343,36 @@ export const createVerificationService = (
   // Webhooks remain the source of truth - this only repairs a session whose
   // webhook was lost or is still in flight, and it is best effort: a failed
   // lookup keeps the stored status rather than failing the read.
-  const reconcile = async (
-    session: SessionRecord,
-  ): Promise<VerificationStatus> => {
+  const reconcile = async (session: SessionRecord): Promise<SessionRecord> => {
     if (TERMINAL_STATUSES.has(session.status)) {
-      return session.status;
+      return session;
     }
-    const lookupProviderStatus =
-      async (): Promise<VerificationStatus | null> => {
-        if (session.providerApplicantId) {
-          return provider.getStatus(session.providerApplicantId);
-        }
-        return supportsUserStatusLookup(provider)
-          ? provider.getStatusByUserId(session.userId)
-          : null;
-      };
+    const lookup = async (): Promise<UserStatusLookup | null> => {
+      if (session.providerApplicantId) {
+        return {
+          status: await provider.getStatus(session.providerApplicantId),
+        };
+      }
+      return supportsUserStatusLookup(provider)
+        ? provider.getStatusByUserId(session.userId)
+        : null;
+    };
     try {
-      const providerStatus = await lookupProviderStatus();
+      const found = await lookup();
       // Applied through the SAME conditional write the webhook path uses,
       // so a lookup racing an in-flight webhook can never bypass the
-      // state machine.
-      if (providerStatus) {
+      // state machine. An applicant the provider now knows is bound in the
+      // same write, so the session need not wait for its first webhook.
+      if (found) {
         const transition = await applyStatusTransition(
           session.id,
-          providerStatus,
+          found.status,
           'api',
+          found.providerApplicantId
+            ? { bindApplicantId: found.providerApplicantId }
+            : {},
         );
-        return transition.session.status;
+        return transition.session;
       }
     } catch (error) {
       logger.warn(
@@ -353,7 +380,7 @@ export const createVerificationService = (
         getErrorCode(error) ?? 'UNKNOWN_ERROR',
       );
     }
-    return session.status;
+    return session;
   };
 
   return {
@@ -417,12 +444,10 @@ export const createVerificationService = (
         await store.bindApplicantId(session.id, minted.providerApplicantId);
       }
 
-      const base = publicBaseUrl();
       return {
         ...view(session),
         accessToken: minted.accessToken,
-        url: `${base}/hosted/${session.id}`,
-        allowedOrigin: publicOrigin(base),
+        ...hostedUrl(session.id),
         applicantId: minted.providerApplicantId ?? null,
       };
     },
@@ -469,7 +494,7 @@ export const createVerificationService = (
     async status(userId, id) {
       const owner = requireUser(userId);
       const session = await requireOwned(requireId(id, 'id'), owner);
-      return { ...view(session), status: await reconcile(session) };
+      return view(await reconcile(session));
     },
 
     async latestForUser(userId, options = {}) {
@@ -479,10 +504,7 @@ export const createVerificationService = (
         return null;
       }
       tracing.annotate?.({ 'kyc.session_id': session.id });
-      return {
-        ...view(session),
-        status: options.reconcile ? await reconcile(session) : session.status,
-      };
+      return view(options.reconcile ? await reconcile(session) : session);
     },
 
     handleWebhookEvent(event) {

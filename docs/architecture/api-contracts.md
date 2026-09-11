@@ -139,7 +139,7 @@ query GetVerificationSession($id: ID!) {
 }
 ```
 
-Returns the stored status. When the status is not terminal, the resolver makes one best-effort reconciliation call to the provider - by applicant id once one is bound, otherwise by user id when the provider implements `getStatusByUserId` - and persists any change through the same conditional write the webhook path uses (`status_updated` audit entry, `source: 'api'`). This is a convenience, not the truth: **webhooks are the backend's source of truth**, and the client hook does not poll.
+Returns the stored status. When the status is not terminal, the resolver makes one best-effort reconciliation call to the provider - by applicant id once one is bound, otherwise by user id when the provider implements `getStatusByUserId`, which also binds the applicant the provider now knows - and persists any change through the same conditional write the webhook path uses (`status_updated` audit entry, `source: 'api'`). This is a convenience, not the truth: **webhooks are the backend's source of truth**, and the client hook does not poll.
 
 Errors: `UNAUTHORIZED`, `VALIDATION_ERROR`, `SESSION_NOT_FOUND`.
 
