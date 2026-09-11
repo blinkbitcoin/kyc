@@ -35,6 +35,11 @@ export const SERVICES = {
     env: 'KYC_TEST_DB_PORT',
     what: 'the E2E Postgres (docker-compose.test.yml; CI macOS: Homebrew)',
   },
+  smoke: {
+    offset: 5,
+    env: 'SMOKE_PORT',
+    what: 'the host side of the image smoke (scripts/ci/docker-smoke.sh)',
+  },
 };
 
 /** The E2E database URL for that port (what .env.test carries for the default). */

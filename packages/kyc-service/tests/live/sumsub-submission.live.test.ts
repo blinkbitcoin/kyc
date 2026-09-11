@@ -20,9 +20,9 @@
 // kyc-e2e-…; nothing deletes them (docs/operations/live-e2e-ci.md).
 
 import { assertSumsubConfig, sumsubConfigFromEnv } from '@blinkbitcoin/kyc-node';
-import type { Express } from 'express';
-import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { KycApp } from '../../src/app';
+import { asJson, get, graphql, post } from '../support/app';
 import {
   createSandbox,
   GERMANY_PASSPORT,
@@ -70,17 +70,18 @@ const STATUS = `
 `;
 
 describe.runIf(missing.length === 0)('a real applicant through the Sumsub sandbox (live)', () => {
-  let app: Express;
+  let app: KycApp;
   let sandbox: Sandbox;
-  let knex: typeof import('../../src/db').knex;
+  let knex: ReturnType<typeof import('../../src/db').createKnexClient>;
 
-  const call = (query: string, variables: object, user: string) =>
-    request(app).post('/graphql').send({ query, variables }).set('authorization', `Bearer ${user}`);
+  // biome-ignore lint/suspicious/noExplicitAny: the GraphQL result shape these tests read, loosely
+  const call = async (query: string, variables: object, user: string): Promise<any> =>
+    graphql(app, query, variables as Record<string, unknown>, user);
 
   const sessionStatus = async (sessionId: string, user: string) => {
     const res = await call(STATUS, { id: sessionId }, user);
-    expect(res.body.errors).toBeUndefined();
-    return res.body.data.verificationSession as { status: string; applicantId: string | null };
+    expect(res.errors).toBeUndefined();
+    return res.data.verificationSession as { status: string; applicantId: string | null };
   };
 
   /** The audit trail's `status_updated` rows: which path (api | webhook) wrote each status. */
@@ -97,9 +98,9 @@ describe.runIf(missing.length === 0)('a real applicant through the Sumsub sandbo
   const submit = async (what: string) => {
     const user = e2eUser(what);
     const started = await call(START, { input: { platform: 'IOS' } }, user);
-    expect(started.body.errors).toBeUndefined();
-    const { sessionId } = started.body.data.verificationSessionStart;
-    expect(started.body.data.verificationSessionStart).toMatchObject({
+    expect(started.errors).toBeUndefined();
+    const { sessionId } = started.data.verificationSessionStart;
+    expect(started.data.verificationSessionStart).toMatchObject({
       status: 'initial',
       applicantId: null,
     });
@@ -143,12 +144,14 @@ describe.runIf(missing.length === 0)('a real applicant through the Sumsub sandbo
     assertSumsubConfig(config);
     expect(LEVEL, 'SUMSUB_E2E_LEVEL_NAME or SUMSUB_LEVEL_NAME').not.toBe('');
     sandbox = createSandbox(config as SandboxConfig, { log: (line) => console.warn(line) });
-    const { createApp } = await import('../../src/app');
-    app = await createApp();
-    ({ knex } = await import('../../src/db'));
+    const { envApp } = await import('../support/app');
+    app = envApp();
+    const { createKnexClient } = await import('../../src/db');
+    knex = createKnexClient();
   });
 
   afterAll(async () => {
+    await app?.stop();
     await knex?.destroy();
   });
 
@@ -171,8 +174,8 @@ describe.runIf(missing.length === 0)('a real applicant through the Sumsub sandbo
 
       // Terminal: no more tokens, no more page
       const refreshed = await call(REFRESH, { sessionId }, user);
-      expect(refreshed.body.errors?.[0]?.extensions?.code).toBe('VALIDATION_ERROR');
-      expect((await request(app).get(`/hosted/${sessionId}`)).status).toBe(404);
+      expect(refreshed.errors?.[0]?.extensions?.code).toBe('VALIDATION_ERROR');
+      expect((await get(app, `/hosted/${sessionId}`)).status).toBe(404);
     },
     TEST_TIMEOUT_MS
   );
@@ -187,7 +190,7 @@ describe.runIf(missing.length === 0)('a real applicant through the Sumsub sandbo
 
       // Not terminal: the token still refreshes and the resubmission's approval is taken
       const refreshed = await call(REFRESH, { sessionId }, user);
-      expect(refreshed.body.errors).toBeUndefined();
+      expect(refreshed.errors).toBeUndefined();
       await sandbox.simulateReview(applicantId, 'GREEN');
       await reviewed(sessionId, user, 'approved');
     },
@@ -216,14 +219,12 @@ describe.runIf(missing.length === 0)('a real applicant through the Sumsub sandbo
         process.env.SUMSUB_WEBHOOK_SECRET as string,
         digestAlg
       );
-      const res = await request(app)
-        .post('/webhook/kyc/sumsub')
-        .set('Content-Type', 'application/json')
-        .set('x-payload-digest', digest)
-        .set('x-payload-digest-alg', alg)
-        .send(body);
+      const res = await post(app, '/webhook/kyc/sumsub', body, {
+        'x-payload-digest': digest,
+        'x-payload-digest-alg': alg,
+      });
       expect(res.status).toBe(200);
-      expect(res.body.outcome).toBe('rejected_terminal');
+      expect(await asJson(res)).toMatchObject({ outcome: 'rejected_terminal' });
       expect((await sessionStatus(sessionId, user)).status).toBe('finallyRejected');
     },
     TEST_TIMEOUT_MS

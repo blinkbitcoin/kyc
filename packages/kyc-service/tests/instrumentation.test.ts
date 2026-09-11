@@ -56,21 +56,21 @@ describe('initTelemetry', () => {
     expect(sdk).not.toBeNull();
     expect(sdkStart).toHaveBeenCalledOnce();
     expect(nodeSdkConstructor).toHaveBeenCalledWith(
-      expect.objectContaining({ serviceName: 'kyc-api' })
+      expect.objectContaining({ serviceName: 'kyc-service' })
     );
-    // The full stack is instrumented: http, express, graphql, pg, undici (fetch)
+    // The full stack is instrumented: http, graphql, pg, undici (fetch)
     const config = nodeSdkConstructor.mock.calls[0][0] as { instrumentations: unknown[] };
-    expect(config.instrumentations).toHaveLength(5);
+    expect(config.instrumentations).toHaveLength(4);
   });
 
   it('respects OTEL_SERVICE_NAME', () => {
     initTelemetry({
       OTEL_EXPORTER_OTLP_ENDPOINT: 'http://otel:4318',
-      OTEL_SERVICE_NAME: 'kyc-api-staging',
+      OTEL_SERVICE_NAME: 'kyc-service-staging',
     });
 
     expect(nodeSdkConstructor).toHaveBeenCalledWith(
-      expect.objectContaining({ serviceName: 'kyc-api-staging' })
+      expect.objectContaining({ serviceName: 'kyc-service-staging' })
     );
   });
 

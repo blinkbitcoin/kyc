@@ -151,6 +151,11 @@ jobs:
       - name: Build packages (core first - the server and platform packages need its dist)
         run: npm run build
 
+      # Compose parses, the k8s manifests validate, and the Worker template
+      # actually bundles (proving the edge entry excludes pg and Apollo)
+      - name: Validate the deploy templates
+        run: bash scripts/ci/deploy-check.sh
+
       - name: Package shape (publint + arethetypeswrong)
         run: npm run check:packages
 
@@ -180,6 +185,65 @@ jobs:
         with:
           name: packages-tarballs
           path: ${{ runner.temp }}/tarballs/*.tgz
+          retention-days: 7
+          overwrite: true
+          if-no-files-found: error
+
+  # The one build of the service image (packages/kyc-service/Dockerfile):
+  # stamped with the same version Build Packages resolves, smoked (mock
+  # provider, /health, a minted token) and saved as an artifact, so Publish
+  # ships the exact image that passed here. Sits in this stage for the same
+  # reason Build Packages does: nothing is built before Unit has passed.
+  docker:
+    name: Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # tags: the prerelease base is derived from the latest v* tag
+
+      # npm pkg set only (no install): the version stamp lands in the image
+      - name: Resolve version and stamp it into the packages
+        id: ver
+        env:
+          EVENT: ${{ inputs.release-tag != '' && 'release' || github.event_name }}
+          TAG: ${{ inputs.release-tag || github.event.release.tag_name }}
+          RUN: ${{ github.run_number }}
+        run: node scripts/release/resolve-version.mjs
+
+      - name: Build the service image
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: bash scripts/ci/docker-build.sh kyc-service "$RUNNER_TEMP/kyc-service.tar.gz"
+
+      # The image is one deployable with two capability sets, so it is
+      # smoked twice: without DATABASE_URL (access tokens alone - the
+      # provider webhook must be absent) and with one (both capabilities).
+      - name: Smoke the image with the mock provider (tokens only)
+        run: bash scripts/ci/docker-smoke.sh kyc-service
+
+      - name: Start the E2E Postgres for the full-capability smoke
+        run: bash scripts/e2e/test-db.sh up
+
+      - name: Smoke the image with a database (tokens + sessions)
+        env:
+          DATABASE_URL: postgresql://test:test@host.docker.internal:5104/kyc_test
+        run: bash scripts/ci/docker-smoke.sh kyc-service
+
+      - name: Stop the E2E Postgres
+        if: always()
+        run: bash scripts/e2e/test-db.sh down
+
+      # 7 days like the tarballs: a blocked release's Publish is re-run later
+      # from this same artifact.
+      - name: Publish the image for the Publish job
+        uses: actions/upload-artifact@v7
+        with:
+          name: service-image
+          path: ${{ runner.temp }}/kyc-service.tar.gz
           retention-days: 7
           overwrite: true
           if-no-files-found: error

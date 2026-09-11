@@ -14,10 +14,6 @@ export default defineConfig({
     // tests); the subpaths first so the bare name does not swallow them
     alias: [
       {
-        find: '@blinkbitcoin/kyc-node/express',
-        replacement: fromRoot('../../packages/kyc-node/src/express.ts'),
-      },
-      {
         find: '@blinkbitcoin/kyc-node/knex',
         replacement: fromRoot('../../packages/kyc-node/src/knex.ts'),
       },
@@ -50,10 +46,11 @@ export default defineConfig({
       provider: 'v8',
       reportsDirectory: 'coverage',
       include: ['src/**/*.ts'],
-      // index.ts is the server bootstrap (binds a real port, never imported
-      // by tests) and is not meaningfully unit-testable; errors, typeDefs,
-      // types and providers/port only re-export the package (nothing to cover)
+      // Re-export / type-only modules (nothing to cover): the library barrel,
+      // and the modules that re-export the package's surface
       exclude: [
+        // A test double (knex-mock-client) that happens to live in src/
+        'src/__mocks__/**',
         'src/index.ts',
         'src/errors.ts',
         'src/typeDefs.ts',

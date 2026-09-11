@@ -1,0 +1,19 @@
+# Build context for packages/kyc-service/Dockerfile (built from the repo root)
+**/node_modules
+**/dist
+**/lib
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+**/test-results
+**/playwright-report
+.git
+.github
+.codeql
+docs
+examples/react-native-demo/android
+examples/react-native-demo/ios
+**/__tests__
+**/tests

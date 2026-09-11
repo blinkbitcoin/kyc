@@ -27,12 +27,13 @@ the current state is [docs/index.md](docs/index.md).
 │   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode; providers/sumsub/ = the one Sumsub mapping (entry /sumsub)
 │   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (IdentityVerification + useIdentityVerification + hardened HostedWebView; entries ., /hosted and /sumsub = the native-SDK source in providers/sumsub/)
 │   ├── kyc-react/               # 📦 THE PRODUCT - web (IdentityVerification + useIdentityVerification + origin-pinned HostedFrame; entries ., /hosted (Apollo-free, same contract as RN) and /sumsub, the reserved web-SDK seat)
-│   └── kyc-service/            # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres), composed from packages/kyc-node: this service's policy (helmet, CORS, rate limits, JWT auth, fail-closed boot) around the package's router, schema, store and adapters
+│   └── kyc-service/             # 🖥️ THE SERVICE, one Fetch-native deployable composed from packages/kyc-node: tokens always, sessions (Apollo + Knex/Postgres) with DATABASE_URL; container, Node, Vercel or Cloudflare target
 │       └── src/
-│           ├── providers/           # The registry: the package adapters wired to this service's config + tracing
-│           ├── services.ts          # createVerificationService over the provider, the Knex store and PUBLIC_BASE_URL
-│           ├── app.ts               # Apollo + the package router, under the service's middleware
-│           └── config.ts            # validateSecurityConfig (fail-closed boot)
+│           ├── providers/           # The registry: the package adapters wired to this service's config + tracing, selected per app from its env
+│           ├── app.ts               # The Fetch core: capabilities → routes, security headers, CORS, session verification
+│           ├── sessions.ts          # The sessions capability (Apollo, hosted page, webhook), behind a loader
+│           ├── config.ts            # validateConfig (pure, fail-closed boot guard)
+│           └── server.ts / node.ts  # The Node target (rate limits, drain) / the process entry; vercel.ts, cloudflare.ts
 ├── examples/
 │   ├── access-token-demo/       # 🖥️ the other server shape: an existing GraphQL API adds one mutation that mints a provider access token (mode 2)
 │   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native, KYC_UI default|themed; Maestro suite (.maestro/)

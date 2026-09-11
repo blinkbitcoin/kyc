@@ -204,6 +204,21 @@ live-ios: ## The RN demo on the attached iPhone against the real sandbox, one co
 live-android: ## The RN demo on the attached Android phone against the real sandbox, one command: .env, public URL, backend, adb reverse, Metro (KYC_MODE=hosted|native), APK for the device's ABI (LIVE_DEVICE=<serial>); waits, Ctrl-C tears down
 	bash scripts/e2e/live-android.sh
 
+# ---------- Deploy ----------
+
+docker-build: ## Build the service image (packages/kyc-service/Dockerfile, from the repo root)
+	bash scripts/ci/docker-build.sh kyc-service
+
+docker-smoke: docker-build ## Boot the image in both modes (tokens only, then with Postgres) and assert its capabilities
+	bash scripts/ci/docker-smoke.sh kyc-service
+	$(MAKE) test-db-up
+	. scripts/e2e/ports-env.sh && DATABASE_URL="postgresql://test:test@host.docker.internal:$$KYC_TEST_DB_PORT/kyc_test" \
+		bash scripts/ci/docker-smoke.sh kyc-service
+	$(MAKE) test-db-down
+
+deploy-check: ## Validate the deploy templates (compose + the Worker bundle; k8s with kubeconform, else kubectl kustomize)
+	bash scripts/ci/deploy-check.sh
+
 # ---------- Housekeeping ----------
 
 clean: ## Remove build output and caches (library lib/, coverage)
@@ -222,4 +237,4 @@ help: ## List available targets
 	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check codeql start ios android backend web db-up db-down migrate \
 	diagrams test-db-up test-db-down e2e-backend e2e-web e2e-web-proxy \
 	e2e-server-demos e2e-backend-up e2e-backend-down e2e-metro-up e2e-metro-down android-build e2e-android e2e-android-local e2e-fake-native ios-build e2e-ios e2e-ios-local \
-	sumsub-env sumsub-check test-live e2e-live live-web live-ios live-android clean reset help
+	sumsub-env sumsub-check test-live e2e-live live-web live-ios live-android docker-build docker-smoke deploy-check clean reset help

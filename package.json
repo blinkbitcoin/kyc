@@ -17,8 +17,8 @@
     "lint": "eslint . && npm run lint -w packages/kyc-service",
     "format": "biome format --write examples packages scripts",
     "format:check": "biome format examples packages scripts",
-    "build": "npm run build -w packages/kyc-core -w packages/kyc-node -w packages/kyc-react-native -w packages/kyc-react",
-    "check:packages": "publint packages/kyc-core && publint packages/kyc-node && publint packages/kyc-react-native && publint packages/kyc-react && attw --pack packages/kyc-core --profile node16 && attw --pack packages/kyc-node --profile node16 && attw --pack packages/kyc-react --profile node16",
+    "build": "npm run build -w packages/kyc-core -w packages/kyc-node -w packages/kyc-react-native -w packages/kyc-react -w packages/kyc-service",
+    "check:packages": "publint packages/kyc-core && publint packages/kyc-node && publint packages/kyc-react-native && publint packages/kyc-react && publint packages/kyc-service && attw --pack packages/kyc-core --profile node16 && attw --pack packages/kyc-node --profile node16 && attw --pack packages/kyc-react --profile node16 && attw --pack packages/kyc-service --profile node16 --ignore-rules cjs-only-exports-default",
     "web": "npm run dev -w examples/react-demo",
     "codegen": "npm run schema:emit -w packages/kyc-service && npm run codegen -w packages/kyc-core",
     "prepare": "lefthook install"

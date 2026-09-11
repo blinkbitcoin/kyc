@@ -1,0 +1,63 @@
+# Deploy the kyc service with Compose. The only input is environment:
+#
+#   cp ../.env.example .env          # fill it in
+#   docker compose up -d             # access tokens only (no DATABASE_URL)
+#   docker compose --profile postgres up -d   # + sessions, with a local database
+#
+# Capabilities follow DATABASE_URL: leave it unset for access tokens alone
+# (mode 1: the app runs the provider SDK on a token this service mints),
+# point it at Postgres for session orchestration (the hosted page, the
+# webhook, the GraphQL session API). `migrate` applies the schema once per
+# database.
+
+services:
+  kyc-service:
+    image: ghcr.io/blinkbitcoin/kyc-service:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # The image already defaults to this; naming it here is the reminder
+      # that a production posture refuses the sandbox token and the mock
+      KYC_ENV: production
+      PORT: 5100
+      # Behind a load balancer, so the rate limits key on the real client
+      TRUST_PROXY: "true"
+    ports:
+      - "5100:5100"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5100/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+
+  # One-shot: applies the session schema to DATABASE_URL, then exits
+  migrate:
+    image: ghcr.io/blinkbitcoin/kyc-service:latest
+    profiles: ["migrate"]
+    env_file:
+      - .env
+    command: ["node", "dist/node.js", "migrate"]
+
+  # Optional: a database for session orchestration. Point DATABASE_URL at it
+  # (postgresql://kyc:kyc@postgres:5432/kyc) and start with
+  # --profile postgres.
+  postgres:
+    image: postgres:15
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kyc
+      POSTGRES_PASSWORD: kyc
+      POSTGRES_DB: kyc
+    volumes:
+      - kyc_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kyc"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  kyc_postgres:
