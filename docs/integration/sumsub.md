@@ -65,7 +65,7 @@ SUMSUB_LEVEL_NAME=<1.1>
 SUMSUB_TOKEN_TTL_SECS=600
 JWT_SECRET=<any value for the sandbox>
 PUBLIC_BASE_URL=<your public https base>
-DATABASE_URL=postgresql://dev:dev@localhost:5432/kyc
+DATABASE_URL=postgresql://dev:dev@localhost:5105/kyc   # make db-up's Postgres, KYC_PORT_BASE + 5
 CORS_ALLOWED_ORIGINS=<your web demo origin>
 ```
 

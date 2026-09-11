@@ -14,7 +14,7 @@ Everything lives behind four targets (`scripts/e2e/live.sh`,
 ```sh
 make sumsub-check   # app-token auth + the level, one throwaway 60 s token
 make test-live      # the live tests alone; the service round trips need DATABASE_URL
-make e2e-live       # check → E2E Postgres (:5433) → live tests → the access-token
+make e2e-live       # check → E2E Postgres (KYC_TEST_DB_PORT) → live tests → the access-token
                     #   example on :5103 (TOKEN_PORT) mints a real token → DB down
 make live-web       # public URL (Tailscale Funnel) + backend on the sandbox + web demo,
                     #   waits for section 5 in a browser, Ctrl-C tears down

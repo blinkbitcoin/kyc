@@ -204,6 +204,17 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   module shows as 0% without lowering the totals. Exclude it in the
   workspace's coverage config; `make coverage` (`scripts/ci/coverage-empty.mjs`)
   fails on any such row.
+- **Ports**: every service listens on `KYC_PORT_BASE` (default 5100) +
+  its offset, the two Postgres containers included (+4 test, +5 dev) -
+  table `scripts/lib/ports.mjs`, shell via `scripts/e2e/ports-env.sh`,
+  compose via the `KYC_*_DB_PORT` variables, Playwright via
+  `examples/react-demo/e2e/ports.ts`. A linked worktree claims its own
+  block into `.env.local` on first use (`.envrc` / the Makefile run
+  `ports.mjs claim`); the main clone and CI stay on 5100; an explicit
+  `KYC_PORT_BASE` wins. `make ports` shows the block and its holders,
+  `make ports-free` stops this worktree's leftovers. Never write a port
+  literal outside those defaults; `scripts/lib/ports.test.mjs` checks each
+  service's declared offset against the table.
 - Shell that CI or the Makefile runs lives in `scripts/{ci,e2e,release}/`,
   never inline in a workflow; `make check-ci` runs actionlint + shellcheck
 - `graphql` is pinned to 16.x repo-wide (Apollo Server 5's peer range) - do
