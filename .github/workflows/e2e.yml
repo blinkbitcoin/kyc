@@ -4,8 +4,8 @@ name: Tests / E2E
 # releases). Concurrency is the caller's.
 #
 # The iOS job always runs. It needs a macOS runner; GitHub-hosted macOS is
-# free on a public repo but bills at 10x Linux on a private one (one ~15 min
-# iOS run is ~150 Linux minutes), so `ios-runner` can point at a self-hosted
+# free on a public repo but bills at 10x Linux on a private one (one ~7 min
+# iOS run is ~70 Linux minutes), so `ios-runner` can point at a self-hosted
 # Mac instead (see ci.yml). Only the live Sumsub job is conditional.
 #
 # Shell lives in scripts/e2e/*.sh (the E2E stack, runnable on a laptop: see
@@ -481,8 +481,13 @@ jobs:
       - name: Cache Maestro CLI
         uses: actions/cache@v6
         with:
-          path: ~/.maestro
-          key: maestro-${{ runner.os }}-2.6.1 # keep in sync with scripts/ci/maestro-install.sh
+          # The CLI only: tests/ is the per-run flow output (screenshots,
+          # driver logs) that the results artifact uploads - cached, it grows
+          # run over run and stale runs land in every artifact.
+          path: |
+            ~/.maestro
+            !~/.maestro/tests
+          key: maestro-${{ runner.os }}-2.6.1-v2 # keep in sync with scripts/ci/maestro-install.sh
 
       - name: Install Maestro CLI (version pinned in scripts/ci/maestro-install.sh)
         run: bash scripts/ci/maestro-install.sh
@@ -674,8 +679,13 @@ jobs:
       - name: Cache Maestro CLI
         uses: actions/cache@v6
         with:
-          path: ~/.maestro
-          key: maestro-${{ runner.os }}-2.6.1 # keep in sync with scripts/ci/maestro-install.sh
+          # The CLI only: tests/ is the per-run flow output (screenshots,
+          # driver logs) that the results artifact uploads - cached, it grows
+          # run over run and stale runs land in every artifact.
+          path: |
+            ~/.maestro
+            !~/.maestro/tests
+          key: maestro-${{ runner.os }}-2.6.1-v2 # keep in sync with scripts/ci/maestro-install.sh
 
       - name: Install Maestro CLI (version pinned in scripts/ci/maestro-install.sh)
         run: bash scripts/ci/maestro-install.sh
