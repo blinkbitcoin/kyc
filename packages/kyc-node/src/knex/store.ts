@@ -106,6 +106,18 @@ export const createKnexSessionStore = (
       );
     },
 
+    async getLatestSessionForUser(
+      userId: string,
+      provider: string,
+    ): Promise<SessionRecord | null> {
+      return (
+        (await db<SessionRecord>(SESSIONS)
+          .where({ userId, provider })
+          .orderBy('createdAt', 'desc')
+          .first()) ?? null
+      );
+    },
+
     async updateSessionStatus(
       id: string,
       status: VerificationStatus,

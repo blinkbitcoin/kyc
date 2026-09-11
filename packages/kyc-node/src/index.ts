@@ -170,6 +170,7 @@ export {
 export type {
   ApplyStatusTransitionOptions,
   HostedPageDecision,
+  LatestForUserOptions,
   RefreshResult,
   SessionView,
   StartResult,

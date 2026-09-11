@@ -105,7 +105,7 @@ The Sumsub adapter owns no mapping of its own: `mapSumsubStatus` and `mapSumsubW
 
 ## GraphQL API
 
-Three operations plus `health`: `verificationSessionStart`, `verificationSessionRefresh`, `verificationSession`. Every field, argument and error code is in [api-contracts.md](api-contracts.md).
+Four operations plus `health`: `verificationSessionStart`, `verificationSessionRefresh`, `verificationSession`, and `myVerification` (the user's newest session, a stored read unless `reconcile` is asked for). Every field, argument and error code is in [api-contracts.md](api-contracts.md).
 
 [![GraphQL Request Flow](../diagrams/dist/graphql-request-flow.svg)](../diagrams/src/graphql-request-flow.mmd)
 

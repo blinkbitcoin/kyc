@@ -120,6 +120,14 @@ export interface SessionStore {
     provider: string,
   ): Promise<SessionRecord | null>;
   /**
+   * The user's newest session with this provider, bound or not: "where does
+   * this user stand" without a session id in hand.
+   */
+  getLatestSessionForUser(
+    userId: string,
+    provider: string,
+  ): Promise<SessionRecord | null>;
+  /**
    * Conditional status write: the terminal guard IS the write, so a
    * concurrent delivery cannot slip between a check and an update. Throws
    * when the session does not exist.
@@ -223,6 +231,15 @@ export const createMemorySessionStore = (
             record.userId === userId &&
             record.provider === provider &&
             record.providerApplicantId === null,
+        )
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      return candidates.length ? { ...candidates[0] } : null;
+    },
+
+    async getLatestSessionForUser(userId, provider) {
+      const candidates = [...sessions.values()]
+        .filter(
+          record => record.userId === userId && record.provider === provider,
         )
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       return candidates.length ? { ...candidates[0] } : null;

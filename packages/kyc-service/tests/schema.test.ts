@@ -20,7 +20,11 @@ const { resolvers, typeDefs } = createGraphQL(
 describe('schema', () => {
   it('is the package SDL with resolvers for every operation', () => {
     expect(typeDefs).toBe(packageTypeDefs);
-    expect(Object.keys(resolvers.Query).sort()).toEqual(['health', 'verificationSession']);
+    expect(Object.keys(resolvers.Query).sort()).toEqual([
+      'health',
+      'myVerification',
+      'verificationSession',
+    ]);
     expect(Object.keys(resolvers.Mutation).sort()).toEqual([
       'verificationSessionRefresh',
       'verificationSessionStart',

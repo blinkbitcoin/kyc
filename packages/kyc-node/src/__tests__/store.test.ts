@@ -148,6 +148,23 @@ describe('createMemorySessionStore', () => {
       );
     });
 
+    it('getLatestSessionForUser picks the newest session of that provider, bound or not', async () => {
+      const store = createMemorySessionStore(ticking());
+      await seed(store, 'old');
+      await seed(store, 'newest', { providerApplicantId: 'a1' });
+      await seed(store, 'other-provider', { provider: 'sumsub' });
+      expect((await store.getLatestSessionForUser('user-1', 'mock'))?.id).toBe(
+        'newest',
+      );
+      expect(
+        (await store.getLatestSessionForUser('user-1', 'sumsub'))?.id,
+      ).toBe('other-provider');
+      expect(await store.getLatestSessionForUser('user-3', 'mock')).toBeNull();
+      const copy = await store.getLatestSessionForUser('user-1', 'mock');
+      copy!.status = 'approved';
+      expect((await store.getSessionById('newest'))?.status).toBe('initial');
+    });
+
     it('getLatestUnboundSessionForUser picks the newest unbound session of that provider', async () => {
       const store = createMemorySessionStore(ticking());
       await seed(store, 'old');

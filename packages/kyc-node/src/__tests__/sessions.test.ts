@@ -427,6 +427,60 @@ describe('status', () => {
   });
 });
 
+describe('latestForUser', () => {
+  it('requires a user and is null before any session', async () => {
+    const { service } = setup();
+    await expect(codeOf(service.latestForUser(null))).resolves.toBe(
+      'UNAUTHORIZED',
+    );
+    await expect(service.latestForUser(user)).resolves.toBeNull();
+  });
+
+  it('is the newest session as stored, without asking the provider', async () => {
+    let tick = 0;
+    const { service, provider } = setup({
+      store: createMemorySessionStore(
+        () => new Date(Date.UTC(2026, 8, 10) + 1000 * tick++),
+      ),
+    });
+    await service.start(user, { platform: 'WEB' });
+    await service.start(user, { platform: 'IOS' });
+    provider.getStatus.mockClear();
+    await expect(service.latestForUser(user)).resolves.toMatchObject({
+      sessionId: 'id-3',
+      status: 'initial',
+      applicantId: 'app-1',
+    });
+    expect(provider.getStatus).not.toHaveBeenCalled();
+  });
+
+  it('reconciles on request through the shared write, and stays quiet when the lookup fails', async () => {
+    const { service, store, provider, logger } = setup();
+    await service.start(user, { platform: 'WEB' });
+    provider.getStatus.mockResolvedValue('approved');
+    await expect(
+      service.latestForUser(user, { reconcile: true }),
+    ).resolves.toMatchObject({ status: 'approved' });
+    expect((await store.getSessionById('id-1'))?.status).toBe('approved');
+    // terminal now: no further provider call
+    provider.getStatus.mockClear();
+    await service.latestForUser(user, { reconcile: true });
+    expect(provider.getStatus).not.toHaveBeenCalled();
+
+    const other = setup();
+    await other.service.start(user, { platform: 'WEB' });
+    other.provider.getStatus.mockRejectedValue(new Error('down'));
+    await expect(
+      other.service.latestForUser(user, { reconcile: true }),
+    ).resolves.toMatchObject({ status: 'initial' });
+    expect(other.logger.warn).toHaveBeenCalledWith(
+      'Verification status reconciliation failed:',
+      'UNKNOWN_ERROR',
+    );
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+});
+
 describe('handleWebhookEvent', () => {
   const event = (over: Record<string, unknown> = {}) => ({
     providerApplicantId: 'app-1',

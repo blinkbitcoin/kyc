@@ -94,6 +94,11 @@ The service refuses to boot if any of the required secrets is missing (see [../a
 
 Register `https://api.example.com/webhook/kyc/sumsub` in the provider dashboard - without it, statuses never advance past `pending`. The full dashboard walkthrough is [sumsub.md](sumsub.md).
 
+Without a session id - a settings screen that shows where the user stands -
+`myVerification` returns the newest session or `null`, as stored; pass
+`reconcile: true` only where a stale row would mislead, since that turns the
+read into a provider call.
+
 ## Acting on the result on your backend
 
 `onComplete` in the app is advisory. The decision that matters - the account

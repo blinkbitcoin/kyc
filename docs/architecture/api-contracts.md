@@ -19,6 +19,7 @@
 type Query {
   health: HealthCheck!
   verificationSession(id: ID!): VerificationSessionStatus!
+  myVerification(reconcile: Boolean = false): VerificationSessionStatus
 }
 
 type Mutation {
@@ -141,6 +142,23 @@ query GetVerificationSession($id: ID!) {
 Returns the stored status. When the status is not terminal, the resolver makes one best-effort reconciliation call to the provider - by applicant id once one is bound, otherwise by user id when the provider implements `getStatusByUserId` - and persists any change through the same conditional write the webhook path uses (`status_updated` audit entry, `source: 'api'`). This is a convenience, not the truth: **webhooks are the backend's source of truth**, and the client hook does not poll.
 
 Errors: `UNAUTHORIZED`, `VALIDATION_ERROR`, `SESSION_NOT_FOUND`.
+
+### `myVerification`
+
+```graphql
+query MyVerification($reconcile: Boolean) {
+  myVerification(reconcile: $reconcile) {
+    sessionId
+    provider
+    status
+    applicantId
+  }
+}
+```
+
+Where the authenticated user stands: their newest session with the configured provider, or `null` before any. A stored read by default - the webhook keeps the row current, and a screen that asks on every focus must not turn into a provider call - with `reconcile: true` opting into the same best-effort provider check `verificationSession` always makes. This is the query a host resolves an account-level field from when it has no session id in hand.
+
+Errors: `UNAUTHORIZED`.
 
 ### `health`
 

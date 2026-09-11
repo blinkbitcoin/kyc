@@ -139,6 +139,21 @@ describe('createKnexSessionStore', () => {
       ).resolves.toBeNull();
     });
 
+    it('getLatestSessionForUser orders by createdAt desc and filters by user and provider only', async () => {
+      tracker.on.select('VerificationSession').responseOnce([row]);
+      await expect(
+        store.getLatestSessionForUser('user-1', 'mock'),
+      ).resolves.toEqual(row);
+      const { sql, bindings } = tracker.history.select[0];
+      expect(sql).toMatch(/order by "createdAt" desc/i);
+      expect(sql).not.toMatch(/"providerApplicantId"/);
+      expect(bindings).toEqual(expect.arrayContaining(['user-1', 'mock']));
+      tracker.on.select('VerificationSession').responseOnce([]);
+      await expect(
+        store.getLatestSessionForUser('user-9', 'mock'),
+      ).resolves.toBeNull();
+    });
+
     it('getLatestUnboundSessionForUser orders by createdAt desc, filters by provider and skips bound sessions', async () => {
       tracker.on.select('VerificationSession').responseOnce([row]);
       await expect(

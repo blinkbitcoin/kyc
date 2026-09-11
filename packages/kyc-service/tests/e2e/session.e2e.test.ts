@@ -25,6 +25,12 @@ const STATUS = `
   }
 `;
 
+const MINE = `
+  query Mine($reconcile: Boolean) {
+    myVerification(reconcile: $reconcile) { sessionId provider status applicantId }
+  }
+`;
+
 interface Started {
   verificationSessionStart: {
     sessionId: string;
@@ -108,6 +114,27 @@ describe('verification session (E2E)', () => {
     expect(res.data!.verificationSessionRefresh.accessToken).toMatch(/^mock-token-/);
     expect(res.data!.verificationSessionRefresh.accessToken).not.toBe(accessToken);
     expect(await auditActions(sessionId)).toEqual(['session_created', 'token_refreshed']);
+  });
+
+  it('answers where the user stands: null before any session, then the newest one', async () => {
+    const none = await call<{ myVerification: null }>(MINE, {}, 'user-1');
+    expect(none.data!.myVerification).toBeNull();
+
+    await call<Started>(START, { input: { platform: 'WEB' } }, 'user-1');
+    const second = await call<Started>(START, { input: { platform: 'IOS' } }, 'user-1');
+    const mine = await call<{ myVerification: { sessionId: string; status: string } }>(
+      MINE,
+      { reconcile: true },
+      'user-1'
+    );
+    expect(mine.data!.myVerification.sessionId).toBe(
+      second.data!.verificationSessionStart.sessionId
+    );
+
+    const someoneElse = await call<{ myVerification: null }>(MINE, {}, 'user-2');
+    expect(someoneElse.data!.myVerification).toBeNull();
+    const anonymous = await call(MINE, {});
+    expect(anonymous.errors?.[0].extensions?.code).toBe('UNAUTHORIZED');
   });
 
   it('isolates sessions between users', async () => {
