@@ -479,18 +479,31 @@ export const createVerificationService = (
           const newStatus = event.status;
           span.setAttribute('kyc.status', newStatus);
 
+          // One applicant can stand on several sessions of one user (one per
+          // level): the event's level picks the session it is about. When no
+          // session of that applicant is on the event's level, the user's
+          // newest unbound session is the one the event opens - the first
+          // event of a second level, or of a session created before the
+          // provider had an applicant.
           let session = await store.getSessionByProviderApplicantId(
             event.providerApplicantId,
+            { levelName: event.levelName },
           );
           let needsBinding = false;
+          const onAnotherLevel =
+            session !== null &&
+            event.levelName !== undefined &&
+            session.levelName !== event.levelName;
 
-          if (!session && event.externalUserId) {
-            // First event of a session created before the provider had an applicant.
-            session = await store.getLatestUnboundSessionForUser(
+          if ((!session || onAnotherLevel) && event.externalUserId) {
+            const unbound = await store.getLatestUnboundSessionForUser(
               event.externalUserId,
               providerName,
             );
-            needsBinding = session !== null;
+            if (unbound) {
+              session = unbound;
+              needsBinding = true;
+            }
           }
 
           if (!session) {

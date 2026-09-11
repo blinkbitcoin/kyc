@@ -11,12 +11,14 @@ import type { Knex } from 'knex';
 import type { AuditEntry } from '../audit';
 import type { Logger } from '../log';
 import { consoleLogger } from '../log';
-import type {
-  NewAuditEntry,
-  NewSession,
-  SessionRecord,
-  SessionStore,
-  StatusWrite,
+import {
+  type ApplicantLookupOptions,
+  type NewAuditEntry,
+  type NewSession,
+  pickSessionForApplicant,
+  type SessionRecord,
+  type SessionStore,
+  type StatusWrite,
 } from '../store';
 import type { VerificationStatus } from '../types';
 import { TERMINAL_STATUSES } from '../types';
@@ -81,12 +83,14 @@ export const createKnexSessionStore = (
 
     async getSessionByProviderApplicantId(
       providerApplicantId: string,
+      lookup: ApplicantLookupOptions = {},
     ): Promise<SessionRecord | null> {
-      return (
-        (await db<SessionRecord>(SESSIONS)
-          .where({ providerApplicantId })
-          .first()) ?? null
-      );
+      // One applicant, a handful of sessions at most: fetch them and let the
+      // shared rule pick, so the stores cannot drift apart.
+      const records = await db<SessionRecord>(SESSIONS)
+        .where({ providerApplicantId })
+        .orderBy('createdAt', 'desc');
+      return pickSessionForApplicant(records, lookup.levelName);
     },
 
     async getLatestUnboundSessionForUser(

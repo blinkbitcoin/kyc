@@ -52,10 +52,26 @@ const fakeDb = (existing: string[] = []) => {
       },
     };
   };
+  const alterations: Record<string, string[]> = {};
+  const alterBuilder = (name: string) => {
+    const ops = (alterations[name] ??= []);
+    const record = (op: string) => (columns: string[]) => {
+      ops.push(`${op}(${columns.join(',')})`);
+    };
+    return {
+      dropUnique: record('dropUnique'),
+      unique: record('unique'),
+      index: record('index'),
+      dropIndex: record('dropIndex'),
+    };
+  };
   const schema = {
     hasTable: jest.fn(async (name: string) => existing.includes(name)),
     createTable: jest.fn(async (name: string, cb: (t: unknown) => void) => {
       cb(tableBuilder(name));
+    }),
+    alterTable: jest.fn(async (name: string, cb: (t: unknown) => void) => {
+      cb(alterBuilder(name));
     }),
     dropTableIfExists: jest.fn(async (_name: string) => undefined),
   };
@@ -64,7 +80,7 @@ const fakeDb = (existing: string[] = []) => {
     fn: { now: () => 'now()' },
     migrate: { latest: jest.fn(async () => [1, ['m']]) },
   } as unknown as Knex;
-  return { db, schema, tables, indexes };
+  return { db, schema, tables, indexes, alterations };
 };
 
 describe('KYC_MIGRATIONS', () => {
@@ -136,6 +152,24 @@ describe('KYC_MIGRATIONS', () => {
     expect(KYC_MIGRATIONS[0].name).toBe(
       '20260905000000_create_verification_session_and_audit_tables.ts',
     );
+  });
+
+  it('lets one applicant stand on many sessions: drops the unique, adds the composite index, and reverses', async () => {
+    expect(KYC_MIGRATIONS[1].name).toBe(
+      '20260911000000_one_applicant_many_sessions.ts',
+    );
+    const { db, alterations } = fakeDb(['VerificationSession', 'AuditLog']);
+    await KYC_MIGRATIONS[1].up(db);
+    expect(alterations.VerificationSession).toEqual([
+      'dropUnique(providerApplicantId)',
+      'index(provider,providerApplicantId)',
+    ]);
+    const back = fakeDb(['VerificationSession', 'AuditLog']);
+    await KYC_MIGRATIONS[1].down(back.db);
+    expect(back.alterations.VerificationSession).toEqual([
+      'dropIndex(provider,providerApplicantId)',
+      'unique(providerApplicantId)',
+    ]);
   });
 });
 

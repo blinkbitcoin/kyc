@@ -464,6 +464,47 @@ describe('handleWebhookEvent', () => {
     );
   });
 
+  it('routes an event to the session on its level when one applicant stands on several', async () => {
+    const { service, store, provider } = setup();
+    await service.start(user, { platform: 'WEB', levelName: 'l2' }); // id-1, applicant app-1
+    await service.applyStatusTransition('id-1', 'approved', 'webhook');
+    provider.createSession.mockResolvedValue({ accessToken: 't' }); // unbound
+    await service.start(user, { platform: 'IOS', levelName: 'card' }); // id-4 (id-3 is the approval's audit row)
+    // first event on the card level: binds the same applicant to the new session
+    await expect(
+      service.handleWebhookEvent(
+        event({ status: 'pending', levelName: 'card' }),
+      ),
+    ).resolves.toBe('updated');
+    expect(await store.getSessionById('id-4')).toMatchObject({
+      providerApplicantId: 'app-1',
+      status: 'pending',
+    });
+    // a later event on the card level reaches the card session, not the approved one
+    await expect(
+      service.handleWebhookEvent(
+        event({ status: 'declined', levelName: 'card' }),
+      ),
+    ).resolves.toBe('updated');
+    expect((await store.getSessionById('id-4'))?.status).toBe('declined');
+    expect((await store.getSessionById('id-1'))?.status).toBe('approved');
+    // an event with no level goes to the session still in progress
+    await expect(
+      service.handleWebhookEvent(event({ status: 'approved' })),
+    ).resolves.toBe('updated');
+    expect((await store.getSessionById('id-4'))?.status).toBe('approved');
+  });
+
+  it("falls back to the applicant's known session when an event on another level finds no unbound one", async () => {
+    const { service } = setup();
+    await service.start(user, { platform: 'WEB', levelName: 'l2' });
+    await expect(
+      service.handleWebhookEvent(
+        event({ status: 'pending', levelName: 'card' }),
+      ),
+    ).resolves.toBe('updated');
+  });
+
   it('audits a decline with the provider reasons and hands them to the effects', async () => {
     const onStatusTransition = jest.fn();
     const { service, store } = setup({ effects: { onStatusTransition } });

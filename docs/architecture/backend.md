@@ -153,6 +153,8 @@ provider's webhook times out and retries.
 |---------|------|
 | `ignored_unknown_status` | The payload carries a type this repo does not act on (e.g. `applicantWorkflowCompleted`) |
 | `unknown_session` | Neither the applicant id nor the external user id resolves to a session |
+
+The applicant lookup is level-aware: a provider files one applicant per user across every level, so the newest session on the event's `levelName` wins, else the newest still in progress, else the newest. When the applicant's sessions are all on another level (or none is known), the user's newest **unbound** session is the one the event opens and binds - the first event of a second level, exactly like the first event of a brand-new applicant. That is what lets a card level after an approved onboarding proceed on its own session while the approved one stands.
 | `unchanged` | The stored status already equals the incoming one |
 | `rejected_terminal` | The stored status is `approved` or `finallyRejected` - recorded as a `webhook_rejected` audit entry with `reason: 'terminal_status'` |
 | `rejected_unbound` | The event is the first one for a session (matched by `externalUserId`), but the applicant id it carries does not match the one the bind attempt found on that session - `webhook_rejected` with `reason: 'applicant_mismatch'` |

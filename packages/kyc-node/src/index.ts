@@ -184,6 +184,7 @@ export type {
 } from './sessions';
 export { createVerificationService, publicOrigin } from './sessions';
 export type {
+  ApplicantLookupOptions,
   NewAuditEntry,
   NewSession,
   SessionRecord,
@@ -191,7 +192,7 @@ export type {
   StatusWrite,
   StatusWriteOutcome,
 } from './store';
-export { createMemorySessionStore } from './store';
+export { createMemorySessionStore, pickSessionForApplicant } from './store';
 export type { SpanAttributes, SpanLike, Tracing } from './tracing';
 export { noopTracing } from './tracing';
 export type {
