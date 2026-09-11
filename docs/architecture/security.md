@@ -2,7 +2,7 @@
 
 **Updated:** 2026-09-06
 
-This is the threat model and the controls, across the packages and the reference backend. It is the document `SECURITY.md` points at.
+This is the threat model and the controls, across the packages and the service (the deployable tier; a host on the in-process tier inherits the package-level controls and owns the transport ones itself - [../operations/production.md](../operations/production.md) section 3). It is the document `SECURITY.md` points at.
 
 ## What this library handles
 
@@ -15,17 +15,20 @@ Identity documents, selfies and liveness video - the highest-sensitivity persona
 
 ## Boot-time enforcement (fail-closed)
 
-`validateSecurityConfig` runs before the server binds a port. It refuses to start when **any** of these holds:
+`validateConfig` (`packages/kyc-service/src/config.ts`, pure: env in, problems out) runs before the container binds a port and at a function's first import, on the same rules. It refuses to start when **any** of these holds:
 
-- `JWT_SECRET` is unset;
-- with `KYC_PROVIDER=sumsub`, any of `SUMSUB_APP_TOKEN`, `SUMSUB_SECRET_KEY`, `SUMSUB_WEBHOOK_SECRET` is unset;
-- `PUBLIC_BASE_URL` is unset, or set but not an absolute `http(s)` URL.
+- no session source: neither `SESSION_JWKS_URL` nor `SESSION_HS256_SECRET` (`JWT_SECRET` is an alias) is set;
+- with `KYC_PROVIDER=sumsub`, `SUMSUB_APP_TOKEN` or `SUMSUB_SECRET_KEY` is unset (what a mint needs); with sessions on, `SUMSUB_WEBHOOK_SECRET` too;
+- with sessions on (`DATABASE_URL`), `PUBLIC_BASE_URL` is unset, or set but not an absolute `http(s)` URL;
+- `KYC_PROVIDER` names nothing in the registry;
+- under `KYC_ENV=production`, the mock provider or a Sumsub app token still carrying the sandbox `sbx:` prefix (`KYC_ALLOW_DEMO=true` is the one bypass, for a production-shaped staging deployment) - the package's `assertProductionConfig`, which the in-process tier's `accessTokenProviderFromEnv` runs too;
+- `DATABASE_URL` on the Cloudflare runtime, which has no Postgres driver.
 
-Every missing item is listed in one error rather than one per restart. The single escape hatch is `ALLOW_INSECURE_DEV=true`, which prints a loud warning and must never be set in production; `packages/kyc-service/.env.test` sets it because the test suites run against the mock provider with no secrets. Selecting `KYC_PROVIDER=mock` itself requires the same flag (`assertMockProviderAllowed`), since the mock provider signs its own webhooks with a key that defaults to `"mock"`.
+Every missing item is listed in one error rather than one per restart, with the capabilities that were on. The single escape hatch is `ALLOW_INSECURE_DEV=true`, which prints a loud warning and must never be set in production; `packages/kyc-service/.env.test` sets it because the test suites run against the mock provider with no secrets. Selecting `KYC_PROVIDER=mock` itself requires the same flag (`assertMockProviderAllowed`), since the mock provider signs its own webhooks with a key that defaults to `"mock"`. `NODE_ENV` gates none of this: every image sets it, so `KYC_ENV=production` is the production switch (the image sets that too).
 
 ## Authentication and authorization
 
-- `Authorization: Bearer <token>`. With `JWT_SECRET`, the token is verified as HS256 and `sub` becomes the `userId`. Without it: development treats the raw token as the userId (convenient for the demos, which send `demo-user`), production treats the request as unauthenticated.
+- `Authorization: Bearer <token>`. With `SESSION_JWKS_URL` the token is verified against the host's key set (RS/ES); with `SESSION_HS256_SECRET` (alias `JWT_SECRET`) as HS256; `SESSION_ISSUER` / `SESSION_AUDIENCE` are enforced when set and the claim `SESSION_USER_CLAIM` (default `sub`) becomes the `userId`. Only under `ALLOW_INSECURE_DEV=true` is the raw token taken as the user id (convenient for the demos, which send `demo-user`).
 - Every session read and every refresh is **owner-scoped** (`getSessionByIdForUser`). A session belonging to another user returns `SESSION_NOT_FOUND`, not `UNAUTHORIZED` - the two are deliberately indistinguishable to the caller.
 - The provider's own session id is never returned over GraphQL.
 
@@ -54,7 +57,7 @@ Every missing item is listed in one error rather than one per restart. The singl
 
 ## Transport and abuse controls
 
-`helmet` on every response; per-route rate limits (`/graphql` 100/min, `/hosted/:sessionId` 60/min, the webhook 120/min); a 64 kb body limit; a CORS allow-list that is **empty by default** (no `CORS_ALLOWED_ORIGINS` means no cross-origin browser access at all); `trust proxy 1` only in production; GraphQL introspection and stack traces disabled in production.
+The app's own security headers on every response (the hosted page keeps its own CSP and drops the framing headers, since embedding is its purpose); per-route rate limits on the Node target (`/verification/token` 60/min, `/hosted/:sessionId` 60/min, the webhook 120/min, `/graphql` 100/min; `RATE_LIMIT_*_PER_MIN`, `0` switches one off); a 64 kb body limit; a CORS allow-list that is **empty by default** (no `CORS_ALLOWED_ORIGINS` means no cross-origin browser access at all); `x-forwarded-for` believed only with `TRUST_PROXY=true`; GraphQL introspection off under `KYC_ENV=production`.
 
 ## Logging and telemetry
 

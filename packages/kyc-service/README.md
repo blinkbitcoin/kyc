@@ -2,7 +2,9 @@
 
 **For whoever deploys and operates a backend.** If instead you own a Node API
 and want it to mint in-process, that is the other tier,
-[`@blinkbitcoin/kyc-node`](../kyc-node/README.md).
+[`@blinkbitcoin/kyc-node`](../kyc-node/README.md) (its
+[access-token preset](../kyc-node/README.md#mint-a-token-for-the-native-sdk-mode-1),
+runnable as [`examples/access-token-demo`](../../examples/access-token-demo/README.md)).
 
 The whole identity-verification service as a Fetch-native app composed from
 `@blinkbitcoin/kyc-node`: the access-token mint, the verification-session

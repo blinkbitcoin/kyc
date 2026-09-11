@@ -84,6 +84,14 @@ make live-android                         # the RN demo on the attached phone (m
 Dashboard setup, the level to create and the manual device checklist:
 [docs/integration/sumsub.md](docs/integration/sumsub.md).
 
+**Who are you?** Three paths through this repository:
+
+| You are | Your path |
+|---------|-----------|
+| **App developer /<br>integrator** | [Integration](#integration) - the three modes, same component<br>[consuming.md](docs/integration/consuming.md) - registry setup and the minimal install<br>[error-codes.md](docs/integration/error-codes.md) - every `onError` code and the host reaction |
+| **Backend<br>developer** | [The access-token preset](packages/kyc-node/README.md#mint-a-token-for-the-native-sdk-mode-1) - one endpoint in your own API<br>[`examples/access-token-demo`](examples/access-token-demo/README.md) - a runnable API that mints<br>[Runbook: backend developer](docs/operations/production.md#3-backend-developer) - what to build once |
+| **DevOps<br>engineer** | [Backend options](#backend-options) - the two tiers, side by side<br>[Deploy table](packages/kyc-service/README.md#deploy) - the copy-paste per target<br>[Runbook: DevOps](docs/operations/production.md#4-devops) - env, secrets, boot guard, health |
+
 ## Integration
 
 Every mode drives the **same component with the same callbacks** - the only
@@ -225,16 +233,24 @@ Details and code for each path: the package READMEs
 
 ## Backend options
 
-Modes 2 and 3 need code on a backend you control, and there are exactly two
-tiers to choose between. **The app code is identical for both.**
+Every mode needs one server-side call - a provider access token minted for
+a user your backend has authenticated - and there are exactly two tiers to
+choose between. **The app code is identical for both**: the same
+`VerificationSource` calls one endpoint and uses what it gets back.
 
-| Tier | What you run | What it gives you | Start at |
-|------|--------------|-------------------|----------|
-| **In-process**<br>`@blinkbitcoin/kyc-node` | The package inside your<br>own Node API: one call<br>for a mode-2 token, or<br>the session domain over<br>your own store for mode 3 | Your auth, your CORS,<br>your database; no<br>service to operate | [`examples/access-token-demo`](examples/access-token-demo/README.md)<br>(one mutation),<br>[the package README](packages/kyc-server/README.md) |
-| **Deployable**<br>`packages/kyc-service` | The reference service:<br>Express 5 + Apollo 5 +<br>PostgreSQL composed on<br>the package, with its<br>fail-closed boot | All four routes, the<br>hosted page, webhooks,<br>rate limits, the audit<br>log; the backend every<br>E2E suite runs against | [its README](packages/kyc-service/README.md),<br>then the [runbook](docs/operations/production.md) |
+| Tier | What you run | What your API must provide | Capabilities | Copy-paste |
+|------|--------------|----------------------------|--------------|------------|
+| **In-process**<br>`@blinkbitcoin/kyc-node` | The package inside<br>your own Node API<br>(router or Fetch<br>handler) | Your own session check<br>(`authenticate`), and the<br>level from the `levelFor`<br>hook - which can refuse a<br>mint by throwing<br>`Errors.validationError` | Access tokens; the<br>session domain too,<br>over your own store | [The access-token preset](packages/kyc-node/README.md#mint-a-token-for-the-native-sdk-mode-1) |
+| **Deployable**<br>`@blinkbitcoin/kyc-service` | The package or the<br>`ghcr.io/blinkbitcoin/kyc-service`<br>image, as a function<br>or a container | `SESSION_JWKS_URL` or<br>`SESSION_HS256_SECRET`<br>(who the caller is) | Tokens always on;<br>sessions, the hosted<br>page, webhooks and<br>GraphQL with<br>`DATABASE_URL` | [Deploy table](packages/kyc-service/README.md#deploy) |
 
-Taking either tier live - Sumsub go-live, the environment, what a reverse
-proxy must leave alone on the hosted route, the checklist - is
+**Mode 2 needs no database with the service**: access tokens are always
+on, and `DATABASE_URL` only adds the sessions half (modes 1 and 3). Deploy
+targets are a Node container, Vercel, a Cloudflare Worker (tokens only),
+Kubernetes, or Lambda via the same image - one row each, with the commands,
+in the service's [Deploy table](packages/kyc-service/README.md#deploy).
+
+Taking either tier live - Sumsub go-live, the environment, the secrets per
+platform, the boot guard and the verification checklist - is the runbook:
 [docs/operations/production.md](docs/operations/production.md).
 
 ## Testing
@@ -265,26 +281,29 @@ whole worktree (`KYC_PORT_BASE=5300 make e2e-web`).
 
 ## Deploy and operate
 
-The deployable is `packages/kyc-service`, a plain Node process in
-front of PostgreSQL. There is **no container image yet**; the runbook says so
-and gives the process path.
+The deployable is `@blinkbitcoin/kyc-service`: one Fetch core that runs as
+the `ghcr.io/blinkbitcoin/kyc-service` image, a Node process, a Vercel route
+or a Cloudflare Worker. Access tokens are always on; `DATABASE_URL` adds
+the sessions half (the hosted page, the webhook, GraphQL over Postgres).
 
 ```sh
-npm ci && npm run build                          # the packages
-npm run build -w packages/kyc-service      # -> dist/
-npm run migrate -w packages/kyc-service    # applies the package's migrations to DATABASE_URL
-npm run start -w packages/kyc-service      # node dist/index.js on PORT (5100)
+docker run --rm -p 5100:5100 --env-file packages/kyc-service/.env ghcr.io/blinkbitcoin/kyc-service
+docker run --rm --env-file packages/kyc-service/.env ghcr.io/blinkbitcoin/kyc-service node dist/node.js migrate
 ```
 
-The service **refuses to boot** without `JWT_SECRET`, an absolute
-`PUBLIC_BASE_URL`, and - with `KYC_PROVIDER=sumsub` - `SUMSUB_APP_TOKEN`,
-`SUMSUB_SECRET_KEY` and `SUMSUB_WEBHOOK_SECRET`. `ALLOW_INSECURE_DEV=true` is
-the only bypass and belongs in a developer's `.env`, never in production.
-Register `<PUBLIC_BASE_URL>/webhook/kyc/sumsub` in the Sumsub dashboard,
-probe `GET /health`, and let the proxy leave `Permissions-Policy` and
-`frame-ancestors` on `/hosted/*` alone. The full story - the two tiers,
-Sumsub go-live, the environment table, the reverse proxy, the verification
-checklist and the failure modes:
+The service **refuses to start** on a bad environment: a session secret
+(`SESSION_HS256_SECRET` or `SESSION_JWKS_URL`), an absolute `PUBLIC_BASE_URL`
+and `SUMSUB_WEBHOOK_SECRET` once sessions are on, `SUMSUB_APP_TOKEN` and
+`SUMSUB_SECRET_KEY` with `KYC_PROVIDER=sumsub`; `KYC_ENV=production` refuses
+the mock and a sandbox token unless `KYC_ALLOW_DEMO=true`, and
+`ALLOW_INSECURE_DEV=true` belongs in a developer's `.env`, never in
+production. Register `<PUBLIC_BASE_URL>/webhook/kyc/sumsub` in the Sumsub
+dashboard, probe `GET /health` (it reports the capabilities that are on),
+and let the proxy leave `Permissions-Policy` and `frame-ancestors` on
+`/hosted/*` alone. One row per target with the commands: the service's
+[Deploy table](packages/kyc-service/README.md#deploy). The full story - the
+two tiers, Sumsub go-live, the environment, the secrets per platform, the
+boot guard, the checklist and the failure modes:
 [docs/operations/production.md](docs/operations/production.md). The
 controls the service enforces: [docs/architecture/security.md](docs/architecture/security.md).
 

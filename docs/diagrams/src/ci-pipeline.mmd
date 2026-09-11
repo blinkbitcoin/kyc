@@ -15,7 +15,8 @@ flowchart LR
         UNIT["Unit<br/>Coverage"]
         subgraph E2E["E2E"]
             direction LR
-            BP["Build Packages<br/>version stamp · build · pack"] --> WEB["Web"]
+            BP["Build Packages<br/>version stamp · build · pack · deploy-check"] --> WEB["Web"]
+            DOCKER["Docker<br/>the service image, smoked<br/>tokens only + with Postgres"]
             BACKEND["Backend"]
             BA["Build Android"] --> ANDROID["Android"]
             BI["Build iOS"] --> IOS["iOS"]
@@ -46,6 +47,7 @@ flowchart LR
         RELPR["chore(release): X.Y.Z PR<br/>a human approves + merges it"]
         TAG["tag vX.Y.Z + GitHub Release<br/>body = CHANGELOG entry"]
         NPM[("GitHub Packages<br/>@blinkbitcoin/kyc-*")]
+        GHCR[("GHCR<br/>ghcr.io/blinkbitcoin/kyc-service")]
         GHP[("gh-pages branch<br/>badges/&lt;branch&gt;/ → README")]
     end
 
@@ -61,6 +63,7 @@ flowchart LR
     BADGES --> GHP
     CLEAN --> GHP
     PUBLISH --> NPM
+    PUBLISH --> GHCR
 
     CODEQL["CodeQL (codeql.yml)<br/>push · PR · weekly"]
     DEPBOT["Dependabot Updates<br/>weekly"]

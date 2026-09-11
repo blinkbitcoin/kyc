@@ -12,7 +12,7 @@
 | **Type** | Monorepo (npm workspaces): five packages + three server/client example hosts + the tooling workspace |
 | **Domain** | Fintech / identity verification (KYC) |
 | **Primary Language** | TypeScript |
-| **Architecture** | React and React Native packages over a shared core; a ports-and-adapters server package that the Fetch-native reference backend and the access-token example compose |
+| **Architecture** | React and React Native packages over a shared core; a ports-and-adapters server package with two host tiers on it: in-process (`kyc-node` inside your API, `examples/access-token-demo`) and deployable (`kyc-service`, one Fetch core for a container, Node, Vercel or a Worker) |
 
 ### Quick Reference
 
@@ -23,17 +23,20 @@
 - **`packages/kyc-react-native`** - `IdentityVerification` + `useIdentityVerification` over a hardened `react-native-webview`, and the Sumsub native-SDK source in `providers/sumsub/`. Entries: `.`, `./hosted`, `./sumsub`.
 - **`packages/kyc-react`** - the same pair over an origin-pinned iframe, plus the `MountableSource` seam; `providers/sumsub/` is reserved for the web-SDK adapter. Entries: `.`, `./sumsub`.
 
-#### The reference backend (`packages/kyc-service/`)
+#### The service (`packages/kyc-service/`) - the deployable tier
 
-- **Framework:** a Fetch-native core (`@hono/node-server` on the container), Apollo Server 5, Knex 3 / PostgreSQL 15+
-- **Entry point:** `packages/kyc-service/src/index.ts`
-- **API:** GraphQL at `/graphql`, hosted page at `/hosted/:sessionId`, webhook at `/webhook/kyc/:provider`, health at `/health`
-- **Role:** the reference implementation of mode 3 - and the mock provider that drives every E2E suite
+- **Framework:** none - a Fetch-native core (`createKycApp(env)`), composed from `@blinkbitcoin/kyc-node`; `@hono/node-server` bridges it to Node, Apollo Server 5 executes GraphQL when sessions are on; Knex 3 / PostgreSQL 15+
+- **Entry points:** `src/index.ts` (the core), `src/node.ts` (the process; also `npx kyc-service`), `src/vercel.ts`, `src/cloudflare.ts`
+- **Capabilities by env:** access tokens are always on; `DATABASE_URL` adds sessions - the hosted page, the webhook, the GraphQL API and the store. `GET /health` reports which
+- **API:** the mint at `POST /verification/token`, health at `GET /health`; with sessions, GraphQL at `/graphql`, the hosted page at `/hosted/:sessionId`, the webhook at `/webhook/kyc/:provider`
+- **Role:** the reference host for mode 3 (and the mode 1 / 2 backend); the backend every E2E suite runs against; ships as a container image (`ghcr.io/blinkbitcoin/kyc-service`) and as a package with deploy templates in `deploy/`
+- **The host's one obligation:** expose JWKS or share an HS256 secret (session verification)
+- **Taking it live:** [operations/production.md](operations/production.md)
 
 #### Demos (`examples/`)
 
 - **`react-native-demo`** - React Native 0.86, `KYC_MODE` = `native` | `hosted` | `proxy` | `fake-native`, Maestro flows in `.maestro/`
-- **`access-token-demo`** - the other server shape: an existing GraphQL API adds one mutation that mints a provider access token for mode 2 (`make e2e-server-demos` boots it)
+- **`access-token-demo`** - the in-process tier as a runnable host: an existing GraphQL API adds one mutation that mints a provider access token for mode 2 (`make e2e-server-demos` boots it)
 - **`react-demo`** - Vite + React 19, `VITE_KYC_MODE` = `hosted` | `proxy`, `VITE_KYC_UI` = `default` | `themed`, Playwright specs in `e2e/` on per-worktree ports
 
 #### Tooling (`scripts/`)
@@ -80,7 +83,7 @@ Organized by namespace - pick by what you are doing:
 | [../packages/kyc-node/README.md](../packages/kyc-node/README.md) | The server package: minting tokens for the native SDK, the domain, the Knex store, the handlers and the router |
 | [../packages/kyc-react-native/README.md](../packages/kyc-react-native/README.md) | The React Native package: modes, permission setup, `IdentityVerification` props, the hook, the native-SDK source and its test double |
 | [../packages/kyc-react/README.md](../packages/kyc-react/README.md) | The web package: iframe/CSP requirements, origin pinning, `IdentityVerification` props |
-| [../packages/kyc-service/README.md](../packages/kyc-service/README.md) | Running and configuring the reference backend |
+| [../packages/kyc-service/README.md](../packages/kyc-service/README.md) | The deployable tier: capabilities by env, the Deploy table (one row per target), the environment, entry points |
 | [../examples/react-native-demo/README.md](../examples/react-native-demo/README.md) | The four `KYC_MODE` modes, the screen/testID contract, the Maestro suite |
 | [../examples/react-demo/README.md](../examples/react-demo/README.md) | The two web modes, the themed variant and the Playwright suites |
 | [../examples/access-token-demo/README.md](../examples/access-token-demo/README.md) | The other server shape: one mutation that mints a provider access token |
@@ -91,7 +94,8 @@ Organized by namespace - pick by what you are doing:
 |-----|--------|
 | [development-guide.md](./development-guide.md) | Working on this repo: setup, commands, quality gates, CI, and the first release |
 | [releasing.md](./releasing.md) | How a merged PR becomes a version: release-please, the release PR, the changelog, what merging it does |
-| [operations/production.md](./operations/production.md) | Taking it live: the two backend tiers, Sumsub go-live, the environment the boot guard demands, what runs in front of the service, the checklist, failure modes |
+| [upgrading.md](./upgrading.md) | What changes for you between releases, by audience: renames, moved paths, removed switches |
+| [operations/production.md](./operations/production.md) | Running identity verification in production, by audience: what runs where, Sumsub go-live, the backend developer's two tiers, DevOps (env, secrets, boot guard, health), mobile, the verification checklist, failure modes |
 | [operations/live-e2e-ci.md](./operations/live-e2e-ci.md) | The opt-in live Sumsub job: the `sumsub-sandbox` environment, secrets, triggers, rotation, failure modes |
 | [diagrams/](./diagrams/README.md) | All nine diagrams, pre-rendered (sources in `diagrams/src/`) |
 | [superpowers/specs/2026-09-05-kyc-design.md](./superpowers/specs/2026-09-05-kyc-design.md) | The approved design this repo implements |
@@ -149,9 +153,9 @@ make e2e-android            # Maestro (see make help for prerequisites)
 1. [integration/sumsub.md](integration/sumsub.md) - dashboard setup, the automated tier (`make e2e-live`), and the manual device checklist
 2. [operations/live-e2e-ci.md](operations/live-e2e-ci.md) - the same run as an opt-in CI job
 
-### "I want to deploy this"
-1. [operations/production.md](operations/production.md) - pick a tier, configure, put a proxy in front, run the checklist
-2. [../packages/kyc-service/README.md](../packages/kyc-service/README.md) - the reference service itself
+### "I want to take this to production"
+1. [operations/production.md](operations/production.md) - pick a tier and a target, then the section for your role
+2. [../packages/kyc-service/README.md#deploy](../packages/kyc-service/README.md#deploy) - the copy-paste per target
 3. [architecture/security.md](architecture/security.md) - what the service enforces and what the host must
 
 ### "I want to review the security posture"

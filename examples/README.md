@@ -1,23 +1,31 @@
 # examples/
 
-Integration reference apps — hosts for the packages, not products. Each shows
-the minimal wiring a real host app needs per mode: `config.ts` (endpoint +
-mode literal) → `apollo.ts` (client + auth token) → `source.ts` (one
-`VerificationSource` per mode) → one screen with `<IdentityVerification />`.
+Integration reference apps — hosts for the packages, not products. The
+client demos show the minimal wiring a real host app needs per mode:
+`config.ts` (endpoint + mode literal) → `apollo.ts` (client + auth token) →
+`source.ts` (one `VerificationSource` per mode) → one screen with
+`<IdentityVerification />`. The server demo here is the **in-process tier** on
+`@blinkbitcoin/kyc-node`; the other tier, the whole service, is the
+published [`@blinkbitcoin/kyc-service`](../packages/kyc-service/README.md)
+package.
 
 | Example | Hosts | Modes | E2E |
 |---------|-------|-------|-----|
-| [`access-token-demo/`](access-token-demo/README.md) | 🖥️ `@blinkbitcoin/kyc-node` (an existing GraphQL API) | one mutation that mints a provider access token for mode 2: `mock` \| `sumsub` | booted on the mock provider, the mutation called (`make e2e-server-demos`) |
+| [`access-token-demo/`](access-token-demo/README.md) | 🖥️ **In-process tier.**<br>`@blinkbitcoin/kyc-node` from an API you already have | one mutation that mints a provider access token for mode 2: `mock` \| `sumsub` | booted on the mock provider, the mutation called (`make e2e-server-demos`) |
 | [`react-native-demo/`](react-native-demo/README.md) | 📱 `@blinkbitcoin/kyc-react-native` | `KYC_MODE` = native \| hosted \| proxy \| fake-native | Maestro (`make e2e-android`, `make e2e-ios`, `make e2e-fake-native`) |
 | [`react-demo/`](react-demo/README.md) | 🌐 `@blinkbitcoin/kyc-react` (Vite) | `VITE_KYC_MODE` = hosted \| proxy | Playwright (`make e2e-web`, `make e2e-web-proxy`) |
 
-The service these hosts run against is [`packages/kyc-service`](../packages/kyc-service/README.md),
-the reference host of the server package: this service's
-policy (session verification, CORS, rate limits, fail-closed boot) around
-the package's presets, schema, store and adapters, as one Fetch core. It is **required for mode 3
-only**, and is also the mock provider that drives every E2E suite in the
-repo - which is why the backend, web and mobile suites can run with no
-provider credentials at all.
+The **deployable tier** has no row here because it is not an example: it is
+the published [`@blinkbitcoin/kyc-service`](../packages/kyc-service/README.md)
+package and its `ghcr.io/blinkbitcoin/kyc-service` image, whose targets are
+its [Deploy table](../packages/kyc-service/README.md#deploy). The two tiers
+side by side: [Backend options](../README.md#backend-options). That service
+is what the client demos run against: this service's policy (session
+verification, CORS, rate limits, fail-closed boot) around the package's
+presets, schema, store and adapters, as one Fetch core. It is **required
+for mode 3 only**, and is also the mock provider that drives every E2E
+suite in the repo - which is why the backend, web and mobile suites can run
+with no provider credentials at all.
 
 `hosted` and `proxy` need the backend running (`make db-up migrate backend`
 from the repo root, or `make e2e-backend-up` for the E2E stack). `native`

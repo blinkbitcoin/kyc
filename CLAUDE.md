@@ -63,7 +63,7 @@ npm run test:coverage        # Coverage runs - 100% is the enforced baseline on 
 npm run typecheck            # tsc across all workspaces
 npm run lint                 # ESLint (mobile code) + Biome lint (backend)
 npm run format               # Biome format (all workspaces)
-npm run build                # Build the four libraries (bob for RN, tsup for core/sumsub/web)
+npm run build                # Build the five packages (bob for RN, tsup for core/node/web, tsc for the service)
 npm run check:packages       # publint + arethetypeswrong on the built packages (CI: E2E / Build Packages)
 npm run codegen               # Emit schema.graphql from typeDefs.ts + regenerate core's client types
 npm start                    # Metro for the RN demo app
@@ -236,7 +236,9 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   runs `scripts/e2e/live.sh` (the `Live Sumsub` job) with the `sumsub-sandbox`
   environment's secrets - the sandbox API only, never the Sumsub UI
   (`docs/operations/live-e2e-ci.md`). Locally: `make sumsub-env`,
-  `make sumsub-check`, `make test-live`, `make e2e-live`.
+  `make sumsub-check`, `make test-live`, `make e2e-live`. Taking a
+  deployment live on a production account is `docs/operations/production.md`
+  (by audience; the sandbox-only rule for dashboards and CI holds).
 - iOS E2E always runs (public repo: GitHub-hosted macOS is free);
   `E2E_IOS_RUNNER` overrides `runs-on`. Only the live Sumsub job is opt-in.
 - Native E2E builds are cached on the inputs `scripts/native-deps-hash.sh`
