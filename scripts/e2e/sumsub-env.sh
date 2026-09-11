@@ -21,7 +21,7 @@ fi
 {
   echo "# Written by make sumsub-env ($(date -u +%Y-%m-%dT%H:%M:%SZ)); local only, never commit"
   echo "PORT=${PORT:-$KYC_API_PORT}"
-  echo "DATABASE_URL=${DATABASE_URL:-postgresql://dev:dev@localhost:5432/kyc}"
+  echo "DATABASE_URL=${DATABASE_URL:-$KYC_DEV_DATABASE_URL}"
   # No JWT_SECRET unless asked: with ALLOW_INSECURE_DEV the bearer token is
   # the user id, which is what the live tests and the demos send.
   [ -n "${JWT_SECRET:-}" ] && echo "JWT_SECRET=$JWT_SECRET"

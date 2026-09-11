@@ -5,8 +5,11 @@ import { describe, expect, it } from 'vitest';
 import {
   BASE_DEFAULT,
   BASE_VAR,
+  BLOCK_SLOTS,
+  BLOCK_STEP,
   SERVICES,
   baseFrom,
+  devDatabaseUrl,
   envLines,
   portFrom,
   resolvePorts,
@@ -25,6 +28,21 @@ describe('the port table', () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
+  it('fits a worktree block, and the blocks stay below 6000', () => {
+    expect(Object.keys(SERVICES).length).toBeLessThanOrEqual(BLOCK_STEP);
+    expect(
+      BASE_DEFAULT + BLOCK_SLOTS * BLOCK_STEP + BLOCK_STEP,
+    ).toBeLessThanOrEqual(6000);
+  });
+
+  it('lists every key in the type declaration', () => {
+    const union = read('scripts/lib/ports.d.mts').match(
+      /export type ServiceKey =([^;]*);/,
+    )[1];
+    const declared = [...union.matchAll(/'([A-Za-z]+)'/g)].map(m => m[1]);
+    expect(declared).toEqual(Object.keys(SERVICES));
+  });
+
   it('resolves the documented defaults', () => {
     expect(resolvePorts({})).toEqual({
       base: 5100,
@@ -33,9 +51,13 @@ describe('the port table', () => {
       webProxy: 5102,
       token: 5103,
       testDb: 5104,
+      devDb: 5105,
     });
     expect(testDatabaseUrl(5104)).toBe(
       'postgresql://test:test@localhost:5104/kyc_test',
+    );
+    expect(devDatabaseUrl(5305)).toBe(
+      'postgresql://dev:dev@localhost:5305/kyc',
     );
   });
 
@@ -85,7 +107,9 @@ describe('envLines', () => {
       'export KYC_WEB_PROXY_PORT=5102',
       'export TOKEN_PORT=9000',
       'export KYC_TEST_DB_PORT=5104',
+      'export KYC_DEV_DB_PORT=5105',
       'export KYC_TEST_DATABASE_URL=postgresql://test:test@localhost:5104/kyc_test',
+      'export KYC_DEV_DATABASE_URL=postgresql://dev:dev@localhost:5105/kyc',
     ]);
   });
 });
@@ -94,7 +118,9 @@ describe('envLines', () => {
 // Native bundle, an ES-module example), so each declares its own offset as
 // a literal. These checks keep those literals on the table.
 describe('the consumers', () => {
-  const { base, api, webHosted, webProxy, token, testDb } = resolvePorts({});
+  const { base, api, webHosted, webProxy, token, testDb, devDb } = resolvePorts(
+    {},
+  );
 
   it.each([
     ['examples/full-service-demo/src/port.ts', `PORT_BASE_DEFAULT = ${base}`],
@@ -132,7 +158,16 @@ describe('the consumers', () => {
       `DATABASE_URL=${testDatabaseUrl(testDb)}`,
     ],
     ['docker-compose.test.yml', `"\${KYC_TEST_DB_PORT:-${testDb}}:5432"`],
+    [
+      'examples/full-service-demo/docker-compose.yml',
+      `"\${KYC_DEV_DB_PORT:-${devDb}}:5432"`,
+    ],
+    ['examples/full-service-demo/.env.example', devDatabaseUrl(devDb)],
     ['scripts/ci/postgres-brew.sh', 'KYC_TEST_DB_PORT'],
+    [
+      'examples/react-demo/e2e/ports.ts',
+      `TEST_DB_OFFSET = ${SERVICES.testDb.offset}`,
+    ],
   ])('%s carries %s', (file, literal) => {
     expect(read(file)).toContain(literal);
   });

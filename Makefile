@@ -104,22 +104,22 @@ ios: ## Run the example app on the iOS simulator
 android: ## Run the example app on an Android emulator
 	npm run android
 
-backend: ## Backend dev server (tsx watch; env via direnv/.env)
-	npm run backend
+backend: ## Backend dev server (tsx watch; env via direnv/.env, DATABASE_URL defaults to this worktree's dev Postgres)
+	bash scripts/e2e/dev-db.sh run npm run backend
 
 web: ## Vite dev server for the web example app
 	npm run web
 
 # ---------- Database ----------
 
-db-up: ## Start the dev Postgres (examples/full-service-demo/docker-compose.yml, port 5432)
-	cd examples/full-service-demo && docker compose up -d --wait
+db-up: ## Start this worktree's dev Postgres (examples/full-service-demo/docker-compose.yml on KYC_DEV_DB_PORT = KYC_PORT_BASE + 5, default 5105; its own compose project and volume)
+	bash scripts/e2e/dev-db.sh up
 
-db-down: ## Stop the dev Postgres
-	cd examples/full-service-demo && docker compose down
+db-down: ## Stop this worktree's dev Postgres
+	bash scripts/e2e/dev-db.sh down
 
-migrate: ## Apply Knex migrations to the dev database
-	npm run migrate -w examples/full-service-demo
+migrate: ## Apply Knex migrations to the dev database (DATABASE_URL from .env, else this worktree's dev Postgres)
+	bash scripts/e2e/dev-db.sh run npm run migrate -w examples/full-service-demo
 
 # ---------- E2E ----------
 

@@ -7,10 +7,18 @@
 // (examples/react-demo/e2e/ports.ts, guarded against this table by its
 // test), the shell scripts (through scripts/e2e/ports-env.sh) and the
 // services' own PORT defaults (each declares its offset; ports.test.mjs
-// checks the literals in those files against this table).
+// checks the literals in those files against this table). Both Postgres
+// containers are on the table too (docker-compose.test.yml and the dev
+// compose read their host port from the variable), so a second worktree's
+// databases never fight over 5432 either.
 
 export const BASE_VAR = 'KYC_PORT_BASE';
 export const BASE_DEFAULT = 5100;
+// A worktree's block: BLOCK_STEP ports wide (the table uses the first
+// Object.keys(SERVICES).length), BLOCK_SLOTS blocks above the default one
+// (5120 .. 5980; 5000 is everybody's and 4100 is esign's).
+export const BLOCK_STEP = 20;
+export const BLOCK_SLOTS = 44;
 
 /** key → { offset from the base, the override variable, what listens there } */
 export const SERVICES = {
@@ -35,11 +43,19 @@ export const SERVICES = {
     env: 'KYC_TEST_DB_PORT',
     what: 'the E2E Postgres (docker-compose.test.yml; CI macOS: Homebrew)',
   },
+  devDb: {
+    offset: 5,
+    env: 'KYC_DEV_DB_PORT',
+    what: 'the dev Postgres (examples/full-service-demo/docker-compose.yml)',
+  },
 };
 
 /** The E2E database URL for that port (what .env.test carries for the default). */
 export const testDatabaseUrl = port =>
   `postgresql://test:test@localhost:${port}/kyc_test`;
+/** The dev database URL for its port (dev/dev, kyc; what .env.example documents) */
+export const devDatabaseUrl = port =>
+  `postgresql://dev:dev@localhost:${port}/kyc`;
 
 /**
  * A port from one variable: unset or empty means the fallback; anything
@@ -86,5 +102,6 @@ export const envLines = env => {
     // The E2E suites and the backend read DATABASE_URL (.env.test holds the
     // default); a script that moved the base exports this one over it
     `export KYC_TEST_DATABASE_URL=${testDatabaseUrl(ports.testDb)}`,
+    `export KYC_DEV_DATABASE_URL=${devDatabaseUrl(ports.devDb)}`,
   ];
 };

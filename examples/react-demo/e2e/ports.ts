@@ -10,6 +10,7 @@
 //   KYC_API_PORT        the backend              base + 0
 //   KYC_WEB_PORT        the demo, hosted mode    base + 1
 //   KYC_WEB_PROXY_PORT  the demo, proxy mode     base + 2
+//   KYC_TEST_DB_PORT    the E2E Postgres         base + 4
 //
 // Runs under Node (Playwright config) but is typechecked with the demo's
 // browser tsconfig, so no node imports.
@@ -28,10 +29,13 @@ export const WEB_VARS: Record<Mode, string> = {
   proxy: 'KYC_WEB_PROXY_PORT',
 };
 export const WEB_OFFSETS: Record<Mode, number> = { hosted: 1, proxy: 2 };
+export const TEST_DB_VAR = 'KYC_TEST_DB_PORT';
+export const TEST_DB_OFFSET = 4;
 
 export interface E2EPorts {
   api: number;
   web: Record<Mode, number>;
+  testDb: number;
 }
 
 // A port from one variable: unset or empty means the fallback; anything
@@ -65,7 +69,11 @@ export const portsFrom = (
       base + WEB_OFFSETS[mode],
     );
   }
-  return { api: portFrom(API_VAR, env[API_VAR], base + API_OFFSET), web };
+  return {
+    api: portFrom(API_VAR, env[API_VAR], base + API_OFFSET),
+    web,
+    testDb: portFrom(TEST_DB_VAR, env[TEST_DB_VAR], base + TEST_DB_OFFSET),
+  };
 };
 
 export const DEFAULT_PORTS = portsFrom({});
@@ -89,12 +97,14 @@ export { retries };
 
 // Playwright webServer entries. The backend gets its port, the public base
 // URL it mints hosted-page URLs from (the iframe must point at THIS
-// backend, whatever .env.test says) and the demo origins it must allow
-// (CORS); the demo gets the backend origin.
+// backend, whatever .env.test says), its database (the E2E Postgres on this
+// worktree's port, over .env.test's default) and the demo origins it must
+// allow (CORS); the demo gets the backend origin.
 export const backendServer = () => ({
   command: [
     `PORT=${PORTS.api}`,
     `PUBLIC_BASE_URL=${API_ORIGIN}`,
+    `DATABASE_URL=postgresql://test:test@localhost:${PORTS.testDb}/kyc_test`,
     `CORS_ALLOWED_ORIGINS=${MODES.map(webOrigin).join(',')}`,
     'KYC_PROVIDER=mock npx dotenv-cli -e examples/full-service-demo/.env.test -- npm run dev -w examples/full-service-demo',
   ].join(' '),

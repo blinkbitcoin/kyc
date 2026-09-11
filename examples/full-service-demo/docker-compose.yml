@@ -1,3 +1,6 @@
+# The dev Postgres. Host port: KYC_DEV_DB_PORT (KYC_PORT_BASE + 5, default
+# 5105 - scripts/lib/ports.mjs); make db-up (scripts/e2e/dev-db.sh) exports it
+# and gives each worktree its own compose project and volume.
 services:
   postgres:
     image: postgres:15
@@ -6,7 +9,7 @@ services:
       POSTGRES_PASSWORD: dev
       POSTGRES_DB: kyc
     ports:
-      - "5432:5432"
+      - "${KYC_DEV_DB_PORT:-5105}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

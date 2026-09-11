@@ -2,7 +2,7 @@
 # Uses tmpfs for RAM-backed ephemeral storage (faster writes, auto-cleanup)
 # Host port KYC_TEST_DB_PORT (KYC_PORT_BASE + 4, default 5104 - the table is
 # scripts/lib/ports.mjs; scripts/e2e/test-db.sh exports it), clear of the dev
-# database on 5432 and of other repos' test databases.
+# database (KYC_DEV_DB_PORT, base + 5) and of other repos' test databases.
 
 services:
   postgres-test:

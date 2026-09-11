@@ -1,7 +1,13 @@
 // Types for ports.mjs, for the TypeScript consumers that check their own
 // port copy against the table (examples/react-demo/e2e/ports.test.ts).
 
-export type ServiceKey = 'api' | 'webHosted' | 'webProxy' | 'token';
+export type ServiceKey =
+  | 'api'
+  | 'webHosted'
+  | 'webProxy'
+  | 'token'
+  | 'testDb'
+  | 'devDb';
 
 export interface Service {
   offset: number;
@@ -13,6 +19,8 @@ export type Env = Record<string, string | undefined>;
 
 export const BASE_VAR: string;
 export const BASE_DEFAULT: number;
+export const BLOCK_STEP: number;
+export const BLOCK_SLOTS: number;
 export const SERVICES: Record<ServiceKey, Service>;
 export function portFrom(
   name: string,
@@ -22,3 +30,5 @@ export function portFrom(
 export function baseFrom(env: Env): number;
 export function resolvePorts(env: Env): Record<ServiceKey | 'base', number>;
 export function envLines(env: Env): string[];
+export function testDatabaseUrl(port: number): string;
+export function devDatabaseUrl(port: number): string;

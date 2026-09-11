@@ -14,20 +14,20 @@ coverage: ## Unit tests with coverage
 test-watch: ## Vitest watch mode
 	npm run test:watch
 
-db-up: ## Start the dev Postgres (port 5432)
-	docker compose up -d --wait
+db-up: ## Start this worktree's dev Postgres (KYC_DEV_DB_PORT; the root Makefile's target)
+	$(MAKE) -C ../.. db-up
 
-db-down: ## Stop the dev Postgres
-	docker compose down
+db-down: ## Stop this worktree's dev Postgres
+	$(MAKE) -C ../.. db-down
 
-migrate: ## Apply the package's migrations (dev database)
-	npm run migrate
+migrate: ## Apply the package's migrations (dev database; DATABASE_URL from .env, else this worktree's dev Postgres)
+	$(MAKE) -C ../.. migrate
 
-migrate-test: ## Apply migrations to the test database (.env.test)
-	npm run migrate:test
+migrate-test: ## Apply migrations to this worktree's test database
+	bash ../../scripts/e2e/test-db.sh run npm run migrate:test
 
-e2e: ## E2E tests against the test database (start it from repo root: make test-db-up)
-	npm run test:e2e
+e2e: ## E2E tests against this worktree's test database (start it from repo root: make test-db-up)
+	bash ../../scripts/e2e/test-db.sh run npm run test:e2e
 
 schema-emit: ## Regenerate schema.graphql from src/typeDefs.ts
 	npm run schema:emit
