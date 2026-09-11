@@ -24,7 +24,7 @@ GraphQL peers never have to be installed.
 
 ### 1. Hosted page
 
-A page that speaks the `kyc-bridge` protocol (this repo's `examples/full-service-demo` serves
+A page that speaks the `kyc-bridge` protocol (this repo's `packages/kyc-service` serves
 one) is embedded in a hardened WebView.
 
 ```tsx

@@ -9,7 +9,7 @@
 
 | Attribute | Value |
 |-----------|-------|
-| **Type** | Monorepo (npm workspaces): four packages + three server/client example hosts + the tooling workspace |
+| **Type** | Monorepo (npm workspaces): five packages + three server/client example hosts + the tooling workspace |
 | **Domain** | Fintech / identity verification (KYC) |
 | **Primary Language** | TypeScript |
 | **Architecture** | React and React Native packages over a shared core; a ports-and-adapters server package that the Express/Apollo reference backend and the access-token example compose |
@@ -23,10 +23,10 @@
 - **`packages/kyc-react-native`** - `IdentityVerification` + `useIdentityVerification` over a hardened `react-native-webview`, and the Sumsub native-SDK source in `providers/sumsub/`. Entries: `.`, `./hosted`, `./sumsub`.
 - **`packages/kyc-react`** - the same pair over an origin-pinned iframe, plus the `MountableSource` seam; `providers/sumsub/` is reserved for the web-SDK adapter. Entries: `.`, `./sumsub`.
 
-#### The reference backend (`examples/full-service-demo/`)
+#### The reference backend (`packages/kyc-service/`)
 
 - **Framework:** Express 5 + Apollo Server 5, Knex 3 / PostgreSQL 15+
-- **Entry point:** `examples/full-service-demo/src/index.ts`
+- **Entry point:** `packages/kyc-service/src/index.ts`
 - **API:** GraphQL at `/graphql`, hosted page at `/hosted/:sessionId`, webhook at `/webhook/kyc/:provider`, health at `/health`
 - **Role:** the reference implementation of mode 3 - and the mock provider that drives every E2E suite
 
@@ -80,7 +80,7 @@ Organized by namespace - pick by what you are doing:
 | [../packages/kyc-node/README.md](../packages/kyc-node/README.md) | The server package: minting tokens for the native SDK, the domain, the Knex store, the handlers and the router |
 | [../packages/kyc-react-native/README.md](../packages/kyc-react-native/README.md) | The React Native package: modes, permission setup, `IdentityVerification` props, the hook, the native-SDK source and its test double |
 | [../packages/kyc-react/README.md](../packages/kyc-react/README.md) | The web package: iframe/CSP requirements, origin pinning, `IdentityVerification` props |
-| [../examples/full-service-demo/README.md](../examples/full-service-demo/README.md) | Running and configuring the reference backend |
+| [../packages/kyc-service/README.md](../packages/kyc-service/README.md) | Running and configuring the reference backend |
 | [../examples/react-native-demo/README.md](../examples/react-native-demo/README.md) | The four `KYC_MODE` modes, the screen/testID contract, the Maestro suite |
 | [../examples/react-demo/README.md](../examples/react-demo/README.md) | The two web modes, the themed variant and the Playwright suites |
 | [../examples/access-token-demo/README.md](../examples/access-token-demo/README.md) | The other server shape: one mutation that mints a provider access token |
@@ -118,7 +118,7 @@ make web                    # or the Vite demo on :5101
 
 ```bash
 npm test                    # every workspace
-make coverage               # 100% on the packages and examples/full-service-demo, 80% floor on the demos
+make coverage               # 100% on the five packages, 80% floor on the demos
 make e2e-backend            # backend E2E, test DB lifecycle included
 make e2e-web                # Playwright, hosted mode
 make e2e-web-proxy          # Playwright, proxy mode
@@ -151,7 +151,7 @@ make e2e-android            # Maestro (see make help for prerequisites)
 
 ### "I want to deploy this"
 1. [operations/production.md](operations/production.md) - pick a tier, configure, put a proxy in front, run the checklist
-2. [../examples/full-service-demo/README.md](../examples/full-service-demo/README.md) - the reference service itself
+2. [../packages/kyc-service/README.md](../packages/kyc-service/README.md) - the reference service itself
 3. [architecture/security.md](architecture/security.md) - what the service enforces and what the host must
 
 ### "I want to review the security posture"

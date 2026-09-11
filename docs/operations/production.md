@@ -13,8 +13,8 @@ Who reads which section:
 | On call | [7. Failure modes](#7-failure-modes) |
 
 Everything below is taken from the code: the boot guard in
-`examples/full-service-demo/src/config.ts`, the env in
-`examples/full-service-demo/.env.example`, the controls in
+`packages/kyc-service/src/config.ts`, the env in
+`packages/kyc-service/.env.example`, the controls in
 [../architecture/security.md](../architecture/security.md), and the
 package's own [README](../../packages/kyc-node/README.md). When they
 disagree with this page, the code wins - fix the page.
@@ -42,7 +42,7 @@ framework requirement, no peers).
 
 ### Tier B: the reference service is deployed
 
-[`examples/full-service-demo`](../../examples/full-service-demo/README.md):
+[`packages/kyc-service`](../../packages/kyc-service/README.md):
 Express 5 + Apollo Server 5 + Knex/PostgreSQL composed on the package, with
 this service's auth, CORS allow-list, rate limits and fail-closed boot. It
 serves all four routes and is the backend every E2E suite runs against.
@@ -126,9 +126,9 @@ the four libraries, and the service's `npm run build` needs their dist):
 ```sh
 npm ci
 npm run build                                   # the packages
-npm run build -w examples/full-service-demo     # tsc -> examples/full-service-demo/dist
-npm run migrate -w examples/full-service-demo   # applies the package's migrations to DATABASE_URL, then exits
-npm run start -w examples/full-service-demo     # node dist/index.js
+npm run build -w packages/kyc-service     # tsc -> packages/kyc-service/dist
+npm run migrate -w packages/kyc-service   # applies the package's migrations to DATABASE_URL, then exits
+npm run start -w packages/kyc-service     # node dist/index.js
 ```
 
 `npm run migrate` is idempotent and safe to run before every start; run it
@@ -229,7 +229,7 @@ Before switching a real app to a real account, in this order:
 2. `make e2e-live`: the full live tier (token, status, hosted page, a signed
    webhook, the access-token example) passes against the sandbox.
 3. The service boots with the production `.env` and **only** that env:
-   `npm run start -w examples/full-service-demo` prints no
+   `npm run start -w packages/kyc-service` prints no
    `ALLOW_INSECURE_DEV` warning and does not throw
    `Refusing to start: missing required security configuration`.
 4. `curl https://<PUBLIC_BASE_URL>/health` returns `200` through the proxy.

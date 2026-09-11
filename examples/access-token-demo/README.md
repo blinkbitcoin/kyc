@@ -58,5 +58,5 @@ to end (`scripts/e2e/server-demos-smoke.sh`, `make e2e-server-demos`).
 
 ## The other server shape
 
-[`full-service-demo`](../full-service-demo/README.md) runs the whole
+[`packages/kyc-service`](../../packages/kyc-service/README.md) runs the whole
 service: sessions, the hosted page, webhooks, a Postgres store.

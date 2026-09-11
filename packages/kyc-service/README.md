@@ -62,6 +62,6 @@ at the root.
 The initial migration was amended in place (before any release), so a dev
 database created before it gained the `locale` column will not pick up the
 change via `make migrate`. Reset it: `make db-down && docker volume rm
-full-service-demo_postgres_data` (the volume name comes from `docker-compose.yml`; confirm
+kyc-service_postgres_data` (the volume name comes from `docker-compose.yml`; confirm
 it with `docker compose -f docker-compose.yml config --volumes`), then
 `make db-up && make migrate`.

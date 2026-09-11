@@ -4,7 +4,7 @@
 
 The backend owns the whole lifecycle: it creates the session, mints and refreshes the provider token, receives the provider's webhooks and holds the authoritative status. The client asks for a session and reports what happened.
 
-This is the only mode that needs `@apollo/client` and `graphql`, and the only one that needs **this repo's** `examples/full-service-demo`.
+This is the only mode that needs `@apollo/client` and `graphql`, and the only one that needs **this repo's** `packages/kyc-service`.
 
 ## Install
 
@@ -90,13 +90,13 @@ PUBLIC_BASE_URL=https://api.example.com
 CORS_ALLOWED_ORIGINS=https://app.example.com
 ```
 
-The service refuses to boot if any of the required secrets is missing (see [../architecture/security.md](../architecture/security.md)). For local work against the mock provider, `KYC_PROVIDER=mock` plus `ALLOW_INSECURE_DEV=true` is the intended shortcut and is what `examples/full-service-demo/.env.test` uses.
+The service refuses to boot if any of the required secrets is missing (see [../architecture/security.md](../architecture/security.md)). For local work against the mock provider, `KYC_PROVIDER=mock` plus `ALLOW_INSECURE_DEV=true` is the intended shortcut and is what `packages/kyc-service/.env.test` uses.
 
 Register `https://api.example.com/webhook/kyc/sumsub` in the provider dashboard - without it, statuses never advance past `pending`. The full dashboard walkthrough is [sumsub.md](sumsub.md).
 
 ## Auth
 
-The bearer token is your app's, not the provider's. With `JWT_SECRET` set, `examples/full-service-demo` verifies it as HS256 and uses the `sub` claim as the user id; every session read and refresh is owner-scoped against it. In development without `JWT_SECRET`, the raw token is the user id - which is why the demos simply send `demo-user`.
+The bearer token is your app's, not the provider's. With `JWT_SECRET` set, `packages/kyc-service` verifies it as HS256 and uses the `sub` claim as the user id; every session read and refresh is owner-scoped against it. In development without `JWT_SECRET`, the raw token is the user id - which is why the demos simply send `demo-user`.
 
 ## Errors you should expect to handle
 

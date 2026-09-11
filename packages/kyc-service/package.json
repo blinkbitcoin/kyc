@@ -1,7 +1,9 @@
 {
-  "name": "kyc-full-service-example",
-  "version": "1.0.0",
+  "name": "@blinkbitcoin/kyc-service",
+  "version": "0.0.0-development",
+  "description": "The kyc service as one deployable: the whole identity-verification backend (Express router, Apollo, Postgres store, webhooks, the hosted page) composed from @blinkbitcoin/kyc-node",
   "main": "dist/index.js",
+  "files": ["dist"],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.build.json",
@@ -20,10 +22,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "schema:emit": "tsx scripts/emit-schema.ts"
   },
-  "keywords": [],
-  "author": "",
   "license": "MIT",
-  "description": "Reference host: the whole identity-verification service (Express router, Apollo, Postgres store, webhooks, the hosted page) composed from @blinkbitcoin/kyc-node",
   "dependencies": {
     "@apollo/server": "^5.5.1",
     "@as-integrations/express5": "^1.1.2",
@@ -59,5 +58,12 @@
     "typescript": "^6.0.3",
     "vitest": "^5.0.0"
   },
-  "private": true
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blinkbitcoin/kyc.git",
+    "directory": "packages/kyc-service"
+  }
 }

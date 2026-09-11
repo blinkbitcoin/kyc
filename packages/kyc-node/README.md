@@ -192,5 +192,5 @@ make test        # Jest, 100% coverage enforced
 make build       # tsup (ESM + CJS + types)
 ```
 
-The reference host is `examples/full-service-demo` (Knex store, Express + Apollo, the same
+The reference host is `packages/kyc-service` (Knex store, Express + Apollo, the same
 router mounted).

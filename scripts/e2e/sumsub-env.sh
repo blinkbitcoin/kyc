@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Writes examples/full-service-demo/.env for a live Sumsub run from the
+# Writes packages/kyc-service/.env for a live Sumsub run from the
 # three secrets (App Token, its secret key, the webhook secret key) and the
 # level name - docs/integration/sumsub.md, section 1.
 #   make sumsub-env APP_TOKEN=… SECRET_KEY=… WEBHOOK_SECRET=… \
@@ -14,7 +14,7 @@ cd "$(dirname "$0")/../.."
 . scripts/e2e/ports-env.sh
 : "${APP_TOKEN:?Sumsub app token}" "${SECRET_KEY:?the app-token secret key}" \
   "${WEBHOOK_SECRET:?the webhook secret key}"
-OUT="${OUT:-examples/full-service-demo/.env}"
+OUT="${OUT:-packages/kyc-service/.env}"
 if [ -f "$OUT" ] && [ -z "${FORCE:-}" ]; then
   echo "$OUT exists - set FORCE=1 to overwrite"; exit 1
 fi

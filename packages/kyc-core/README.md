@@ -3,7 +3,7 @@
 Platform-agnostic core shared by `@blinkbitcoin/kyc-react-native` and
 `@blinkbitcoin/kyc-react`: the `VerificationSource` abstraction and its
 capability interfaces, the normalized event/status vocabulary, and the
-`ErrorCode` wire contract generated from `examples/full-service-demo/schema.graphql`, and the
+`ErrorCode` wire contract generated from `packages/kyc-service/schema.graphql`, and the
 one Sumsub mapping on `/sumsub`. No React, no DOM, no native modules.
 
 ## Entry points
@@ -73,7 +73,7 @@ they are not interchangeable:
   other cross-origin message.
 
 Error codes come from two maps: `ErrorCodes` is the GraphQL wire contract
-generated from `examples/full-service-demo/schema.graphql`; `ClientErrorCodes` (`NETWORK_ERROR`,
+generated from `packages/kyc-service/schema.graphql`; `ClientErrorCodes` (`NETWORK_ERROR`,
 `PERMISSION_DENIED`, `SDK_UNAVAILABLE`, `TOKEN_EXPIRED`,
 `TOKEN_REFRESH_FAILED`, `BRIDGE_PROTOCOL`) only ever originate on the client
 and never appear in the schema. `getErrorMessage(code, serverMessage?)` covers

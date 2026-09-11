@@ -1,4 +1,4 @@
-# Architecture - Backend (`@blinkbitcoin/kyc-node`, composed by `examples/full-service-demo`)
+# Architecture - Backend (`@blinkbitcoin/kyc-node`, composed by `packages/kyc-service`)
 
 **Part:** backend
 **Type:** a Node package (ports and adapters) plus the Express 5 + Apollo Server 5 service built on it
@@ -27,7 +27,7 @@
 ```
 HTTP request
     ↓
-examples/full-service-demo: Express (helmet, per-route rate limit, CORS), Apollo, JWT, OTel
+packages/kyc-service: Express (helmet, per-route rate limit, CORS), Apollo, JWT, OTel
     ↓
 @blinkbitcoin/kyc-node: createVerificationService  ──►  SessionStore port  ──►  /knex store  ──►  PostgreSQL
     ↓                                                       (or the in-memory store)
@@ -65,7 +65,7 @@ The package (`packages/kyc-node/src/`):
 | `pages.ts` / `html.ts` / `bridge/script.ts` | The hosted page's neutral layer: params, nonce CSP, permissions policy, not-found page; escaping; the `kyc-bridge` page script |
 | `errors.ts` / `validation.ts` / `signature.ts` / `http.ts` / `audit.ts` / `auth.ts` / `log.ts` / `tracing.ts` | `KycError` + `ErrorCodes`, `validateStartInput`, `verifyHexDigest`, `HttpError` + `withRetry`, the audit vocabulary and allow-list, `bearerToken`, the `Logger` and `Tracing` ports |
 
-The service (`examples/full-service-demo/src/`), composition only:
+The service (`packages/kyc-service/src/`), composition only:
 
 | Path | Role |
 |------|------|

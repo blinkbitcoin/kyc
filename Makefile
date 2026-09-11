@@ -112,14 +112,14 @@ web: ## Vite dev server for the web example app
 
 # ---------- Database ----------
 
-db-up: ## Start the dev Postgres (examples/full-service-demo/docker-compose.yml, port 5432)
-	cd examples/full-service-demo && docker compose up -d --wait
+db-up: ## Start the dev Postgres (packages/kyc-service/docker-compose.yml, port 5432)
+	cd packages/kyc-service && docker compose up -d --wait
 
 db-down: ## Stop the dev Postgres
-	cd examples/full-service-demo && docker compose down
+	cd packages/kyc-service && docker compose down
 
 migrate: ## Apply Knex migrations to the dev database
-	npm run migrate -w examples/full-service-demo
+	npm run migrate -w packages/kyc-service
 
 # ---------- E2E ----------
 
@@ -130,24 +130,24 @@ test-db-down: ## Stop the E2E Postgres
 	bash scripts/e2e/test-db.sh down
 
 e2e-backend: test-db-up ## Backend E2E suite against real Postgres (then tears DB down)
-	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
-	bash scripts/e2e/test-db.sh run npm run test:e2e -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w packages/kyc-service
+	bash scripts/e2e/test-db.sh run npm run test:e2e -w packages/kyc-service
 	$(MAKE) test-db-down
 
 e2e-web: test-db-up build ## Playwright browser E2E for the web demo (hosted mode; then tears DB down) - builds the libraries first (the demo bundles their dist)
-	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w packages/kyc-service
 	npm run test:e2e -w examples/react-demo
 	$(MAKE) test-db-down
 
 e2e-web-proxy: test-db-up build ## Playwright browser E2E for the web demo in proxy mode (then tears DB down) - builds the libraries first (the demo bundles their dist)
-	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w packages/kyc-service
 	npm run test:e2e:proxy -w examples/react-demo
 	$(MAKE) test-db-down
 
 e2e-server-demos: ## Boot the access-token example (mock provider) and call its mutation
 	bash scripts/e2e/server-demos-smoke.sh
 
-e2e-backend-up: ## The backend (mock provider) in the background on KYC_API_PORT, wait for /health (needs a migrated E2E database: Docker `make test-db-up` + `npm run migrate:test -w examples/full-service-demo`, or CI's Homebrew Postgres; `make e2e-*-local` does it all)
+e2e-backend-up: ## The backend (mock provider) in the background on KYC_API_PORT, wait for /health (needs a migrated E2E database: Docker `make test-db-up` + `npm run migrate:test -w packages/kyc-service`, or CI's Homebrew Postgres; `make e2e-*-local` does it all)
 	bash scripts/e2e/backend-up.sh
 
 e2e-backend-down: ## Stop the backend started by e2e-backend-up
@@ -183,14 +183,14 @@ e2e-fake-native: ## Maestro E2E, fake native SDK (MANUAL, Android emulator only:
 
 # ---------- Live Sumsub (opt-in, needs sandbox credentials) ----------
 
-sumsub-env: ## Write examples/full-service-demo/.env for a live run (APP_TOKEN= SECRET_KEY= WEBHOOK_SECRET= [LEVEL_NAME=] [PUBLIC_BASE_URL=] [FORCE=1])
+sumsub-env: ## Write packages/kyc-service/.env for a live run (APP_TOKEN= SECRET_KEY= WEBHOOK_SECRET= [LEVEL_NAME=] [PUBLIC_BASE_URL=] [FORCE=1])
 	bash scripts/e2e/sumsub-env.sh
 
 sumsub-check: ## App-token auth + the level with that .env: mints a throwaway token, says what is wrong otherwise
-	npm run sumsub:check -w examples/full-service-demo
+	npm run sumsub:check -w packages/kyc-service
 
 test-live: ## Live tests against the Sumsub sandbox (skip unless SUMSUB_* set; the service round trips also need DATABASE_URL)
-	npm run test:live -w examples/full-service-demo
+	npm run test:live -w packages/kyc-service
 
 e2e-live: ## Full live run: check, E2E Postgres, live tests (token, status, hosted page, signed webhook), the access-token example mints a real token
 	bash scripts/e2e/live.sh

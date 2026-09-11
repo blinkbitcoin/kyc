@@ -24,7 +24,7 @@ name: CI
 # passed for that commit.
 #
 #   - Stable (`latest` dist-tag): ONLY for a vX.Y.Z tag. The tag IS the
-#     version (vX.Y.Z -> X.Y.Z); the four publishable package.json files
+#     version (vX.Y.Z -> X.Y.Z); the five publishable package.json files
 #     carry a placeholder that is stamped at build time. release.yml
 #     owns the tag: merging its "chore(release): X.Y.Z" PR (`make release`)
 #     creates the tag + GitHub Release and dispatches this workflow at the
@@ -39,7 +39,7 @@ name: CI
 #   - Prerelease (`next` dist-tag): every push to main (or a manual
 #     dispatch without `release_tag`) ships
 #     <next-patch-after-latest-tag>-pre.<run>.<sha>.
-#   Either way the four packages get the same version and the platform
+#   Either way the five packages get the same version and the platform
 #   packages pin core to exactly that version (the only range that also
 #   works for prereleases).
 #
@@ -238,6 +238,12 @@ jobs:
 
       - name: Publish @blinkbitcoin/kyc-node
         run: npm publish "$RUNNER_TEMP"/tarballs/blinkbitcoin-kyc-node-[0-9]*.tgz --tag "$DISTTAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISTTAG: ${{ needs.e2e.outputs.disttag }}
+
+      - name: Publish @blinkbitcoin/kyc-service
+        run: npm publish "$RUNNER_TEMP"/tarballs/blinkbitcoin-kyc-service-[0-9]*.tgz --tag "$DISTTAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISTTAG: ${{ needs.e2e.outputs.disttag }}

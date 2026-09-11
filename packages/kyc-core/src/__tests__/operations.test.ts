@@ -1,6 +1,6 @@
 /**
  * The GraphQL documents the proxy source sends. Their shapes are checked
- * against examples/full-service-demo/schema.graphql by `npm run codegen` (which fails on a
+ * against packages/kyc-service/schema.graphql by `npm run codegen` (which fails on a
  * field the schema does not have), so this test pins names and operation
  * kinds only.
  */

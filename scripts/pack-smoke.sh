@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# Packs the four packages and installs them into a clean project, then
+# Packs the five packages and installs them into a clean project, then
 # asserts the consumer contract: the /hosted, /testing and /sumsub entries
 # resolve and never load Apollo; the server package loads with no peers and
-# reaches core Apollo-free; the platform packages expose their /sumsub entry. Run from the repo root after `npm run build` (CI: E2E / Build Packages).
+# reaches core Apollo-free; the platform packages expose their /sumsub entry;
+# the service tarball installs with its pinned server dependency resolving to
+# the packed server (its entry is a process bootstrap, so it is never required). Run from the repo root after `npm run build` (CI: E2E / Build Packages).
 set -euo pipefail
 SMOKE="$(mktemp -d)"
 trap 'rm -rf "$SMOKE"' EXIT
 
-for p in packages/kyc-core packages/kyc-node packages/kyc-react-native packages/kyc-react; do
+for p in packages/kyc-core packages/kyc-node packages/kyc-react-native packages/kyc-react packages/kyc-service; do
   (cd "$p" && npm pack --pack-destination "$SMOKE" >/dev/null)
 done
 
@@ -28,10 +30,12 @@ CORE_TGZS=("$SMOKE"/blinkbitcoin-kyc-core-[0-9]*.tgz)
 SERVER_TGZS=("$SMOKE"/blinkbitcoin-kyc-node-[0-9]*.tgz)
 RN_TGZS=("$SMOKE"/blinkbitcoin-kyc-react-native-[0-9]*.tgz)
 WEB_TGZS=("$SMOKE"/blinkbitcoin-kyc-react-[0-9]*.tgz)
+SERVICE_TGZS=("$SMOKE"/blinkbitcoin-kyc-service-[0-9]*.tgz)
 assert_one kyc-core "${CORE_TGZS[@]}"
 assert_one kyc-node "${SERVER_TGZS[@]}"
 assert_one kyc-react-native "${RN_TGZS[@]}"
 assert_one kyc-react "${WEB_TGZS[@]}"
+assert_one kyc-service "${SERVICE_TGZS[@]}"
 CORE_TGZ="${CORE_TGZS[0]}"
 SERVER_TGZ="${SERVER_TGZS[0]}"
 
@@ -123,4 +127,28 @@ if (typeof createVerificationService !== 'function') process.exit(1);
 if (mapSumsubStatus('completed', { reviewAnswer: 'GREEN' }) !== 'approved') process.exit(1);
 console.log('pack smoke: ESM imports of /hosted and /sumsub work');
 "
+# The service, in its own project: it brings express and pg as real
+# dependencies, so it cannot share the peer-free project above. It pins
+# kyc-node@0.0.0-development the way the platform packages pin core; the
+# override resolves that pin to the packed server, as the release stamp does
+# on publish. Its entry boots a process, so it is resolved, never required.
+mkdir "$SMOKE/service" && cd "$SMOKE/service"
+npm init -y >/dev/null
+npm pkg set "overrides.@blinkbitcoin/kyc-core=file:$CORE_TGZ" >/dev/null
+npm pkg set "overrides.@blinkbitcoin/kyc-node=file:$SERVER_TGZ" >/dev/null
+npm pkg set "dependencies.@blinkbitcoin/kyc-service=file:${SERVICE_TGZS[0]}" >/dev/null
+npm install --prefer-offline --no-audit >/dev/null
+node - <<'NODE'
+const assert = require('node:assert');
+const { existsSync } = require('node:fs');
+const { dirname } = require('node:path');
+const servicePkg = require('@blinkbitcoin/kyc-service/package.json');
+assert.equal(servicePkg.name, '@blinkbitcoin/kyc-service');
+assert.ok('@blinkbitcoin/kyc-node' in servicePkg.dependencies, 'the service depends on kyc-node');
+const serviceDir = dirname(require.resolve('@blinkbitcoin/kyc-service/package.json'));
+assert.equal(existsSync(`${serviceDir}/node_modules/@blinkbitcoin/kyc-node`), false, 'the service must share the one kyc-node install, not nest its own');
+assert.equal(typeof require('@blinkbitcoin/kyc-node').createVerificationService, 'function');
+assert.equal(typeof require('@blinkbitcoin/kyc-node/express').createKycRouter, 'function', 'the service install carries express, so /express loads');
+console.log('pack smoke: the service installs over the one packed kyc-node');
+NODE
 echo "PACK SMOKE PASSED"

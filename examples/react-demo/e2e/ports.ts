@@ -96,7 +96,7 @@ export const backendServer = () => ({
     `PORT=${PORTS.api}`,
     `PUBLIC_BASE_URL=${API_ORIGIN}`,
     `CORS_ALLOWED_ORIGINS=${MODES.map(webOrigin).join(',')}`,
-    'KYC_PROVIDER=mock npx dotenv-cli -e examples/full-service-demo/.env.test -- npm run dev -w examples/full-service-demo',
+    'KYC_PROVIDER=mock npx dotenv-cli -e packages/kyc-service/.env.test -- npm run dev -w packages/kyc-service',
   ].join(' '),
   cwd: '../..',
   url: `${API_ORIGIN}/health`,

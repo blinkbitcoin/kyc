@@ -1,4 +1,4 @@
-// Hosted mode: the provider's web SDK runs on a page (this repo's examples/full-service-demo,
+// Hosted mode: the provider's web SDK runs on a page (this repo's packages/kyc-service,
 // or any page speaking the bridge protocol) that the host embeds in a
 // hardened WebView / origin-pinned iframe.
 //

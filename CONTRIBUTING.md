@@ -4,7 +4,7 @@
 
 ```sh
 make install                             # npm ci (also installs git hooks via lefthook)
-direnv allow . && direnv allow examples/full-service-demo  # once per machine: env + nix dev shell (Node 24)
+direnv allow . && direnv allow packages/kyc-service  # once per machine: env + nix dev shell (Node 24)
 ```
 
 Working on the libraries needs nothing else. Running the demo apps needs the
@@ -102,7 +102,7 @@ CI stays the authoritative check.
 
 | Hook | What runs |
 |------|-----------|
-| `pre-commit` | Biome format (root) and Biome check (`examples/full-service-demo`) on staged files, auto-fixes re-staged; ESLint on staged TS/TSX; diagram re-render when a `.mmd` source changes. Skipped during merge and rebase replays. |
+| `pre-commit` | Biome format (root) and Biome check (`packages/kyc-service`) on staged files, auto-fixes re-staged; ESLint on staged TS/TSX; diagram re-render when a `.mmd` source changes. Skipped during merge and rebase replays. |
 | `commit-msg` | commitlint against `commitlint.config.mjs` |
 | `pre-push` | Workspace-wide typecheck |
 | `post-merge`, `post-checkout` | `npm ci` when `package-lock.json` changed, so hooks never run on a stale install |
@@ -121,7 +121,7 @@ Escape hatches, for the rare cases where they are warranted:
    `docs/index.md` maps them).
 2. Diagrams: edit `docs/diagrams/src/*.mmd`, then `make diagrams` and commit
    the regenerated SVG in the same commit (CI fails on a source without its
-   SVG). Schema: edit `examples/full-service-demo/src/typeDefs.ts`, then `make codegen`.
+   SVG). Schema: edit `packages/kyc-service/src/typeDefs.ts`, then `make codegen`.
    Documentation: `docs/architecture/` is internals, `docs/integration/` is
    for consumers, and [docs/index.md](docs/index.md) maps both - update the
    relevant page in the same change.
@@ -145,7 +145,7 @@ Step-by-step: [docs/releasing.md](docs/releasing.md).
   `package.json` version. Approve it and `make release` (or the Merge
   button). Merging tags `vX.Y.Z`, publishes the GitHub Release with that
   entry as its body, and starts the release run. **The tag is the version**:
-  CI stamps it into all four packages before building them and pins each
+  CI stamps it into all five packages before building them and pins each
   one's `@blinkbitcoin/kyc-core` dependency to exactly that version, so their
   `package.json` stays at `0.0.0-development`. GitHub Packages never accepts
   the same version twice, so a failed release means fixing forward.

@@ -25,7 +25,7 @@ const config = sumsubConfigFromEnv();
 const missing = missingSumsubConfig(config);
 if (missing.length > 0) {
   fail(
-    `missing ${missing.join(', ')} - write examples/full-service-demo/.env with \`make sumsub-env\` (docs/integration/sumsub.md, section 1)`
+    `missing ${missing.join(', ')} - write packages/kyc-service/.env with \`make sumsub-env\` (docs/integration/sumsub.md, section 1)`
   );
 }
 

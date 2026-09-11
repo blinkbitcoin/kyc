@@ -31,7 +31,7 @@ separator - mermaid-cli rejects it even where GitHub's renderer is lenient).
 - The current package names are `@blinkbitcoin/kyc-core`,
   `@blinkbitcoin/kyc-react-native` and `@blinkbitcoin/kyc-react` under
   `packages/` (Sumsub code lives in their `providers/sumsub/` directories,
-  reached through `/sumsub` entries); the backend is `examples/full-service-demo`. If
+  reached through `/sumsub` entries); the backend is `packages/kyc-service`. If
   these have changed, trust `packages/*/package.json` over any doc.
 
 ## The nine diagrams: provenance and embeds
@@ -86,7 +86,7 @@ These keep the set readable as a progression, not a pile of unrelated pictures:
    generated page's image count matches the table above (currently 9), and
    `git status` shows regenerated SVGs only for diagrams you touched.
 2. `grep` the sources for stale identifiers: old package names, any route
-   not present in `packages/kyc-node/src/express.ts` or `examples/full-service-demo/src/app.ts`.
+   not present in `packages/kyc-node/src/express.ts` or `packages/kyc-service/src/app.ts`.
 3. The ERD matches the latest migration exactly.
 4. `docs/index.md` still links the file with an accurate description.
 5. Run `npm run format` and `make check-code`.

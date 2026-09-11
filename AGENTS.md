@@ -15,7 +15,7 @@ the current state is [docs/index.md](docs/index.md).
 
 - **Language**: TypeScript 6.0 everywhere
 - **Node**: `^22.22.2 || >= 24.15.0`; toolchain pinned by `flake.nix`, entered
-  via direnv (`direnv allow . && direnv allow examples/full-service-demo`, once per machine)
+  via direnv (`direnv allow . && direnv allow packages/kyc-service`, once per machine)
 - **Docs**: `docs/index.md` is the current-state entry point; CLAUDE.md has
   the full command reference; `CONTRIBUTING.md` has the commit and release rules
 
@@ -26,14 +26,14 @@ the current state is [docs/index.md](docs/index.md).
 │   ├── kyc-node/              # 📦 server half: the verification-session domain over provider + store ports, Sumsub adapter, hosted page, Fetch handlers, /express router, /knex store (entries ., /express, /knex, /sumsub)
 │   ├── kyc-core/                # 📦 platform-agnostic core: VerificationSource + guards, kyc-bridge protocol, hosted + proxy sources, Apollo factory, ErrorCode; providers/sumsub/ = the one Sumsub mapping (entry /sumsub)
 │   ├── kyc-react-native/        # 📦 THE PRODUCT - RN (IdentityVerification + useIdentityVerification + hardened HostedWebView; entries ., /hosted and /sumsub = the native-SDK source in providers/sumsub/)
-│   └── kyc-react/               # 📦 THE PRODUCT - web (IdentityVerification + useIdentityVerification + origin-pinned HostedFrame; entries ., /hosted (Apollo-free, same contract as RN) and /sumsub, the reserved web-SDK seat)
+│   ├── kyc-react/               # 📦 THE PRODUCT - web (IdentityVerification + useIdentityVerification + origin-pinned HostedFrame; entries ., /hosted (Apollo-free, same contract as RN) and /sumsub, the reserved web-SDK seat)
+│   └── kyc-service/            # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres), composed from packages/kyc-node: this service's policy (helmet, CORS, rate limits, JWT auth, fail-closed boot) around the package's router, schema, store and adapters
+│       └── src/
+│           ├── providers/           # The registry: the package adapters wired to this service's config + tracing
+│           ├── services.ts          # createVerificationService over the provider, the Knex store and PUBLIC_BASE_URL
+│           ├── app.ts               # Apollo + the package router, under the service's middleware
+│           └── config.ts            # validateSecurityConfig (fail-closed boot)
 ├── examples/
-│   ├── full-service-demo/       # 🖥️ THE SERVICE (Express 5 + Apollo 5 + Knex/Postgres), composed from packages/kyc-node: this service's policy (helmet, CORS, rate limits, JWT auth, fail-closed boot) around the package's router, schema, store and adapters
-│   │   └── src/
-│   │       ├── providers/           # The registry: the package adapters wired to this service's config + tracing
-│   │       ├── services.ts          # createVerificationService over the provider, the Knex store and PUBLIC_BASE_URL
-│   │       ├── app.ts               # Apollo + the package router, under the service's middleware
-│   │       └── config.ts            # validateSecurityConfig (fail-closed boot)
 │   ├── access-token-demo/       # 🖥️ the other server shape: an existing GraphQL API adds one mutation that mints a provider access token (mode 2)
 │   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native, KYC_UI default|themed; Maestro suite (.maestro/)
 │   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy, VITE_KYC_UI default|themed; Playwright suites (e2e/; ports from KYC_PORT_BASE)
@@ -94,13 +94,13 @@ The reasons behind these rules, and the check that holds each one, are in
   `packages/kyc-node/src/providers/sumsub/` (the adapter, its client and
   its hosted page), `packages/kyc-react-native/src/providers/sumsub/` (the
   native-SDK source), `packages/kyc-react/src/providers/sumsub/` (reserved)
-  and `examples/full-service-demo/src/providers/sumsub/` (the package adapter wired to the
+  and `packages/kyc-service/src/providers/sumsub/` (the package adapter wired to the
   service's config); a package's `src/sumsub.ts` is a one-line re-export of
   its `providers/sumsub/` surface (guard tests), generic layers never import
   a provider (guard tests), and hosts select one through `providerFromEnv`
   (`KYC_PROVIDER`)
 - GraphQL error codes are a wire contract: the `ErrorCode` enum in
-  `examples/full-service-demo/schema.graphql` (emitted from the SDL in
+  `packages/kyc-service/schema.graphql` (emitted from the SDL in
   `packages/kyc-node/src/graphql.ts`, re-exported by `src/typeDefs.ts`) and the generated
   client types in `packages/kyc-core/src/generated/` - run `make codegen`
   after schema changes; drift fails tests and a CI step. Client-only codes
@@ -163,7 +163,7 @@ the sandbox API only - CI never drives the Sumsub UI, the device matrix in
 - Core / Sumsub / RN / web library tests: `packages/*/src/__tests__/`
 - Demo tests: `examples/react-native-demo/{__tests__,src/__tests__}/`,
   `examples/react-demo/src/__tests__/`; browser E2E in `examples/react-demo/e2e/` (Playwright)
-- Backend unit tests: `examples/full-service-demo/tests/` (DB mocked); E2E: `examples/full-service-demo/tests/e2e/`
+- Backend unit tests: `packages/kyc-service/tests/` (DB mocked); E2E: `packages/kyc-service/tests/e2e/`
   (real Postgres via `docker-compose.test.yml`); `tests/live/` runs only with
   real Sumsub sandbox credentials (`make test-live`, `make e2e-live`)
 - Tooling scripts: `scripts/lib/*.test.mjs` (100% Vitest coverage) for the

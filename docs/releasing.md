@@ -18,10 +18,10 @@ one thing a human does along the way: merge the release PR.
 4. Approve it and merge it: `make release`, or the Merge button. That is the
    release. release-please tags `vX.Y.Z`, creates the GitHub Release with the
    changelog entry as its body, and starts the release run of `ci.yml`, which
-   stamps the version into the four packages, runs the full gate, waits for
+   stamps the version into the five packages, runs the full gate, waits for
    the commit's main run to be green, and publishes under `latest`.
 
-Nothing else is edited by hand. `package.json` in the four publishable
+Nothing else is edited by hand. `package.json` in the five publishable
 packages stays at `0.0.0-development`; the root `package.json` carries the
 released version because release-please maintains it.
 
@@ -104,7 +104,7 @@ changes the bump class).
    The explicit dispatch exists because GitHub never triggers workflows
    from events the workflow token created; a release made by the bot would
    not fire the `release:` trigger.
-3. That release run stamps `X.Y.Z` into the four packages (and pins each
+3. That release run stamps `X.Y.Z` into the five packages (and pins each
    one's `@blinkbitcoin/kyc-core` dependency to exactly that version),
    builds, runs Checks, Unit and every E2E suite, then the Publish job waits
    for the commit's push-to-`main` run to be green (fails on a red one) and

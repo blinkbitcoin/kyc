@@ -96,7 +96,7 @@ moduleNameMapper: {
 | You have | Use | Guide |
 |----------|-----|-------|
 | A backend that can mint provider access tokens, and you want the native camera UX | Mode 2 | [native-sdk.md](native-sdk.md) |
-| A page that speaks the bridge protocol (this repo's `examples/full-service-demo`, or your own) | Mode 1 | [hosted.md](hosted.md) |
+| A page that speaks the bridge protocol (this repo's `packages/kyc-service`, or your own) | Mode 1 | [hosted.md](hosted.md) |
 | Nothing yet, and you want session lifecycle, refresh and webhook-backed status handled for you | Mode 3 | [proxy.md](proxy.md) |
 
 Start with the first one that covers your needs. All three drive the same component with the same callbacks.

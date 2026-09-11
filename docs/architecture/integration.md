@@ -10,7 +10,7 @@
 | `core` | `packages/kyc-core/` | Publishable TS package | The vocabulary: `VerificationSource`, the capability guards, the `kyc-bridge` protocol, the shared state machine, the error-code contract, the proxy source; `providers/sumsub/` is the one Sumsub status/event mapping (`/sumsub` entry) |
 | `react-native` | `packages/kyc-react-native/` | Publishable RN library | The product on mobile: `IdentityVerification` + `useIdentityVerification` over a hardened WebView; `providers/sumsub/` is the Sumsub native-SDK source (`/sumsub` entry) |
 | `react` | `packages/kyc-react/` | Publishable web library | The product on the web: the same pair over an origin-pinned iframe |
-| `backend` | `examples/full-service-demo/` | Express 5 + Apollo Server 5 | The reference service: session issuance, token refresh, provider webhooks, the hosted page |
+| `backend` | `packages/kyc-service/` | Express 5 + Apollo Server 5 | The reference service: session issuance, token refresh, provider webhooks, the hosted page |
 | `demos` | `examples/react-native-demo/`, `examples/react-demo/` | Host apps | Executable integration docs and the Maestro / Playwright E2E targets |
 
 [![System Architecture](../diagrams/dist/system-architecture.svg)](../diagrams/src/system-architecture.mmd)
@@ -65,13 +65,13 @@
 
 ### 7. Backend → PostgreSQL
 
-- **From:** `packages/kyc-node/src/{sessions,knex/store}.ts` over Knex, composed in `examples/full-service-demo/src/{services,store}.ts`
+- **From:** `packages/kyc-node/src/{sessions,knex/store}.ts` over Knex, composed in `packages/kyc-service/src/{services,store}.ts`
 - **To:** `VerificationSession` and `AuditLog` (see [data-models.md](data-models.md))
 - **Transactional pairs:** row-write + audit-write always share one transaction, both on creation and on webhook-driven status changes.
 
 ## The shared error-code contract
 
-`enum ErrorCode` in `examples/full-service-demo/schema.graphql` is the wire contract. `make codegen` emits it into `packages/kyc-core/src/generated/error-code.ts`, a parity test fails on drift, and the platform packages surface it unchanged through `onError({ code, message })`. Client-only failures use a second, non-schema set (`ClientErrorCodes`). Both are tabulated for consumers in [../integration/error-codes.md](../integration/error-codes.md).
+`enum ErrorCode` in `packages/kyc-service/schema.graphql` is the wire contract. `make codegen` emits it into `packages/kyc-core/src/generated/error-code.ts`, a parity test fails on drift, and the platform packages surface it unchanged through `onError({ code, message })`. Client-only failures use a second, non-schema set (`ClientErrorCodes`). Both are tabulated for consumers in [../integration/error-codes.md](../integration/error-codes.md).
 
 ## E2E integration testing
 

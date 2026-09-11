@@ -1,7 +1,7 @@
 // LIVE verification against the real Sumsub sandbox API.
 //
 // Opt-in: runs only via `npm run test:live` AND only when the three SUMSUB_*
-// secrets are set (typically from examples/full-service-demo/.env, written
+// secrets are set (typically from packages/kyc-service/.env, written
 // by `make sumsub-env`); otherwise every test is skipped. The service round
 // trips additionally need DATABASE_URL (`make e2e-live` brings up the E2E
 // Postgres). Never part of `npm test` or CI's default jobs.
