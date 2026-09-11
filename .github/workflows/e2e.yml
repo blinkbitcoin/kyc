@@ -550,9 +550,11 @@ jobs:
         if: always()
         run: make e2e-backend-down
 
+      # Kept on success too: Metro's request log and Maestro's per-flow
+      # timings are what a slow-but-green app-launch is diagnosed from.
       - name: Upload Maestro test results + crash reports
         uses: actions/upload-artifact@v7
-        if: failure()
+        if: always()
         with:
           name: maestro-results
           path: |
