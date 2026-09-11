@@ -426,6 +426,9 @@ jobs:
         with:
           name: ios-app
           path: ${{ runner.temp }}/ReactNativeSandbox.app.tar
+          # 77 MB of Mach-O: zipping it costs more CPU on both jobs than
+          # the bytes it saves in transfer (the APK upload does the same).
+          compression-level: 0
           retention-days: 1
           overwrite: true # a full re-run re-uploads the same name
           if-no-files-found: error
