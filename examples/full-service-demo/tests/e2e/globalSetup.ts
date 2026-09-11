@@ -6,7 +6,7 @@
 // removes. Each file still checks connectivity and truncates (tests/e2e/
 // setup.ts); only `knex.migrate.latest()` moved here.
 
-import { runKycMigrations } from '@blinkbitcoin/kyc-server/knex';
+import { runKycMigrations } from '@blinkbitcoin/kyc-node/knex';
 import type { Knex } from 'knex';
 import createKnex from 'knex';
 

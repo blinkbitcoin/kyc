@@ -19,7 +19,7 @@
 #### Packages - the product
 
 - **`packages/kyc-core`** - platform-agnostic: `VerificationSource` + capability guards, the `kyc-bridge` protocol, the shared state machine, the error-code contract, the hosted and proxy sources. Entries: `.`, `./hosted` (Apollo-free), `./testing`, `./sumsub` (Apollo-free; the one Sumsub mapping, in `providers/sumsub/`).
-- **`packages/kyc-server`** - the server half: `createVerificationService` over the provider + store ports, the Sumsub and mock adapters, the hosted page, Fetch handlers, the registry. Entries: `.`, `./express` (router), `./knex` (store + migrations), `./sumsub`.
+- **`packages/kyc-node`** - the server half: `createVerificationService` over the provider + store ports, the Sumsub and mock adapters, the hosted page, Fetch handlers, the registry. Entries: `.`, `./express` (router), `./knex` (store + migrations), `./sumsub`.
 - **`packages/kyc-react-native`** - `IdentityVerification` + `useIdentityVerification` over a hardened `react-native-webview`, and the Sumsub native-SDK source in `providers/sumsub/`. Entries: `.`, `./hosted`, `./sumsub`.
 - **`packages/kyc-react`** - the same pair over an origin-pinned iframe, plus the `MountableSource` seam; `providers/sumsub/` is reserved for the web-SDK adapter. Entries: `.`, `./sumsub`.
 
@@ -64,7 +64,7 @@ Organized by namespace - pick by what you are doing:
 |-----|--------|
 | [mobile.md](architecture/mobile.md) | The React Native package: the state machine, the hardened WebView, permissions, token refresh, test doubles |
 | [web.md](architecture/web.md) | The React web package: the origin-pinned iframe, the two web-specific machine rules, the mountable seam |
-| [backend.md](architecture/backend.md) | `@blinkbitcoin/kyc-server` and the service composed on it: entry points, the ports, the single write path, webhook processing, the hosted page, security, observability, the test tiers |
+| [backend.md](architecture/backend.md) | `@blinkbitcoin/kyc-node` and the service composed on it: entry points, the ports, the single write path, webhook processing, the hosted page, security, observability, the test tiers |
 | [integration.md](architecture/integration.md) | How the parts communicate: the seam, the bridge, GraphQL, webhooks, the shared error contract |
 | [api-contracts.md](architecture/api-contracts.md) | The GraphQL schema and the three HTTP routes, field by field |
 | [data-models.md](architecture/data-models.md) | The two Knex tables, their columns, the audit allow-list, the repository functions |
@@ -77,7 +77,7 @@ Organized by namespace - pick by what you are doing:
 | Doc | Covers |
 |-----|--------|
 | [../packages/kyc-core/README.md](../packages/kyc-core/README.md) | The four entries, the bridge protocol, the error-code split, the state machine, the Sumsub mapping |
-| [../packages/kyc-server/README.md](../packages/kyc-server/README.md) | The server package: minting tokens for the native SDK, the domain, the Knex store, the handlers and the router |
+| [../packages/kyc-node/README.md](../packages/kyc-node/README.md) | The server package: minting tokens for the native SDK, the domain, the Knex store, the handlers and the router |
 | [../packages/kyc-react-native/README.md](../packages/kyc-react-native/README.md) | The React Native package: modes, permission setup, `IdentityVerification` props, the hook, the native-SDK source and its test double |
 | [../packages/kyc-react/README.md](../packages/kyc-react/README.md) | The web package: iframe/CSP requirements, origin pinning, `IdentityVerification` props |
 | [../examples/full-service-demo/README.md](../examples/full-service-demo/README.md) | Running and configuring the reference backend |

@@ -1,4 +1,4 @@
-# @blinkbitcoin/kyc-server
+# @blinkbitcoin/kyc-node
 
 The server half of identity verification, for any Node ≥ 18 backend, no
 framework, no peers:
@@ -22,7 +22,7 @@ the package instead of running that service.
 ## Mint a token for the native SDK (mode 2)
 
 ```ts
-import { defaultRegistry, providerFromEnv } from '@blinkbitcoin/kyc-server';
+import { defaultRegistry, providerFromEnv } from '@blinkbitcoin/kyc-node';
 
 // Once, at startup: KYC_PROVIDER selects sumsub or mock; SUMSUB_* is read
 // only when sumsub is selected
@@ -46,7 +46,7 @@ Missing settings fail fast (`SumsubConfigError`), transient Sumsub failures
 import {
   createVerificationService, createMemorySessionStore, type SessionStore,
   defaultRegistry, providerFromEnv, providerNameFromEnv,
-} from '@blinkbitcoin/kyc-server';
+} from '@blinkbitcoin/kyc-node';
 
 const registry = defaultRegistry(process.env);
 const providerName = providerNameFromEnv(process.env, registry);
@@ -88,14 +88,14 @@ tests; `Tracing` and `Logger` are optional seams.
 | `bindApplicantId` | binds an unbound session, idempotently; reports another applicant<br>rather than stealing a bound one |
 | `appendAuditEntry`, `listAuditEntries` | audit rows, newest first |
 
-## The Postgres store (`@blinkbitcoin/kyc-server/knex`)
+## The Postgres store (`@blinkbitcoin/kyc-node/knex`)
 
 For a host that keeps sessions in Postgres, the store port and its schema are
 already written. The host passes its own Knex instance; `knex` is an optional
 peer for the types only, nothing else is imported:
 
 ```ts
-import { createKnexSessionStore, runKycMigrations } from '@blinkbitcoin/kyc-server/knex';
+import { createKnexSessionStore, runKycMigrations } from '@blinkbitcoin/kyc-node/knex';
 
 await runKycMigrations(db);                        // once per database (knex.migrate.latest)
 const store = createKnexSessionStore(db);          // any Knex instance; { logger } optional
@@ -116,7 +116,7 @@ Vercel and Netlify functions, Next.js route handlers and Lambda adapters
 mount directly:
 
 ```ts
-import { createSessionStartHandler, createWebhookHandler, createHostedPageHandler } from '@blinkbitcoin/kyc-server';
+import { createSessionStartHandler, createWebhookHandler, createHostedPageHandler } from '@blinkbitcoin/kyc-node';
 
 export const POST = createSessionStartHandler({
   sessions,
@@ -131,15 +131,15 @@ They answer the same status codes as the Express router (`401`, `400`,
 `refreshSessionHttp` / `processWebhookHttp` / `hostedPageHttp` decision
 functions. Runs on Node runtimes (needs `node:crypto`); not on edge runtimes.
 
-## The HTTP surface (`@blinkbitcoin/kyc-server/express`)
+## The HTTP surface (`@blinkbitcoin/kyc-node/express`)
 
 For a host that already runs Express and wants the kyc endpoints without
 writing them: a mountable router plus the GraphQL schema. `express` is an
 optional peer - only this subpath imports it.
 
 ```ts
-import { createKycRouter } from '@blinkbitcoin/kyc-server/express';
-import { createKycGraphQL } from '@blinkbitcoin/kyc-server';
+import { createKycRouter } from '@blinkbitcoin/kyc-node/express';
+import { createKycGraphQL } from '@blinkbitcoin/kyc-node';
 
 app.use(createKycRouter({
   sessions, provider, providerName,
@@ -154,7 +154,7 @@ const { typeDefs, resolvers } = createKycGraphQL({ sessions }); // → your Apol
 | `GET /hosted/:sessionId` | the provider's hosted page for a live session, a token minted per<br>render, under a nonce CSP, `Permissions-Policy`, `no-store`; the<br>not-found page (404 / 502) tells the app to stop waiting |
 | `POST /webhook/kyc/:provider` | only the configured provider (`404` otherwise); raw-body signature<br>check (`401`), parse (`400`), `handleWebhookEvent` (`500` = retry,<br>`200 { received, outcome }`) |
 
-## The Sumsub adapter (`@blinkbitcoin/kyc-server/sumsub`)
+## The Sumsub adapter (`@blinkbitcoin/kyc-node/sumsub`)
 
 Everything Sumsub-specific is also on its own entry, peer-free: the client
 (`createSumsubClient`, `signPayload`), `sumsubConfigFromEnv` and the
@@ -165,10 +165,10 @@ the subpath is the canonical import for Sumsub names.
 
 | Entry | What | Peer |
 |---|---|---|
-| `@blinkbitcoin/kyc-server` | everything: domain, ports, registry, handlers, pages, Sumsub + mock<br>adapters | none |
-| `@blinkbitcoin/kyc-server/sumsub` | the Sumsub adapter | none |
-| `@blinkbitcoin/kyc-server/express` | `createKycRouter`, `sendHostedPage` | `express` |
-| `@blinkbitcoin/kyc-server/knex` | the Postgres store + migrations | `knex` (types only) |
+| `@blinkbitcoin/kyc-node` | everything: domain, ports, registry, handlers, pages, Sumsub + mock<br>adapters | none |
+| `@blinkbitcoin/kyc-node/sumsub` | the Sumsub adapter | none |
+| `@blinkbitcoin/kyc-node/express` | `createKycRouter`, `sendHostedPage` | `express` |
+| `@blinkbitcoin/kyc-node/knex` | the Postgres store + migrations | `knex` (types only) |
 
 The package reaches `@blinkbitcoin/kyc-core` only through its Apollo-free
 `/sumsub` and `/hosted` entries (guard-tested), so a backend never installs

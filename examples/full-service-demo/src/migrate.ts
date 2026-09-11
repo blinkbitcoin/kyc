@@ -2,7 +2,7 @@
 // migrate` (tsx, loads .env) locally.
 import 'dotenv/config';
 
-import { runKycMigrations } from '@blinkbitcoin/kyc-server/knex';
+import { runKycMigrations } from '@blinkbitcoin/kyc-node/knex';
 import { knex } from './db';
 
 runKycMigrations(knex)

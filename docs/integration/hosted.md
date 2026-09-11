@@ -105,4 +105,4 @@ Everything the packages require of a page:
 2. Accept a `setToken` in either transport and hand the token to the provider SDK.
 3. Serve it over HTTPS, allow being framed, and delegate `camera` / `microphone` to the provider's origin.
 
-`packages/kyc-server/src/providers/sumsub/page.ts` (and the mock's `providers/mock/page.ts`) is a complete worked example, including the CSP.
+`packages/kyc-node/src/providers/sumsub/page.ts` (and the mock's `providers/mock/page.ts`) is a complete worked example, including the CSP.

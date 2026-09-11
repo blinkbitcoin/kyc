@@ -207,7 +207,7 @@ live-android: ## The RN demo on the attached Android phone against the real sand
 # ---------- Housekeeping ----------
 
 clean: ## Remove build output and caches (library lib/, coverage)
-	npm run clean -w packages/kyc-core -w packages/kyc-server -w packages/kyc-react-native -w packages/kyc-react
+	npm run clean -w packages/kyc-core -w packages/kyc-node -w packages/kyc-react-native -w packages/kyc-react
 	rm -rf coverage packages/*/coverage examples/*/coverage
 
 reset: ## Full dependency reinstall (root lockfile only)

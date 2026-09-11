@@ -18,10 +18,10 @@ if (mode === 'default') {
     sumsub.mapSumsubStatus('completed', { reviewAnswer: 'GREEN' }),
     'approved',
   );
-  const server = consumer('@blinkbitcoin/kyc-server');
+  const server = consumer('@blinkbitcoin/kyc-node');
   assert.equal(typeof server.createVerificationService, 'function');
   assert.equal(
-    typeof consumer('@blinkbitcoin/kyc-server/knex').runKycMigrations,
+    typeof consumer('@blinkbitcoin/kyc-node/knex').runKycMigrations,
     'function',
   );
   const loaded = Object.keys(require.cache).filter(f =>
@@ -39,7 +39,7 @@ if (mode === 'default') {
 } else if (mode === 'lean') {
   consumer('@blinkbitcoin/kyc-core/hosted');
   consumer('@blinkbitcoin/kyc-core/testing');
-  consumer('@blinkbitcoin/kyc-server');
+  consumer('@blinkbitcoin/kyc-node');
   let express = false;
   try {
     consumer.resolve('express');

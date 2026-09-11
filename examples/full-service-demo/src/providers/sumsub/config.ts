@@ -6,7 +6,7 @@ import {
   missingSumsubConfig,
   type SumsubConfig,
   sumsubConfigFromEnv,
-} from '@blinkbitcoin/kyc-server';
+} from '@blinkbitcoin/kyc-node';
 
 export const getConfig = (env: NodeJS.ProcessEnv = process.env): SumsubConfig =>
   sumsubConfigFromEnv(env);

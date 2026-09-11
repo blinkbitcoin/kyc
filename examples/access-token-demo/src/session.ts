@@ -1,4 +1,4 @@
-// The one call to @blinkbitcoin/kyc-server this host makes: createSession on
+// The one call to @blinkbitcoin/kyc-node this host makes: createSession on
 // the provider KYC_PROVIDER selects, which for Sumsub is minting an access
 // token for the user's external id. With KYC_PROVIDER=mock the mock provider
 // mints a mock-token-… string, so the mutation runs with no Sumsub account.
@@ -12,7 +12,7 @@ import {
   providerFromEnv,
   sumsubConfigFromEnv,
   type VerificationPlatform,
-} from '@blinkbitcoin/kyc-server';
+} from '@blinkbitcoin/kyc-node';
 
 export type StartSession = (
   userId: string,

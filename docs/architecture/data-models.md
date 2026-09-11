@@ -15,7 +15,7 @@ There is deliberately **no applicant mirror table**: the provider's applicant id
 
 ## Migrations
 
-`packages/kyc-server/src/knex/migrations.ts` (the package's programmatic migration source, named `20260905000000_create_verification_session_and_audit_tables`) creates both tables; `examples/full-service-demo/src/migrate.ts` applies it. It is idempotent (`hasTable` guards) and its `down()` drops `AuditLog` before `VerificationSession`, respecting the foreign key.
+`packages/kyc-node/src/knex/migrations.ts` (the package's programmatic migration source, named `20260905000000_create_verification_session_and_audit_tables`) creates both tables; `examples/full-service-demo/src/migrate.ts` applies it. It is idempotent (`hasTable` guards) and its `down()` drops `AuditLog` before `VerificationSession`, respecting the foreign key.
 
 ## Model: `VerificationSession`
 
@@ -81,7 +81,7 @@ Only these nine keys are ever persisted: `userId`, `provider`, `platform`, `leve
 
 ## The `SessionStore` port
 
-Persistence is a port of `@blinkbitcoin/kyc-server` (`packages/kyc-server/src/store.ts`), with two implementations: the in-memory store the unit tests and the small examples use, and the Knex store (`src/knex/store.ts`) the service composes (`examples/full-service-demo/src/store.ts`).
+Persistence is a port of `@blinkbitcoin/kyc-node` (`packages/kyc-node/src/store.ts`), with two implementations: the in-memory store the unit tests and the small examples use, and the Knex store (`src/knex/store.ts`) the service composes (`examples/full-service-demo/src/store.ts`).
 
 | Method | Notes |
 |--------|-------|
@@ -102,4 +102,4 @@ make migrate                                      # apply to the dev database
 npm run migrate:test -w examples/full-service-demo   # apply to the E2E database (KYC_TEST_DB_PORT, 5104)
 ```
 
-Migrations are code, not files: a new one is an entry in `KYC_MIGRATIONS` (`packages/kyc-server/src/knex/migrations.ts`) with a name that sorts after the existing ones, tested in the package's `migrations.test.ts` (exact columns, foreign key, index, literal names - an existing `knex_migrations` history must keep matching). `runKycMigrations(db)` applies them through `createKycMigrationSource()`; a host that manages its own Knex migrations can instead register the source with its `knex.migrate`.
+Migrations are code, not files: a new one is an entry in `KYC_MIGRATIONS` (`packages/kyc-node/src/knex/migrations.ts`) with a name that sorts after the existing ones, tested in the package's `migrations.test.ts` (exact columns, foreign key, index, literal names - an existing `knex_migrations` history must keep matching). `runKycMigrations(db)` applies them through `createKycMigrationSource()`; a host that manages its own Knex migrations can instead register the source with its `knex.migrate`.

@@ -158,7 +158,7 @@ jobs:
         run: bash scripts/pack-smoke.sh
 
       - name: Pack the publishable tarballs
-        run: mkdir -p "$RUNNER_TEMP/tarballs" && npm pack -w packages/kyc-core -w packages/kyc-server -w packages/kyc-react-native -w packages/kyc-react --pack-destination "$RUNNER_TEMP/tarballs"
+        run: mkdir -p "$RUNNER_TEMP/tarballs" && npm pack -w packages/kyc-core -w packages/kyc-node -w packages/kyc-react-native -w packages/kyc-react --pack-destination "$RUNNER_TEMP/tarballs"
 
       - name: Publish dist for the Web job
         uses: actions/upload-artifact@v7
@@ -166,7 +166,7 @@ jobs:
           name: packages-dist
           path: |
             packages/kyc-core/dist
-            packages/kyc-server/dist
+            packages/kyc-node/dist
             packages/kyc-react/dist
             packages/kyc-react-native/lib
           retention-days: 1 # only the Web job of this run needs it

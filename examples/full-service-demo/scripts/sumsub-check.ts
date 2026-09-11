@@ -11,7 +11,7 @@ import {
   HttpError,
   missingSumsubConfig,
   sumsubConfigFromEnv,
-} from '@blinkbitcoin/kyc-server';
+} from '@blinkbitcoin/kyc-node';
 import { config as loadEnv } from 'dotenv';
 
 loadEnv({ path: fileURLToPath(new URL('../.env', import.meta.url)), quiet: true });

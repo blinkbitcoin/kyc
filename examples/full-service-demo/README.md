@@ -32,7 +32,7 @@ Knex/Postgres).
   absolute `http:`/`https:` URL - there is no localhost fallback outside
   insecure dev. Bypass for local dev only with `ALLOW_INSECURE_DEV=true`,
   which is also what `KYC_PROVIDER=mock` requires.
-- Terminal statuses (`packages/kyc-server/src/sessions.ts` over the store's
+- Terminal statuses (`packages/kyc-node/src/sessions.ts` over the store's
   conditional write): `approved` and `finallyRejected`
   never change. `declined` may move on - a Sumsub RETRY rejection lets the
   applicant resubmit. The guard is the UPDATE's own WHERE clause

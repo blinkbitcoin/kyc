@@ -1,4 +1,4 @@
-// @blinkbitcoin/kyc-server - the server half of identity verification, for
+// @blinkbitcoin/kyc-node - the server half of identity verification, for
 // Node: the verification-session domain over the provider and store ports,
 // the hosted verification page, and the primitives every adapter shares.
 // Framework-free: the Express router is ./express, the Knex store ./knex,

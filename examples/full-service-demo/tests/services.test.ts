@@ -13,15 +13,15 @@ vi.mock('../src/tracing', () => ({
   withSpan: vi.fn(),
   setActiveSpanAttributes: vi.fn(),
 }));
-vi.mock('@blinkbitcoin/kyc-server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@blinkbitcoin/kyc-server')>();
+vi.mock('@blinkbitcoin/kyc-node', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@blinkbitcoin/kyc-node')>();
   return { ...actual, createVerificationService: vi.fn(() => ({ composed: 'service' })) };
 });
 
 describe('verificationService', () => {
   it('composes the package service over the provider, the store, PUBLIC_BASE_URL and tracing', async () => {
     process.env.PUBLIC_BASE_URL = 'https://kyc.example.com/';
-    const { createVerificationService } = await import('@blinkbitcoin/kyc-server');
+    const { createVerificationService } = await import('@blinkbitcoin/kyc-node');
     const { withSpan, setActiveSpanAttributes } = await import('../src/tracing');
     const { verificationService } = await import('../src/services');
 

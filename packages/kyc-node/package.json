@@ -1,5 +1,5 @@
 {
-  "name": "@blinkbitcoin/kyc-server",
+  "name": "@blinkbitcoin/kyc-node",
   "version": "0.0.0-development",
   "description": "Server-side identity verification for Node: the verification-session domain over provider + store ports, Sumsub access-token minting and webhook verification, the hosted verification page, Fetch handlers, an optional Express router, and a Knex/Postgres store with its migrations.",
   "main": "./dist/index.cjs",
@@ -98,7 +98,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/blinkbitcoin/kyc.git",
-    "directory": "packages/kyc-server"
+    "directory": "packages/kyc-node"
   },
   "homepage": "https://github.com/blinkbitcoin/kyc#readme",
   "bugs": { "url": "https://github.com/blinkbitcoin/kyc/issues" },

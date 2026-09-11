@@ -1,4 +1,4 @@
-// @blinkbitcoin/kyc-server/knex - the Postgres side for hosts that keep
+// @blinkbitcoin/kyc-node/knex - the Postgres side for hosts that keep
 // verification sessions in their own database: the Knex implementation of
 // the SessionStore port and the schema it needs as a programmatic migration
 // source. The host passes its own Knex instance; `knex` is an optional peer

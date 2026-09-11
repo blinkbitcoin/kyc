@@ -14,20 +14,20 @@ export default defineConfig({
     // tests); the subpaths first so the bare name does not swallow them
     alias: [
       {
-        find: '@blinkbitcoin/kyc-server/express',
-        replacement: fromRoot('../../packages/kyc-server/src/express.ts'),
+        find: '@blinkbitcoin/kyc-node/express',
+        replacement: fromRoot('../../packages/kyc-node/src/express.ts'),
       },
       {
-        find: '@blinkbitcoin/kyc-server/knex',
-        replacement: fromRoot('../../packages/kyc-server/src/knex.ts'),
+        find: '@blinkbitcoin/kyc-node/knex',
+        replacement: fromRoot('../../packages/kyc-node/src/knex.ts'),
       },
       {
-        find: '@blinkbitcoin/kyc-server/sumsub',
-        replacement: fromRoot('../../packages/kyc-server/src/sumsub.ts'),
+        find: '@blinkbitcoin/kyc-node/sumsub',
+        replacement: fromRoot('../../packages/kyc-node/src/sumsub.ts'),
       },
       {
-        find: /^@blinkbitcoin\/kyc-server$/,
-        replacement: fromRoot('../../packages/kyc-server/src/index.ts'),
+        find: /^@blinkbitcoin\/kyc-node$/,
+        replacement: fromRoot('../../packages/kyc-node/src/index.ts'),
       },
       {
         find: /^@blinkbitcoin\/kyc-core\/sumsub$/,

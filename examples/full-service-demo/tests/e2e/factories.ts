@@ -1,4 +1,4 @@
-import type { SessionRecord } from '@blinkbitcoin/kyc-server';
+import type { SessionRecord } from '@blinkbitcoin/kyc-node';
 import { randomUUID } from 'crypto';
 import { knex } from './setup';
 

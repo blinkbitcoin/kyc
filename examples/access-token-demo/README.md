@@ -2,7 +2,7 @@
 
 The smallest server-side footprint for the native SDK mode (mode 2): an
 existing GraphQL API (Apollo Server here, any framework works) adds one
-mutation whose resolver makes one call into `@blinkbitcoin/kyc-server`. No
+mutation whose resolver makes one call into `@blinkbitcoin/kyc-node`. No
 session store, no webhooks, no hosted page, no service to run - the shape
 for a backend that already exists (Blink's API) and only needs to hand the
 app a provider access token.

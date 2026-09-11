@@ -19,7 +19,7 @@
 // satisfies - no liveness). Applicants are throwaway sandbox objects named
 // kyc-e2e-…; nothing deletes them (docs/operations/live-e2e-ci.md).
 
-import { assertSumsubConfig, sumsubConfigFromEnv } from '@blinkbitcoin/kyc-server';
+import { assertSumsubConfig, sumsubConfigFromEnv } from '@blinkbitcoin/kyc-node';
 import type { Express } from 'express';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

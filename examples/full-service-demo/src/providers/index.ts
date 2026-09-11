@@ -8,7 +8,7 @@ import {
   type ProviderRegistry,
   providerFromEnv,
   providerNameFromEnv,
-} from '@blinkbitcoin/kyc-server';
+} from '@blinkbitcoin/kyc-node';
 import { instrumentProvider } from '../tracing';
 import { assertMockProviderAllowed, MockProvider } from './mock';
 import type { VerificationProvider } from './port';

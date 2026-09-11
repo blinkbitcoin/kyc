@@ -16,7 +16,7 @@ Everything below is taken from the code: the boot guard in
 `examples/full-service-demo/src/config.ts`, the env in
 `examples/full-service-demo/.env.example`, the controls in
 [../architecture/security.md](../architecture/security.md), and the
-package's own [README](../../packages/kyc-server/README.md). When they
+package's own [README](../../packages/kyc-node/README.md). When they
 disagree with this page, the code wins - fix the page.
 
 ## 1. What runs where
@@ -27,7 +27,7 @@ both - only the `VerificationSource` changes.
 
 ### Tier A: your API calls the package in-process
 
-`@blinkbitcoin/kyc-server` inside your own Node backend (Node ≥ 18, no
+`@blinkbitcoin/kyc-node` inside your own Node backend (Node ≥ 18, no
 framework requirement, no peers).
 
 - **Mode 2, the native SDK:** one authenticated mutation or route that
@@ -93,7 +93,7 @@ The whole surface is the access-token example's `src/session.ts`:
 `providerFromEnv(...)` over the package registry, then
 `provider.createSession(...)`. Your existing session check decides who the
 caller is; the user's id becomes the applicant's external id. Read
-[the package README](../../packages/kyc-server/README.md) for the call and
+[the package README](../../packages/kyc-node/README.md) for the call and
 [native-sdk.md](../integration/native-sdk.md) for the app side.
 
 ### Tier A - the session domain over your store
@@ -134,7 +134,7 @@ npm run start -w examples/full-service-demo     # node dist/index.js
 `npm run migrate` is idempotent and safe to run before every start; run it
 once per database change, not on every replica. The schema is the
 package's programmatic migration source (`runKycMigrations` from
-`@blinkbitcoin/kyc-server/knex`), so there are no migration files to ship.
+`@blinkbitcoin/kyc-node/knex`), so there are no migration files to ship.
 
 ### The environment
 

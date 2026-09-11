@@ -14,7 +14,7 @@
 import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { HttpError, type SumsubConfig, signPayload } from '@blinkbitcoin/kyc-server';
+import { HttpError, type SumsubConfig, signPayload } from '@blinkbitcoin/kyc-node';
 
 export type ReviewAnswer =
   | 'GREEN'

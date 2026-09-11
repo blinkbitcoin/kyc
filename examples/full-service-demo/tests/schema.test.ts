@@ -2,7 +2,7 @@
 // service. The resolvers' rules are tested in the package; here the
 // composition and the health query.
 
-import { typeDefs as packageTypeDefs } from '@blinkbitcoin/kyc-server';
+import { typeDefs as packageTypeDefs } from '@blinkbitcoin/kyc-node';
 import { resolvers, typeDefs } from '../src/schema';
 
 describe('schema', () => {

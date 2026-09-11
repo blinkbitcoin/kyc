@@ -6,7 +6,7 @@
 // event. That is fine for dev and E2E and unacceptable anywhere else, so
 // selecting it is an explicit insecure-dev opt-in, checked at boot.
 
-import { createMockProvider } from '@blinkbitcoin/kyc-server';
+import { createMockProvider } from '@blinkbitcoin/kyc-node';
 import { getPublicBaseUrl, isInsecureDevAllowed } from '../config';
 
 export const assertMockProviderAllowed = (env: NodeJS.ProcessEnv = process.env): void => {

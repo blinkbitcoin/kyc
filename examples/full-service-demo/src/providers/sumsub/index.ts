@@ -3,7 +3,7 @@
 // unsigned webhooks; the credentials are read per call so rotation and tests
 // see the current environment).
 
-import { createSumsubProvider } from '@blinkbitcoin/kyc-server';
+import { createSumsubProvider } from '@blinkbitcoin/kyc-node';
 import { isWebhookSignatureRequired } from '../../config';
 import { getConfig } from './config';
 

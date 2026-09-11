@@ -39,7 +39,7 @@ kyc/
 │
 ├── 🖥️ SERVER PACKAGE - what a backend imports; the reference backend below is built on it
 │   │
-│   └── packages/kyc-server/
+│   └── packages/kyc-node/
 │       ├── src/
 │       │   ├── index.ts             # `.` - the framework-free surface
 │       │   ├── types.ts             # The domain vocabulary (statuses, platforms, provider results)
@@ -174,8 +174,8 @@ kyc/
 
 ### Backend
 
-- `packages/kyc-server/src/provider.ts` - adding a provider means implementing this (plus, optionally, the two capabilities) under `providers/<name>/` and adding one registry entry; nothing else.
-- `packages/kyc-server/src/sessions.ts` (`applyStatusTransition`) over `store.ts` / `knex/store.ts` (`updateSessionStatus`) - the terminal-state guard is part of the conditional `UPDATE` itself, the invariant that protects an approved user from a replayed callback; a guard test keeps the write path single.
+- `packages/kyc-node/src/provider.ts` - adding a provider means implementing this (plus, optionally, the two capabilities) under `providers/<name>/` and adding one registry entry; nothing else.
+- `packages/kyc-node/src/sessions.ts` (`applyStatusTransition`) over `store.ts` / `knex/store.ts` (`updateSessionStatus`) - the terminal-state guard is part of the conditional `UPDATE` itself, the invariant that protects an approved user from a replayed callback; a guard test keeps the write path single.
 - `examples/full-service-demo/schema.graphql` - the emitted wire contract; `make codegen` regenerates the client's view of it and `make codegen-check` fails on drift.
 
 ### Demos

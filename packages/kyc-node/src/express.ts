@@ -1,4 +1,4 @@
-// @blinkbitcoin/kyc-server/express - the HTTP surface as a mountable Express
+// @blinkbitcoin/kyc-node/express - the HTTP surface as a mountable Express
 // router: the hosted verification page, the provider webhook and a health
 // check. The host owns authentication, CORS, rate limits and its GraphQL
 // server (createKycGraphQL gives it the schema); this router owns the HTTP

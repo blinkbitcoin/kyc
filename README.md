@@ -32,7 +32,7 @@ is pending; every green push to `main` publishes a `next` prerelease
 | Mode | What it is | What your app installs | Backend required |
 |------|-----------|------------------------|------------------|
 | **1. Hosted page** | A page speaking the<br>`kyc-bridge` protocol, embedded<br>in a hardened WebView or an<br>origin-pinned iframe | One package via the<br>Apollo-free `/hosted`<br>entry - **no Apollo,<br>no GraphQL** | The page (this<br>repo's `examples/full-service-demo`,<br>or your own) |
-| **2. Native SDK** | The provider SDK runs in-process<br>(a React Native native module);<br>your app supplies an<br>access-token callback | `kyc-react-native`<br>(its `/sumsub` entry) +<br>the Sumsub SDK peer | Any backend that<br>mints provider<br>access tokens<br>(`kyc-server` does;<br>`examples/access-token-demo`<br>shows one mutation) |
+| **2. Native SDK** | The provider SDK runs in-process<br>(a React Native native module);<br>your app supplies an<br>access-token callback | `kyc-react-native`<br>(its `/sumsub` entry) +<br>the Sumsub SDK peer | Any backend that<br>mints provider<br>access tokens<br>(`kyc-node` does;<br>`examples/access-token-demo`<br>shows one mutation) |
 | **3. Proxy session** | Full orchestration: session<br>creation, token refresh,<br>webhook status sync,<br>status query | The package +<br>`@apollo/client` +<br>`graphql` | This repo's backend<br>service (`examples/full-service-demo`) |
 
 **Which mode?** Hosted if you can serve (or point at) a page - it is the
@@ -230,8 +230,8 @@ tiers to choose between. **The app code is identical for both.**
 
 | Tier | What you run | What it gives you | Start at |
 |------|--------------|-------------------|----------|
-| **In-process**<br>`@blinkbitcoin/kyc-server` | The package inside your<br>own Node API: one call<br>for a mode-2 token, or<br>the session domain over<br>your own store for mode 3 | Your auth, your CORS,<br>your database; no<br>service to operate | [`examples/access-token-demo`](examples/access-token-demo/README.md)<br>(one mutation),<br>[the package README](packages/kyc-server/README.md) |
-| **Deployable**<br>`examples/full-service-demo` | The reference service:<br>Express 5 + Apollo 5 +<br>PostgreSQL composed on<br>the package, with its<br>fail-closed boot | All four routes, the<br>hosted page, webhooks,<br>rate limits, the audit<br>log; the backend every<br>E2E suite runs against | [its README](examples/full-service-demo/README.md),<br>then the [runbook](docs/operations/production.md) |
+| **In-process**<br>`@blinkbitcoin/kyc-node` | The package inside your<br>own Node API: one call<br>for a mode-2 token, or<br>the session domain over<br>your own store for mode 3 | Your auth, your CORS,<br>your database; no<br>service to operate | [`examples/access-token-demo`](examples/access-token-demo/README.md)<br>(one mutation),<br>[the package README](packages/kyc-server/README.md) |
+| **Deployable**<br>`examples/full-service-demo` | The reference service:<br>Express 5 + Apollo 5 +<br>PostgreSQL composed on<br>the package, with its<br>fail-closed boot | All four routes, the<br>hosted page, webhooks,<br>rate limits, the audit<br>log; the backend every<br>E2E suite runs against | [its README](packages/kyc-service/README.md),<br>then the [runbook](docs/operations/production.md) |
 
 Taking either tier live - Sumsub go-live, the environment, what a reverse
 proxy must leave alone on the hosted route, the checklist - is
@@ -296,9 +296,9 @@ Ordered by how likely you are to need each part:
 |------|------------------|
 | [`packages/kyc-react-native/`](packages/kyc-react-native/README.md) | The React Native library you install:<br>`IdentityVerification`, `useIdentityVerification`, the<br>hardened hosted WebView, and the Sumsub<br>native-SDK source on its `/sumsub` entry. |
 | [`packages/kyc-react/`](packages/kyc-react/README.md) | The same pair for React web, over an<br>origin-pinned iframe. |
-| [`packages/kyc-server/`](packages/kyc-server/README.md) | The server half a backend installs: Sumsub<br>token minting and webhook verification, the<br>session domain, the hosted page, an Express<br>router and a Knex store. This repo's<br>backend is built on it. |
+| [`packages/kyc-node/`](packages/kyc-node/README.md) | The server half a backend installs: Sumsub<br>token minting and webhook verification, the<br>session domain, the hosted page, an Express<br>router and a Knex store. This repo's<br>backend is built on it. |
 | [`packages/kyc-core/`](packages/kyc-core/README.md) | The shared core both libraries build on:<br>`VerificationSource`, the capability guards,<br>the bridge protocol, the state machine, the<br>error-code contract, and the Sumsub mapping<br>on `/sumsub`. It arrives as a dependency -<br>you never install it directly. |
-| [`examples/full-service-demo/`](examples/full-service-demo/README.md) | The reference backend on `kyc-server`:<br>Express + Apollo + Postgres, this service's<br>policy around the package. Needed for mode<br>3 only; the backend every E2E suite runs<br>against. |
+| [`examples/full-service-demo/`](examples/full-service-demo/README.md) | The reference backend on `kyc-node`:<br>Express + Apollo + Postgres, this service's<br>policy around the package. Needed for mode<br>3 only; the backend every E2E suite runs<br>against. |
 | [`examples/access-token-demo/`](examples/access-token-demo/README.md) | The other server shape: an existing GraphQL<br>API adds one mutation that mints a provider<br>access token for the native SDK (mode 2). |
 | [`examples/react-native-demo/`](examples/react-native-demo/README.md) | The React Native host: every `KYC_MODE`,<br>the themed variant, the Maestro suite. |
 | [`examples/react-demo/`](examples/react-demo/README.md) | The web host: both `VITE_KYC_MODE`s, the<br>themed variant, the Playwright suites on<br>per-worktree ports. |

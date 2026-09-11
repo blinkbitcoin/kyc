@@ -147,5 +147,5 @@
 
   <!-- ===== Footer: the four packages ===== -->
   <line x1="300" y1="340" x2="920" y2="340" stroke="#e2e8f0"/>
-  <text x="610" y="366" text-anchor="middle" font-size="11.5" fill="#64748b">@blinkbitcoin/kyc-core · kyc-server · kyc-react-native · kyc-react</text>
+  <text x="610" y="366" text-anchor="middle" font-size="11.5" fill="#64748b">@blinkbitcoin/kyc-core · kyc-node · kyc-react-native · kyc-react</text>
 </svg>

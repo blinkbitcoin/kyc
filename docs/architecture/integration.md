@@ -58,14 +58,14 @@
 
 ### 6. Backend → Sumsub REST
 
-- **From:** `packages/kyc-server/src/providers/sumsub/client.ts`
+- **From:** `packages/kyc-node/src/providers/sumsub/client.ts`
 - **To:** `POST /resources/accessTokens`, `GET /resources/applicants/<id>/status`, `GET /resources/applicants/-;externalUserId=<id>/one`
 - **Auth:** app-token signing - `X-App-Token`, `X-App-Access-Ts`, `X-App-Access-Sig` (hex HMAC-SHA256 over `<ts><METHOD><path+query><body>`)
 - **Resilience:** `withRetry` (3 attempts, 500 ms base) retries transport failures and 5xx/429 responses, never other 4xx.
 
 ### 7. Backend → PostgreSQL
 
-- **From:** `packages/kyc-server/src/{sessions,knex/store}.ts` over Knex, composed in `examples/full-service-demo/src/{services,store}.ts`
+- **From:** `packages/kyc-node/src/{sessions,knex/store}.ts` over Knex, composed in `examples/full-service-demo/src/{services,store}.ts`
 - **To:** `VerificationSession` and `AuditLog` (see [data-models.md](data-models.md))
 - **Transactional pairs:** row-write + audit-write always share one transaction, both on creation and on webhook-driven status changes.
 

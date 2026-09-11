@@ -119,7 +119,7 @@ describe('the consumers', () => {
     ['examples/react-demo/vite.config.ts', `PORT_BASE_DEFAULT = ${base}`],
     ['examples/react-demo/src/config.ts', `http://localhost:${api}`],
     ['examples/react-demo/e2e/ports.ts', `BASE_DEFAULT = ${base}`],
-    ['packages/kyc-server/src/registry.ts', `http://localhost:${api}`],
+    ['packages/kyc-node/src/registry.ts', `http://localhost:${api}`],
     ['examples/full-service-demo/.env.example', `PORT=${api}`],
     ['examples/full-service-demo/.env.test', `http://localhost:${api}`],
     [

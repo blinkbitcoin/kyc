@@ -4,7 +4,7 @@
 
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express5';
-import { createKycRouter } from '@blinkbitcoin/kyc-server/express';
+import { createKycRouter } from '@blinkbitcoin/kyc-node/express';
 import cors from 'cors';
 import express from 'express';
 import rateLimit from 'express-rate-limit';

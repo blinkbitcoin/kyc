@@ -14,8 +14,8 @@ export type {
   VerificationStatus,
   WebhookEvent,
   WebhookHeaders,
-} from '@blinkbitcoin/kyc-server';
-export { TERMINAL_STATUSES, VERIFICATION_STATUSES } from '@blinkbitcoin/kyc-server';
+} from '@blinkbitcoin/kyc-node';
+export { TERMINAL_STATUSES, VERIFICATION_STATUSES } from '@blinkbitcoin/kyc-node';
 
 export interface GraphQLContext {
   userId: string | null;

@@ -8,7 +8,7 @@
 /** The packages that get a version stamp. */
 export const PUBLISHED_PACKAGES = [
   'packages/kyc-core',
-  'packages/kyc-server',
+  'packages/kyc-node',
   'packages/kyc-react-native',
   'packages/kyc-react',
 ];
@@ -19,11 +19,11 @@ export const PUBLISHED_PACKAGES = [
  * dependency are absent.
  */
 export const INTERNAL_DEPENDENCIES = {
-  'packages/kyc-server': ['@blinkbitcoin/kyc-core'],
+  'packages/kyc-node': ['@blinkbitcoin/kyc-core'],
   'packages/kyc-react-native': ['@blinkbitcoin/kyc-core'],
   'packages/kyc-react': ['@blinkbitcoin/kyc-core'],
-  'examples/full-service-demo': ['@blinkbitcoin/kyc-server'],
-  'examples/access-token-demo': ['@blinkbitcoin/kyc-server'],
+  'examples/full-service-demo': ['@blinkbitcoin/kyc-node'],
+  'examples/access-token-demo': ['@blinkbitcoin/kyc-node'],
   'examples/react-demo': ['@blinkbitcoin/kyc-react'],
   'examples/react-native-demo': ['@blinkbitcoin/kyc-react-native'],
 };

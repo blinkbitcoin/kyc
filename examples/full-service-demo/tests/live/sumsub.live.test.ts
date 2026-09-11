@@ -20,7 +20,7 @@
 // fails with Sumsub's raw HTTP status + body instead of the provider's
 // mapped error; the round trips go through the service.
 
-import { createSumsubClient, sumsubConfigFromEnv } from '@blinkbitcoin/kyc-server';
+import { createSumsubClient, sumsubConfigFromEnv } from '@blinkbitcoin/kyc-node';
 import type { Express } from 'express';
 import request from 'supertest';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -53,7 +53,7 @@ describe.runIf(missing.length === 0)('Sumsub API (live, sandbox)', () => {
     const userId = liveUser('token');
     const minted = await client.createAccessToken(userId, config.levelName, 60);
 
-    // The contract @blinkbitcoin/kyc-server's provider and the native SDK
+    // The contract @blinkbitcoin/kyc-node's provider and the native SDK
     // rely on: the token is a string and Sumsub echoes the external user id
     expect(typeof minted.token).toBe('string');
     expect(minted.token.length).toBeGreaterThan(0);

@@ -42,14 +42,14 @@ a diagram must update its "Embedded in" doc too:
 
 | # | Diagram | Type | Source of truth | Embedded in |
 |---|---------|------|-----------------|-------------|
-| 1 | System Architecture | `flowchart TB` | `README.md` (modes) + `docs/architecture/integration.md`; routes from `packages/kyc-server/src/express.ts` | `architecture/integration.md` (Parts) |
+| 1 | System Architecture | `flowchart TB` | `README.md` (modes) + `docs/architecture/integration.md`; routes from `packages/kyc-node/src/express.ts` | `architecture/integration.md` (Parts) |
 | 2 | Data Flow (proxy mode) | `flowchart LR` | `docs/architecture/integration.md` end-to-end flow | combined page only |
 | 3 | Verification Flow Process | `flowchart TD` | `docs/architecture/mobile.md`; state and event names from `packages/kyc-core/src/verification/{machine,types}.ts` | `architecture/mobile.md` (State machine) |
-| 4 | Database ERD | `erDiagram` | `docs/architecture/data-models.md`; verify against `packages/kyc-server/src/knex/migrations.ts` | `architecture/data-models.md` (ERD section) |
+| 4 | Database ERD | `erDiagram` | `docs/architecture/data-models.md`; verify against `packages/kyc-node/src/knex/migrations.ts` | `architecture/data-models.md` (ERD section) |
 | 5 | Component Hierarchy | `flowchart TB` | `docs/architecture/mobile.md` + `docs/architecture/web.md` + the demos' `source.ts` | `architecture/mobile.md` (Component hierarchy) |
-| 6 | Webhook Flow | `sequenceDiagram` | `docs/architecture/backend.md` + `packages/kyc-server/src/sessions.ts` (handleWebhookEvent) | `architecture/backend.md` (Webhook processing) |
-| 7 | GraphQL Request Flow | `sequenceDiagram` | `docs/architecture/backend.md` + `docs/architecture/api-contracts.md` + `packages/kyc-server/src/graphql.ts` | `architecture/backend.md` (GraphQL API) |
-| 8 | Hosted Bridge Flow | `sequenceDiagram` | `docs/integration/hosted.md` + `packages/kyc-core/src/verification/bridge.ts` + `packages/kyc-server/src/providers/sumsub/page.ts` | `integration/hosted.md` (The bridge protocol) |
+| 6 | Webhook Flow | `sequenceDiagram` | `docs/architecture/backend.md` + `packages/kyc-node/src/sessions.ts` (handleWebhookEvent) | `architecture/backend.md` (Webhook processing) |
+| 7 | GraphQL Request Flow | `sequenceDiagram` | `docs/architecture/backend.md` + `docs/architecture/api-contracts.md` + `packages/kyc-node/src/graphql.ts` | `architecture/backend.md` (GraphQL API) |
+| 8 | Hosted Bridge Flow | `sequenceDiagram` | `docs/integration/hosted.md` + `packages/kyc-core/src/verification/bridge.ts` + `packages/kyc-node/src/providers/sumsub/page.ts` | `integration/hosted.md` (The bridge protocol) |
 | 9 | CI / Release Pipeline | `flowchart LR` | `docs/development-guide.md` (CI/CD) + `docs/releasing.md`; verify job names and triggers against `.github/workflows/*.yml` | `development-guide.md` (GitHub Actions Workflows) |
 
 ## Pedagogy and consistency rules
@@ -86,7 +86,7 @@ These keep the set readable as a progression, not a pile of unrelated pictures:
    generated page's image count matches the table above (currently 9), and
    `git status` shows regenerated SVGs only for diagrams you touched.
 2. `grep` the sources for stale identifiers: old package names, any route
-   not present in `packages/kyc-server/src/express.ts` or `examples/full-service-demo/src/app.ts`.
+   not present in `packages/kyc-node/src/express.ts` or `examples/full-service-demo/src/app.ts`.
 3. The ERD matches the latest migration exactly.
 4. `docs/index.md` still links the file with an accurate description.
 5. Run `npm run format` and `make check-code`.

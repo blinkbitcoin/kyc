@@ -43,7 +43,7 @@ the hooks over the shared reducer, never a second one.
 
 ## One write path, on the server
 
-`applyStatusTransition` in `packages/kyc-server/src/sessions.ts` is the only
+`applyStatusTransition` in `packages/kyc-node/src/sessions.ts` is the only
 caller of the store's conditional `updateSessionStatus`; the terminal guard
 (`WHERE status NOT IN (approved, finallyRejected)`) is part of the `UPDATE`.
 
