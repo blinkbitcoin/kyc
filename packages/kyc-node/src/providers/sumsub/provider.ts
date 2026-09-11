@@ -50,9 +50,26 @@ export interface SumsubProviderOptions {
   now?: () => Date;
 }
 
+/** A token another Sumsub client can import an applicant with (a card issuer, a partner). */
+export interface SumsubShareTokenResult {
+  token: string;
+  expiresAt: Date;
+}
+
 export interface SumsubProviderHandle extends VerificationProvider {
   getStatusByUserId(userId: string): Promise<UserStatusLookup>;
   hostedPage: HostedPageRenderer;
+  /**
+   * Sumsub capability: a share token for `applicantId`, valid for
+   * `forClientId` (the other Sumsub client's id) and `ttlSecs` (the access
+   * token TTL by default). A host exposes it to whoever consumes the
+   * applicant downstream; who may ask is the host's policy.
+   */
+  createShareToken(
+    applicantId: string,
+    forClientId: string,
+    ttlSecs?: number,
+  ): Promise<SumsubShareTokenResult>;
 }
 
 // A truly missing header returns undefined so verifyHexDigest can apply its
@@ -168,6 +185,27 @@ export const createSumsubProvider = (
           return { status: 'initial' };
         }
         throw Errors.providerUnavailable();
+      }
+    },
+
+    async createShareToken(
+      applicantId: string,
+      forClientId: string,
+      ttlSecs?: number,
+    ): Promise<SumsubShareTokenResult> {
+      const ttl = ttlSecs ?? resolveConfig().tokenTtlSecs;
+      try {
+        const { token } = await withRetry(() =>
+          client.createShareToken(applicantId, forClientId, ttl),
+        );
+        return { token, expiresAt: new Date(now().getTime() + ttl * 1000) };
+      } catch (error) {
+        if (isNotFoundError(error)) {
+          throw Errors.sessionNotFound();
+        }
+        throw isClientError(error)
+          ? Errors.validationError('Provider rejected the share token request')
+          : Errors.providerUnavailable();
       }
     },
 

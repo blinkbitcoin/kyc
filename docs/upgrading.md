@@ -3,6 +3,19 @@
 What changes for you between kyc releases, by audience. Entries are listed
 newest first; each names the pull request that made the change.
 
+## The Sumsub mint uses the SDK endpoint, and the adapter can share an applicant
+
+`createSumsubClient().createAccessToken` now calls
+`POST /resources/accessTokens/sdk` with a JSON body (`userId`, `levelName`,
+`ttlInSecs`), the form Sumsub documents for its SDKs, instead of the legacy
+query-string spelling. Same token, same TTL; nothing changes for hosts, but
+a network allow-list or a request log keyed on the old path will notice.
+
+`createSumsubProvider()` gains `createShareToken(applicantId, forClientId,
+ttlSecs?)` (`POST /resources/accessTokens/shareToken`), the token another
+Sumsub client imports an applicant with. It is a capability of the Sumsub
+handle, not of the `VerificationProvider` port.
+
 ## `getStatusByUserId` answers with the applicant id too
 
 For whoever implements a `VerificationProvider` of their own: the optional

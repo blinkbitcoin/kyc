@@ -219,6 +219,18 @@ Everything Sumsub-specific is also on its own entry, peer-free: the client
 kyc-core's `mapSumsubStatus`). The root entry keeps re-exporting all of it;
 the subpath is the canonical import for Sumsub names.
 
+Beyond the port, the Sumsub handle has two capabilities of its own:
+`getStatusByUserId` (the applicant filed under our user id, and its status)
+and `createShareToken(applicantId, forClientId, ttlSecs?)` - a token another
+Sumsub client (a card issuer, a partner) imports the applicant with. Who may
+ask for a share token is your policy; the package only mints it.
+
+```ts
+import { createSumsubProvider } from '@blinkbitcoin/kyc-node/sumsub';
+const sumsub = createSumsubProvider({ config });
+const { token, expiresAt } = await sumsub.createShareToken(applicantId, 'issuer-client-id');
+```
+
 | Entry | What | Peer |
 |---|---|---|
 | `@blinkbitcoin/kyc-node` | everything: domain, ports, registry, handlers, pages, Sumsub + mock<br>adapters | none |

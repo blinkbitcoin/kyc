@@ -191,8 +191,9 @@ describe('defaultRegistry', () => {
     ).resolves.toMatchObject({
       accessToken: 'live',
     });
-    const [url] = (fetchImpl as jest.Mock).mock.calls[0];
-    expect(url).toContain('levelName=lvl');
+    const [url, init] = (fetchImpl as jest.Mock).mock.calls[0];
+    expect(url).toContain('/resources/accessTokens/sdk');
+    expect(JSON.parse(init.body)).toMatchObject({ levelName: 'lvl' });
     const open = defaultRegistry(
       {},
       { sumsubWebhook: { allowMissingSecret: () => true, logger: silent } },

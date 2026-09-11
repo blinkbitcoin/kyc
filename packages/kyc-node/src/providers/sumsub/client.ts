@@ -51,6 +51,12 @@ export interface SumsubApplicant {
   review: SumsubReviewPayload;
 }
 
+/** A share token: lets another Sumsub client (`forClientId`) import the applicant. */
+export interface SumsubShareToken {
+  token: string;
+  forClientId: string;
+}
+
 export interface SumsubClient {
   request<T>(method: string, pathWithQuery: string, body?: string): Promise<T>;
   createAccessToken(
@@ -62,6 +68,11 @@ export interface SumsubClient {
   fetchApplicantByExternalUserId(
     externalUserId: string,
   ): Promise<SumsubApplicant>;
+  createShareToken(
+    applicantId: string,
+    forClientId: string,
+    ttlInSecs: number,
+  ): Promise<SumsubShareToken>;
 }
 
 export interface SumsubClientOptions {
@@ -131,11 +142,21 @@ export const createSumsubClient = (
   return {
     request,
 
+    // The SDK access-token endpoint, with a JSON body: the form Sumsub
+    // documents for the Web and Mobile SDKs (the query-string variant is
+    // the legacy spelling).
     createAccessToken: (externalUserId, levelName, ttlInSecs) =>
       request<SumsubAccessToken>(
         'POST',
-        `/resources/accessTokens?userId=${encodeURIComponent(externalUserId)}` +
-          `&levelName=${encodeURIComponent(levelName)}&ttlInSecs=${ttlInSecs}`,
+        '/resources/accessTokens/sdk',
+        JSON.stringify({ userId: externalUserId, levelName, ttlInSecs }),
+      ),
+
+    createShareToken: (applicantId, forClientId, ttlInSecs) =>
+      request<SumsubShareToken>(
+        'POST',
+        '/resources/accessTokens/shareToken',
+        JSON.stringify({ applicantId, forClientId, ttlInSecs }),
       ),
 
     fetchApplicantStatus: applicantId =>
