@@ -497,10 +497,23 @@ jobs:
       - name: Wait for iOS Simulator (booting since device pick)
         run: bash scripts/e2e/ios-simulator.sh wait
 
+      # Metro's transform cache from the last green run on this lockfile:
+      # the sha in the key makes every green run save the newest cache, the
+      # restore key picks the newest one up. Metro keys entries by content
+      # hash, so a stale restore is only a partial miss, never a wrong bundle.
+      - name: Restore Metro cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/metro-tmp/metro-cache
+          key: metro-ios-v1-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: metro-ios-v1-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+
       # Metro starts only now, after the boot: its workspace crawl overlaps
       # the .app download and install (I/O), and the bundle is prewarmed
       # right before Maestro runs.
       - name: Start Metro bundler (background)
+        env:
+          METRO_CACHE_ROOT: ${{ runner.temp }}/metro-tmp # see scripts/e2e/metro-start.sh
         run: bash scripts/e2e/metro-start.sh
 
       # The .app comes from build-ios as a tar (upload-artifact zips and drops
