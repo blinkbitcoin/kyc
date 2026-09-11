@@ -4,7 +4,7 @@
 // Express. The decision logic (status codes, bodies, page headers) lives in
 // the `*Http` functions and is shared with the Express router.
 
-import { getErrorCode } from './errors';
+import { Errors, getErrorCode } from './errors';
 import { consoleLogger, type Logger } from './log';
 import {
   DEFAULT_PERMISSIONS_POLICY,
@@ -15,7 +15,12 @@ import {
 } from './pages';
 import type { VerificationProvider } from './provider';
 import type { VerificationService } from './sessions';
-import type { VerificationSessionStartInput, WebhookHeaders } from './types';
+import type {
+  ProviderSession,
+  VerificationSessionStartInput,
+  WebhookHeaders,
+} from './types';
+import { type ValidatedStartInput, validateStartInput } from './validation';
 
 // An HTTP outcome, independent of the framework that sends it
 export interface HttpResult {
@@ -101,6 +106,81 @@ export const refreshSessionHttp = async (
         input.userId,
         typeof sessionId === 'string' ? sessionId : '',
       ),
+    };
+  } catch (error) {
+    return failed(error, logger);
+  }
+};
+
+// --- Access tokens (mode 2, no store) ------------------------------------------
+
+// The host's chance to pick the verification level from its own data: it
+// receives the caller's validated input and returns the level that is
+// actually minted (undefined = the provider's default). The client's
+// levelName is input, never trusted on its own. Throwing
+// Errors.validationError answers 400; anything else is the host's failure.
+export type LevelForHook<TExtra extends object = object> = (
+  input: ValidatedStartInput,
+  context: { userId: string } & TExtra,
+) => string | undefined | Promise<string | undefined>;
+
+export interface AccessTokenHttpInput<TExtra extends object = object> {
+  // The authenticated caller, or null (→ 401)
+  userId: string | null;
+  // The parsed JSON body: { platform, levelName?, locale? }
+  body: unknown;
+  provider: Pick<VerificationProvider, 'createSession'>;
+  levelFor?: LevelForHook<TExtra>;
+  // What the hook sees besides the user id (the request, say)
+  context?: TExtra;
+  logger?: Logger;
+}
+
+// POST /verification/token semantics: mint one provider access token for the
+// caller, with no session stored - the shape of a host that already has an
+// API and only hands its app a token (mode 2). 401 unauthenticated, 400 on
+// bad input (or a hook refusing it), 502 when the provider cannot mint, else
+// 200 { accessToken, expiresAt?, providerApplicantId? }. The SDK asks the
+// app for a token again when it expires, so this one call is also the
+// refresh: nothing to store, nothing to look up.
+export const mintAccessTokenHttp = async <TExtra extends object = object>(
+  input: AccessTokenHttpInput<TExtra>,
+): Promise<HttpResult> => {
+  const logger = input.logger ?? consoleLogger;
+  try {
+    if (!input.userId) {
+      throw Errors.unauthorized();
+    }
+    const validated = validateStartInput(
+      input.body as VerificationSessionStartInput,
+    );
+    const levelName = input.levelFor
+      ? await input.levelFor(validated, {
+          userId: input.userId,
+          ...(input.context ?? ({} as TExtra)),
+        })
+      : validated.levelName;
+    let minted: ProviderSession;
+    try {
+      minted = await input.provider.createSession(input.userId, {
+        platform: validated.platform,
+        levelName,
+        locale: validated.locale,
+      });
+    } catch (error) {
+      logger.error(
+        'Access token mint failed:',
+        error instanceof Error ? error.message : error,
+      );
+      throw getErrorCode(error) ? error : Errors.providerUnavailable();
+    }
+    return {
+      status: 200,
+      body: {
+        accessToken: minted.accessToken,
+        expiresAt: minted.expiresAt,
+        providerApplicantId: minted.providerApplicantId,
+      },
     };
   } catch (error) {
     return failed(error, logger);
@@ -360,5 +440,132 @@ export const createHostedPageHandler = (
         'content-type': 'text/html; charset=utf-8',
       },
     });
+  };
+};
+
+// --- The access-token preset ---------------------------------------------------
+
+export interface AccessTokenAppCors {
+  // The origins allowed to call the mint endpoint from a browser ('*' for any)
+  origins: readonly string[];
+}
+
+export interface AccessTokenAppOptions {
+  provider: Pick<VerificationProvider, 'createSession'>;
+  // The host's authentication: the caller's user id, or null (→ 401)
+  authenticate: (request: Request) => string | null | Promise<string | null>;
+  // The host's level decision (see LevelForHook); receives the request
+  levelFor?: LevelForHook<{ request: Request }>;
+  // Where the mint endpoint lives (default /verification/token)
+  path?: string;
+  // Serve GET /health (default true)
+  health?: boolean;
+  // Answer the CORS preflight and mark the mint response (default: no CORS)
+  cors?: AccessTokenAppCors;
+  logger?: Logger;
+}
+
+// A whole HTTP surface behind one Fetch entry point - what a Vercel route,
+// a Worker or a Node server exports
+export interface AccessTokenApp {
+  fetch: (request: Request) => Promise<Response>;
+}
+
+export const ACCESS_TOKEN_PATH = '/verification/token';
+const HEALTH_PATH = '/health';
+
+// The CORS response headers for this request: the allowed origin echoed
+// back (or '*'), nothing but the Vary for an origin the host did not allow.
+// Every answer a configured CORS policy produces varies on Origin, so a
+// shared cache cannot serve the header-less one to an allowed origin.
+const corsHeaders = (
+  cors: AccessTokenAppCors | undefined,
+  request: Request,
+): Record<string, string> => {
+  if (!cors) {
+    return {};
+  }
+  const vary = { vary: 'origin' };
+  const origin = request.headers.get('origin');
+  if (!origin) {
+    return vary;
+  }
+  if (cors.origins.includes('*')) {
+    return { ...vary, 'access-control-allow-origin': '*' };
+  }
+  return cors.origins.includes(origin)
+    ? { ...vary, 'access-control-allow-origin': origin }
+    : vary;
+};
+
+const withHeaders = (response: Response, headers: Record<string, string>) => {
+  for (const [key, value] of Object.entries(headers)) {
+    response.headers.set(key, value);
+  }
+  return response;
+};
+
+// The mint-only HTTP surface: everything a host needs to hand its app a
+// provider access token and nothing else - POST {path}, a health check, and
+// the CORS preflight when the host configured origins. Everything else is
+// 404. No session domain, no store, no webhook route: a host that wants
+// those mounts the session handlers (or the Express router) instead. The
+// Express preset (createAccessTokenRouter) serves the same endpoints and
+// shares this one's decisions: both go through mintAccessTokenHttp.
+export const createAccessTokenApp = (
+  options: AccessTokenAppOptions,
+): AccessTokenApp => {
+  const path = options.path ?? ACCESS_TOKEN_PATH;
+  const health = options.health ?? true;
+
+  return {
+    fetch: async request => {
+      const { pathname } = new URL(request.url);
+      const cors = corsHeaders(options.cors, request);
+
+      if (options.cors && request.method === 'OPTIONS' && pathname === path) {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            ...cors,
+            'access-control-allow-methods': 'POST, OPTIONS',
+            'access-control-allow-headers': 'authorization, content-type',
+            'access-control-max-age': '86400',
+          },
+        });
+      }
+
+      if (request.method === 'POST' && pathname === path) {
+        const body = await readJson(request);
+        if (body === INVALID_JSON) {
+          return withHeaders(
+            json({ status: 400, body: { error: 'Invalid JSON body' } }),
+            cors,
+          );
+        }
+        return withHeaders(
+          json(
+            await mintAccessTokenHttp({
+              userId: await options.authenticate(request),
+              body,
+              provider: options.provider,
+              levelFor: options.levelFor,
+              context: { request },
+              logger: options.logger,
+            }),
+          ),
+          cors,
+        );
+      }
+
+      if (health && request.method === 'GET' && pathname === HEALTH_PATH) {
+        return json({
+          status: 200,
+          body: { status: 'ok', timestamp: new Date().toISOString() },
+        });
+      }
+
+      return json({ status: 404, body: { error: 'Not found' } });
+    },
   };
 };

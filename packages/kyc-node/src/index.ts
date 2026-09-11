@@ -23,10 +23,15 @@ export {
   KycError,
 } from './errors';
 export type {
+  AccessTokenApp,
+  AccessTokenAppCors,
+  AccessTokenAppOptions,
+  AccessTokenHttpInput,
   HostedPageHandlerOptions,
   HostedPageHttpInput,
   HostedPageHttpResult,
   HttpResult,
+  LevelForHook,
   RefreshHttpInput,
   SessionHandlerOptions,
   SessionRefreshHandlerOptions,
@@ -36,11 +41,13 @@ export type {
   WebhookHttpInput,
 } from './handlers';
 export {
+  createAccessTokenApp,
   createHostedPageHandler,
   createSessionRefreshHandler,
   createSessionStartHandler,
   createWebhookHandler,
   hostedPageHttp,
+  mintAccessTokenHttp,
   processWebhookHttp,
   refreshSessionHttp,
   startSessionHttp,
@@ -67,6 +74,14 @@ export {
   PAGE_STYLE,
   renderNotFoundPage,
 } from './pages';
+export type { ProductionConfig } from './production';
+export {
+  assertProductionConfig,
+  KYC_ALLOW_DEMO,
+  KYC_ENV,
+  ProductionConfigError,
+  productionErrors,
+} from './production';
 export type { HostedPageRenderer, VerificationProvider } from './provider';
 export { supportsHostedPage, supportsUserStatusLookup } from './provider';
 export type {
@@ -104,10 +119,12 @@ export type {
   SumsubWebhookPayload,
 } from './providers/sumsub';
 export {
+  ACCESS_TOKEN_SETTINGS,
   assertSumsubConfig,
   buildSumsubStatusTable,
   createSumsubClient,
   createSumsubProvider,
+  isSumsubSandboxToken,
   lookupSumsubStatus,
   missingSumsubConfig,
   renderSumsubPage,
@@ -118,21 +135,25 @@ export {
   SUMSUB_DIGEST_HEADER,
   SUMSUB_ENV,
   SUMSUB_PERMISSIONS_POLICY,
+  SUMSUB_SANDBOX_TOKEN_PREFIX,
   SUMSUB_SDK_URL,
   SUMSUB_STATUS_FALLBACK,
   SUMSUB_STATUS_TABLE,
   SumsubConfigError,
   sumsubConfigFromEnv,
+  sumsubDemoSettingsInUse,
   sumsubHostedPage,
   sumsubPageCsp,
   sumsubStatusKey,
 } from './providers/sumsub';
 export type {
+  AccessTokenProviderOptions,
   DefaultRegistryOptions,
   ProviderFromEnvOptions,
   ProviderRegistry,
 } from './registry';
 export {
+  accessTokenProviderFromEnv,
   defaultRegistry,
   KYC_PROVIDER_ENV,
   providerFromEnv,

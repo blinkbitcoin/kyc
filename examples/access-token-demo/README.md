@@ -19,10 +19,11 @@ app runs the Sumsub Mobile SDK with the token:
   goes through (keyed on a product tier here; a real host looks it up). The
   level names come from `KYC_LEVEL_BASIC` / `KYC_LEVEL_ENHANCED`, because
   they are whatever the Sumsub dashboard calls them and differ per account.
-- `src/session.ts` - `providerFromEnv(...)` over the package registry with
-  this host's Sumsub entry, then `provider.createSession`, the one package
-  call. `KYC_PROVIDER=mock` swaps in the mock provider so the mutation runs
-  with no Sumsub account.
+- `src/session.ts` - `accessTokenProviderFromEnv(env)`, the package's
+  access-token preset (the app token and secret required at startup, a
+  sandbox token or the mock refused under `KYC_ENV=production`), then
+  `provider.createSession`, the one package call. `KYC_PROVIDER=mock` swaps
+  in the mock provider so the mutation runs with no Sumsub account.
 - `src/schema.ts`, `src/server.ts` - stand-ins for what the host already
   has: its schema and its session handling. The bearer token is taken as the
   user id here; a real host verifies its own session in that spot.

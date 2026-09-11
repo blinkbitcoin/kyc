@@ -2,12 +2,15 @@
 // serverless / route handler mounts directly. The decision logic they share
 // with the Express router is exercised through them.
 
+import { Errors } from '../errors';
 import {
+  createAccessTokenApp,
   createHostedPageHandler,
   createSessionRefreshHandler,
   createSessionStartHandler,
   createWebhookHandler,
   hostedPageHttp,
+  mintAccessTokenHttp,
   processWebhookHttp,
   refreshSessionHttp,
   startSessionHttp,
@@ -439,5 +442,300 @@ describe('the shared decision functions default to the console logger', () => {
     expect(errorSpy).toHaveBeenCalledWith('Verification request failed:', 'y');
     expect(errorSpy).toHaveBeenCalledWith('Webhook error: invalid payload');
     errorSpy.mockRestore();
+  });
+});
+
+describe('mintAccessTokenHttp', () => {
+  const provider = createMockProvider({
+    publicBaseUrl: () => 'https://kyc.example.com',
+    logger: silent,
+  });
+
+  it('mints one token for the caller with no session stored', async () => {
+    const result = await mintAccessTokenHttp({
+      userId: 'user-1',
+      body: { platform: 'IOS', levelName: 'basic' },
+      provider,
+      logger: silent,
+    });
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({
+      accessToken: expect.stringMatching(/^mock-token-/),
+      providerApplicantId: expect.stringMatching(/^mock-applicant-/),
+    });
+  });
+
+  it('answers 401 unauthenticated and 400 on bad input', async () => {
+    // No logger given: the console one is the default, and a 401 logs nothing
+    expect(
+      await mintAccessTokenHttp({
+        userId: null,
+        body: { platform: 'IOS' },
+        provider,
+      }),
+    ).toMatchObject({ status: 401, body: { error: 'UNAUTHORIZED' } });
+    expect(
+      await mintAccessTokenHttp({
+        userId: 'user-1',
+        body: { platform: 'TV' },
+        provider,
+        logger: silent,
+      }),
+    ).toMatchObject({ status: 400, body: { error: 'VALIDATION_ERROR' } });
+  });
+
+  it('lets the host pick the level from its own data, and refuse with a 400', async () => {
+    const createSession = jest.fn(async () => ({ accessToken: 't' }));
+    const levelFor = jest.fn(async (_input, context) =>
+      context.tier === 'gold' ? 'enhanced' : undefined,
+    );
+    const result = await mintAccessTokenHttp({
+      userId: 'user-1',
+      body: { platform: 'WEB', levelName: 'client-says-basic', locale: 'en' },
+      provider: { createSession },
+      levelFor,
+      context: { tier: 'gold' },
+      logger: silent,
+    });
+    expect(result).toEqual({
+      status: 200,
+      body: {
+        accessToken: 't',
+        expiresAt: undefined,
+        providerApplicantId: undefined,
+      },
+    });
+    expect(levelFor).toHaveBeenCalledWith(
+      { platform: 'WEB', levelName: 'client-says-basic', locale: 'en' },
+      { userId: 'user-1', tier: 'gold' },
+    );
+    expect(createSession).toHaveBeenCalledWith('user-1', {
+      platform: 'WEB',
+      levelName: 'enhanced',
+      locale: 'en',
+    });
+    expect(
+      await mintAccessTokenHttp({
+        userId: 'user-1',
+        body: { platform: 'WEB' },
+        provider: { createSession },
+        levelFor: () => {
+          throw Errors.validationError('no level for this user');
+        },
+        logger: silent,
+      }),
+    ).toMatchObject({
+      status: 400,
+      body: { error: 'VALIDATION_ERROR', message: 'no level for this user' },
+    });
+  });
+
+  it('answers 502 when the provider cannot mint, keeping a coded error', async () => {
+    const down = await mintAccessTokenHttp({
+      userId: 'user-1',
+      body: { platform: 'WEB' },
+      provider: {
+        createSession: async () => {
+          throw new Error('network');
+        },
+      },
+      logger: silent,
+    });
+    expect(down).toMatchObject({
+      status: 502,
+      body: { error: 'PROVIDER_UNAVAILABLE' },
+    });
+    expect(silent.error).toHaveBeenCalledWith(
+      'Access token mint failed:',
+      'network',
+    );
+    const coded = await mintAccessTokenHttp({
+      userId: 'user-1',
+      body: { platform: 'WEB' },
+      provider: {
+        createSession: async () => {
+          throw Errors.sessionCreationFailed('quota');
+        },
+      },
+      logger: silent,
+    });
+    expect(coded).toMatchObject({
+      status: 502,
+      body: { error: 'SESSION_CREATION_FAILED', message: 'quota' },
+    });
+    const raw = await mintAccessTokenHttp({
+      userId: 'user-1',
+      body: { platform: 'WEB' },
+      provider: {
+        createSession: async () => {
+          throw 'boom';
+        },
+      },
+      logger: silent,
+    });
+    expect(raw.status).toBe(502);
+    expect(silent.error).toHaveBeenCalledWith(
+      'Access token mint failed:',
+      'boom',
+    );
+  });
+});
+
+describe('createAccessTokenApp', () => {
+  const provider = createMockProvider({
+    publicBaseUrl: () => 'https://kyc.example.com',
+    logger: silent,
+  });
+  const app = (overrides = {}) =>
+    createAccessTokenApp({
+      provider,
+      authenticate,
+      logger: silent,
+      ...overrides,
+    });
+  const mint = (body: string | undefined, headers = {}) =>
+    post('https://api.example.com/verification/token', body, headers);
+
+  it('serves the mint endpoint, a health check and nothing else', async () => {
+    const { fetch } = app();
+    const minted = await fetch(
+      mint(JSON.stringify({ platform: 'ANDROID' }), {
+        authorization: 'Bearer jwt',
+      }),
+    );
+    expect(minted.status).toBe(200);
+    expect(minted.headers.get('content-type')).toBe('application/json');
+    expect(await minted.json()).toMatchObject({
+      accessToken: expect.stringMatching(/^mock-token-/),
+    });
+    expect(
+      (await fetch(mint('{', { authorization: 'Bearer jwt' }))).status,
+    ).toBe(400);
+    expect(
+      (await fetch(mint(JSON.stringify({ platform: 'WEB' })))).status,
+    ).toBe(401);
+    const health = await fetch(new Request('https://api.example.com/health'));
+    expect(health.status).toBe(200);
+    expect(await health.json()).toMatchObject({ status: 'ok' });
+    expect(
+      (await fetch(new Request('https://api.example.com/verification/x')))
+        .status,
+    ).toBe(404);
+    expect(
+      (await fetch(new Request('https://api.example.com/health'))).status,
+    ).toBe(200);
+  });
+
+  it('takes another path and turns the health check off', async () => {
+    const { fetch } = app({ path: '/token', health: false });
+    expect(
+      (
+        await fetch(
+          post(
+            'https://api.example.com/token',
+            JSON.stringify({ platform: 'WEB' }),
+            { authorization: 'Bearer jwt' },
+          ),
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (await fetch(new Request('https://api.example.com/health'))).status,
+    ).toBe(404);
+  });
+
+  it('hands the hook the request, so the level can come from the host session', async () => {
+    const levelFor = jest.fn(
+      (_input, { request, userId }) =>
+        `${userId}:${request.headers.get('x-tier')}`,
+    );
+    const createSession = jest.fn(async () => ({ accessToken: 't' }));
+    const { fetch } = createAccessTokenApp({
+      provider: { createSession },
+      authenticate,
+      levelFor,
+      logger: silent,
+    });
+    await fetch(
+      mint(JSON.stringify({ platform: 'WEB' }), {
+        authorization: 'Bearer jwt',
+        'x-tier': 'gold',
+      }),
+    );
+    expect(createSession).toHaveBeenCalledWith('user-1', {
+      platform: 'WEB',
+      levelName: 'user-1:gold',
+      locale: undefined,
+    });
+  });
+
+  it('answers the CORS preflight and marks the mint for an allowed origin only', async () => {
+    const { fetch } = app({ cors: { origins: ['https://app.example.com'] } });
+    const preflight = await fetch(
+      new Request('https://api.example.com/verification/token', {
+        method: 'OPTIONS',
+        headers: { origin: 'https://app.example.com' },
+      }),
+    );
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get('access-control-allow-origin')).toBe(
+      'https://app.example.com',
+    );
+    expect(preflight.headers.get('access-control-allow-methods')).toBe(
+      'POST, OPTIONS',
+    );
+    const allowed = await fetch(
+      mint(JSON.stringify({ platform: 'WEB' }), {
+        authorization: 'Bearer jwt',
+        origin: 'https://app.example.com',
+      }),
+    );
+    expect(allowed.headers.get('access-control-allow-origin')).toBe(
+      'https://app.example.com',
+    );
+    expect(allowed.headers.get('vary')).toBe('origin');
+    const other = await fetch(
+      mint(JSON.stringify({ platform: 'WEB' }), {
+        authorization: 'Bearer jwt',
+        origin: 'https://evil.example.com',
+      }),
+    );
+    expect(other.headers.get('access-control-allow-origin')).toBeNull();
+    expect(other.headers.get('vary')).toBe('origin');
+    const noOrigin = await fetch(
+      mint(JSON.stringify({ platform: 'WEB' }), {
+        authorization: 'Bearer jwt',
+      }),
+    );
+    expect(noOrigin.headers.get('access-control-allow-origin')).toBeNull();
+    expect(noOrigin.headers.get('vary')).toBe('origin');
+    const bad = await fetch(
+      mint('{', {
+        authorization: 'Bearer jwt',
+        origin: 'https://app.example.com',
+      }),
+    );
+    expect(bad.status).toBe(400);
+    expect(bad.headers.get('access-control-allow-origin')).toBe(
+      'https://app.example.com',
+    );
+    // No CORS configured: OPTIONS is just another unknown request
+    expect(
+      (
+        await app().fetch(
+          new Request('https://api.example.com/verification/token', {
+            method: 'OPTIONS',
+          }),
+        )
+      ).status,
+    ).toBe(404);
+    // Any origin
+    const any = await app({ cors: { origins: ['*'] } }).fetch(
+      mint(JSON.stringify({ platform: 'WEB' }), {
+        authorization: 'Bearer jwt',
+        origin: 'https://anyone.example.com',
+      }),
+    );
+    expect(any.headers.get('access-control-allow-origin')).toBe('*');
   });
 });

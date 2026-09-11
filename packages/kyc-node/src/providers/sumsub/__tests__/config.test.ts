@@ -1,11 +1,15 @@
 import {
+  ACCESS_TOKEN_SETTINGS,
   assertSumsubConfig,
+  isSumsubSandboxToken,
   missingSumsubConfig,
   SUMSUB_CREDENTIALS,
   SUMSUB_DEFAULTS,
   SUMSUB_ENV,
   SumsubConfigError,
+  SUMSUB_SANDBOX_TOKEN_PREFIX,
   sumsubConfigFromEnv,
+  sumsubDemoSettingsInUse,
 } from '../config';
 
 const full = {
@@ -112,5 +116,33 @@ describe('assertSumsubConfig', () => {
     expect(() =>
       assertSumsubConfig(sumsubConfigFromEnv(rest), ['appToken']),
     ).not.toThrow();
+  });
+});
+
+describe('the sandbox tell', () => {
+  it('a sandbox app token carries the sbx: prefix; missing is not sandbox', () => {
+    expect(SUMSUB_SANDBOX_TOKEN_PREFIX).toBe('sbx:');
+    expect(isSumsubSandboxToken('sbx:abc')).toBe(true);
+    expect(isSumsubSandboxToken('prd:abc')).toBe(false);
+    expect(isSumsubSandboxToken('')).toBe(false);
+    expect(isSumsubSandboxToken(undefined)).toBe(false);
+  });
+
+  it('reports the sandbox token as a demo setting, reduced to its prefix', () => {
+    expect(
+      sumsubDemoSettingsInUse(
+        sumsubConfigFromEnv({ SUMSUB_APP_TOKEN: 'sbx:secret-value' }),
+      ),
+    ).toEqual(['SUMSUB_APP_TOKEN=sbx:…']);
+    expect(
+      sumsubDemoSettingsInUse(
+        sumsubConfigFromEnv({ SUMSUB_APP_TOKEN: 'prd:secret-value' }),
+      ),
+    ).toEqual([]);
+    expect(sumsubDemoSettingsInUse(sumsubConfigFromEnv({}))).toEqual([]);
+  });
+
+  it('minting needs the app token and secret, never the webhook secret', () => {
+    expect(ACCESS_TOKEN_SETTINGS).toEqual(['appToken', 'secretKey']);
   });
 });

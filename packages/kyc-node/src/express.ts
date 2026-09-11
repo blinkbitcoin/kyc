@@ -6,10 +6,18 @@
 //
 // `express` is an optional peer: only this entry imports it.
 
-import express, { type RequestHandler, type Response, Router } from 'express';
+import express, {
+  type Request,
+  type RequestHandler,
+  type Response,
+  Router,
+} from 'express';
 import {
+  ACCESS_TOKEN_PATH,
   type HostedPageHttpResult,
   hostedPageHttp,
+  type LevelForHook,
+  mintAccessTokenHttp,
   processWebhookHttp,
 } from './handlers';
 import type { Logger } from './log';
@@ -105,6 +113,62 @@ export const createKycRouter = (options: KycRouterOptions): Router => {
         rawBody: typeof req.body === 'string' ? req.body : '',
         ip: req.ip,
         logger,
+      });
+      res.status(result.status).json(result.body);
+    },
+  );
+
+  return router;
+};
+
+// --- The access-token preset ---------------------------------------------------
+
+export interface AccessTokenRouterOptions {
+  provider: Pick<VerificationProvider, 'createSession'>;
+  // The host's authentication: the caller's user id, or null (→ 401)
+  authenticate: (req: Request) => string | null | Promise<string | null>;
+  // The host's level decision (see LevelForHook); receives the request
+  levelFor?: LevelForHook<{ req: Request }>;
+  // Where the mint endpoint lives (default /verification/token)
+  path?: string;
+  // Serve GET /health (default true)
+  health?: boolean;
+  // Applied to the mint route (e.g. a rate limit, the host's CORS)
+  middleware?: RequestHandler[];
+  // JSON body cap (default 64kb)
+  bodyLimit?: string;
+  logger?: Logger;
+}
+
+// The mint-only HTTP surface as an Express router: POST {path} to mint one
+// provider access token for the authenticated caller, and a health check.
+// No session domain, no store, no webhook route: a host that wants those
+// mounts createKycRouter and the session handlers instead. Same decisions
+// as the Fetch preset (createAccessTokenApp): both call mintAccessTokenHttp.
+export const createAccessTokenRouter = (
+  options: AccessTokenRouterOptions,
+): Router => {
+  const router = Router();
+  const path = options.path ?? ACCESS_TOKEN_PATH;
+
+  if (options.health ?? true) {
+    router.get('/health', (_req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    });
+  }
+
+  router.post(
+    path,
+    ...(options.middleware ?? []),
+    express.json({ limit: options.bodyLimit ?? '64kb' }),
+    async (req, res) => {
+      const result = await mintAccessTokenHttp({
+        userId: await options.authenticate(req),
+        body: req.body,
+        provider: options.provider,
+        levelFor: options.levelFor,
+        context: { req },
+        logger: options.logger,
       });
       res.status(result.status).json(result.body);
     },

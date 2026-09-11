@@ -5,26 +5,35 @@
 // tests); nothing else imports the adapters.
 
 import {
+  assertProductionConfig,
   type ProviderRegistry,
   providerFromEnv,
   providerNameFromEnv,
+  sumsubDemoSettingsInUse,
 } from '@blinkbitcoin/kyc-node';
 import { instrumentProvider } from '../tracing';
 import { assertMockProviderAllowed, MockProvider } from './mock';
 import type { VerificationProvider } from './port';
-import { SumsubProvider, validateConfig as validateSumsubConfig } from './sumsub';
+import { getConfig, SumsubProvider, validateConfig as validateSumsubConfig } from './sumsub';
 
 // Every adapter is wrapped in tracing spans here, so new providers are
 // instrumented by construction (see instrumentProvider in tracing.ts). The
 // entries are lazy and fail fast at startup, never per request: the mock
-// refuses to start outside insecure dev, Sumsub without its credentials.
+// refuses to start outside insecure dev, Sumsub without its credentials,
+// and KYC_ENV=production refuses demo settings (the mock, a sandbox token)
+// unless KYC_ALLOW_DEMO=true.
 export const registry: ProviderRegistry = {
   mock: () => {
     assertMockProviderAllowed();
+    assertProductionConfig(process.env, { provider: 'mock', demo: true });
     return instrumentProvider(MockProvider, 'mock');
   },
   sumsub: () => {
     validateSumsubConfig();
+    assertProductionConfig(process.env, {
+      provider: 'sumsub',
+      demoSettings: sumsubDemoSettingsInUse(getConfig()),
+    });
     return instrumentProvider(SumsubProvider, 'sumsub');
   },
 };

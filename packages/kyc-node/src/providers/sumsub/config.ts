@@ -41,7 +41,30 @@ export const SUMSUB_CREDENTIALS: readonly SumsubConfigKey[] = [
   'webhookSecret',
 ];
 
+/** What minting an access token cannot do without (no webhook secret: a
+ * host that receives no webhooks never needs one). */
+export const ACCESS_TOKEN_SETTINGS: readonly SumsubConfigKey[] = [
+  'appToken',
+  'secretKey',
+];
+
 export type Env = Record<string, string | undefined>;
+
+// The prefix Sumsub gives every sandbox app token; production tokens have
+// none. Same host either way, so the token is the one tell.
+export const SUMSUB_SANDBOX_TOKEN_PREFIX = 'sbx:';
+
+// A sandbox app token (undefined and empty are not sandbox: they are missing)
+export const isSumsubSandboxToken = (appToken: string | undefined): boolean =>
+  typeof appToken === 'string' &&
+  appToken.startsWith(SUMSUB_SANDBOX_TOKEN_PREFIX);
+
+// The demo settings `config` still uses, as "VAR=value" for the production
+// guard - the token reduced to its prefix, so no secret reaches a log
+export const sumsubDemoSettingsInUse = (config: SumsubConfig): string[] =>
+  isSumsubSandboxToken(config.appToken)
+    ? [`${SUMSUB_ENV.appToken}=${SUMSUB_SANDBOX_TOKEN_PREFIX}…`]
+    : [];
 
 const positiveInt = (raw: string | undefined, fallback: number): number => {
   const parsed = Number.parseInt(raw ?? '', 10);

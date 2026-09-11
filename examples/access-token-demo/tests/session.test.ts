@@ -1,27 +1,7 @@
 import { vi } from 'vitest';
-
-// createSumsubProvider is replaced per test (the default is the real one),
-// so the Sumsub entry can be asserted on without a network
-const { createSumsubProvider } = vi.hoisted(() => ({
-  createSumsubProvider: vi.fn(),
-}));
-vi.mock('@blinkbitcoin/kyc-node', async importOriginal => {
-  const original =
-    await importOriginal<typeof import('@blinkbitcoin/kyc-node')>();
-  createSumsubProvider.mockImplementation(original.createSumsubProvider);
-  return {
-    ...original,
-    createSumsubProvider: (...args: unknown[]) => createSumsubProvider(...args),
-  };
-});
-
-import { createStartSession, registry } from '../src/session';
+import { createStartSession } from '../src/session';
 
 describe('createStartSession', () => {
-  afterEach(() => {
-    createSumsubProvider.mockClear();
-  });
-
   it('mock provider: mints a mock token for the user and level', async () => {
     const start = createStartSession({ KYC_PROVIDER: 'mock' });
     const session = await start('user-1', 'IOS', 'basic-kyc-level');
@@ -40,30 +20,49 @@ describe('createStartSession', () => {
     ).not.toThrow();
   });
 
-  it('sumsub: mints through the Sumsub adapter over one config object', async () => {
+  it('production refuses the sandbox token and the mock unless demo is allowed', () => {
+    const sandbox = {
+      KYC_ENV: 'production',
+      SUMSUB_APP_TOKEN: 'sbx:app',
+      SUMSUB_SECRET_KEY: 'key',
+    };
+    expect(() => createStartSession(sandbox)).toThrow(
+      /SUMSUB_APP_TOKEN=sbx:… is a demo setting/,
+    );
+    expect(() =>
+      createStartSession({ KYC_ENV: 'production', KYC_PROVIDER: 'mock' }),
+    ).toThrow(/the mock provider is a demo provider/);
+    expect(() =>
+      createStartSession({ ...sandbox, KYC_ALLOW_DEMO: 'true' }),
+    ).not.toThrow();
+  });
+
+  it('sumsub: mints through the Sumsub adapter over the SUMSUB_* environment', async () => {
     const env = {
       SUMSUB_APP_TOKEN: 'app',
       SUMSUB_SECRET_KEY: 'key',
       SUMSUB_LEVEL_NAME: 'lvl',
     };
-    const createSession = vi.fn().mockResolvedValue({ accessToken: 'live' });
-    createSumsubProvider.mockReturnValueOnce({ createSession });
-    const start = createStartSession(env);
-    await start('user-2', 'WEB', 'basic-kyc-level');
+    // The adapter's HTTP, stubbed: what Sumsub answers a token request with
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ token: 'live', userId: 'user-2' }),
+      text: async () => '',
+    })) as unknown as typeof globalThis.fetch;
+    const start = createStartSession(env, { fetch });
+    await expect(
+      start('user-2', 'WEB', 'basic-kyc-level'),
+    ).resolves.toMatchObject({
+      accessToken: 'live',
+    });
     await start('user-2', 'ANDROID', 'enhanced-kyc-level');
-    expect(createSumsubProvider).toHaveBeenCalledTimes(1);
-    expect(createSumsubProvider.mock.calls[0][0].config).toMatchObject({
-      appToken: 'app',
-      levelName: 'lvl',
-    });
-    expect(createSession).toHaveBeenNthCalledWith(1, 'user-2', {
-      platform: 'WEB',
-      levelName: 'basic-kyc-level',
-    });
-    expect(createSession).toHaveBeenNthCalledWith(2, 'user-2', {
-      platform: 'ANDROID',
-      levelName: 'enhanced-kyc-level',
-    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const urls = (fetch as ReturnType<typeof vi.fn>).mock.calls.map(([url]) =>
+      String(url),
+    );
+    expect(urls[0]).toContain('levelName=basic-kyc-level');
+    expect(urls[1]).toContain('levelName=enhanced-kyc-level');
   });
 
   it('warns and falls back to the default for an unknown name; takes another registry', async () => {
@@ -78,17 +77,15 @@ describe('createStartSession', () => {
     const start = createStartSession(
       { KYC_PROVIDER: 'own' },
       {
-        sumsub: () => {
-          throw new Error('not this one');
+        registry: {
+          sumsub: () => {
+            throw new Error('not this one');
+          },
+          own: () => ({ createSession }) as never,
         },
-        own: () => ({ createSession }) as never,
       },
     );
     await expect(start('u', 'WEB', 'l')).resolves.toEqual({ accessToken: 't' });
     warn.mockRestore();
-  });
-
-  it('registry: the package entries with this host’s Sumsub entry', () => {
-    expect(Object.keys(registry({})).sort()).toEqual(['mock', 'sumsub']);
   });
 });

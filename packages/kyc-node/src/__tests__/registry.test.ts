@@ -2,7 +2,10 @@
 // registry wires the two shipped adapters from the environment.
 
 import type { VerificationProvider } from '../provider';
+import { ProductionConfigError } from '../production';
+import { SumsubConfigError } from '../providers/sumsub/config';
 import {
+  accessTokenProviderFromEnv,
   defaultRegistry,
   KYC_PROVIDER_ENV,
   type ProviderRegistry,
@@ -195,5 +198,127 @@ describe('defaultRegistry', () => {
       { sumsubWebhook: { allowMissingSecret: () => true, logger: silent } },
     ).sumsub();
     expect(open.verifyWebhook({}, '{}')).toBe(true);
+  });
+});
+
+describe('the boot checks on selection', () => {
+  const silent = { log: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  const credentials = { SUMSUB_APP_TOKEN: 'app', SUMSUB_SECRET_KEY: 'key' };
+
+  it('sumsub: requires nothing by default, the declared settings when asked', () => {
+    expect(() =>
+      defaultRegistry({}, { logger: silent }).sumsub(),
+    ).not.toThrow();
+    let caught: unknown;
+    try {
+      defaultRegistry(
+        {},
+        { logger: silent, sumsub: { required: ['appToken', 'secretKey'] } },
+      ).sumsub();
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(SumsubConfigError);
+    expect((caught as SumsubConfigError).missing).toEqual([
+      'SUMSUB_APP_TOKEN',
+      'SUMSUB_SECRET_KEY',
+    ]);
+    expect(() =>
+      defaultRegistry(credentials, {
+        logger: silent,
+        sumsub: { required: ['appToken', 'secretKey'] },
+      }).sumsub(),
+    ).not.toThrow();
+  });
+
+  it('sumsub: production refuses the sandbox token unless demo is allowed', () => {
+    const sandbox = { ...credentials, SUMSUB_APP_TOKEN: 'sbx:app' };
+    expect(() =>
+      defaultRegistry({ ...sandbox, KYC_ENV: 'production' }).sumsub(),
+    ).toThrow(ProductionConfigError);
+    expect(() =>
+      defaultRegistry({ ...sandbox, KYC_ENV: 'production' }).sumsub(),
+    ).toThrow('KYC_ENV=production: SUMSUB_APP_TOKEN=sbx:… is a demo setting');
+    expect(() => defaultRegistry(sandbox).sumsub()).not.toThrow();
+    expect(() =>
+      defaultRegistry({
+        ...sandbox,
+        KYC_ENV: 'production',
+        KYC_ALLOW_DEMO: 'true',
+      }).sumsub(),
+    ).not.toThrow();
+    expect(() =>
+      defaultRegistry({ ...credentials, KYC_ENV: 'production' }).sumsub(),
+    ).not.toThrow();
+  });
+
+  it('mock: production refuses it unless demo is allowed', () => {
+    expect(() =>
+      defaultRegistry({ KYC_ENV: 'production' }, { logger: silent }).mock(),
+    ).toThrow('KYC_ENV=production: the mock provider is a demo provider');
+    expect(() =>
+      defaultRegistry(
+        { KYC_ENV: 'production', KYC_ALLOW_DEMO: 'true' },
+        { logger: silent },
+      ).mock(),
+    ).not.toThrow();
+  });
+});
+
+describe('accessTokenProviderFromEnv', () => {
+  const silent = { log: jest.fn(), warn: jest.fn(), error: jest.fn() };
+
+  it('selects Sumsub by default with the mint settings required at boot', () => {
+    expect(() => accessTokenProviderFromEnv({}, { logger: silent })).toThrow(
+      /SUMSUB_APP_TOKEN, SUMSUB_SECRET_KEY/,
+    );
+    // The webhook secret is not needed: an access-token host receives none
+    const provider = accessTokenProviderFromEnv(
+      { SUMSUB_APP_TOKEN: 'app', SUMSUB_SECRET_KEY: 'key' },
+      { logger: silent },
+    );
+    expect(typeof provider.createSession).toBe('function');
+    expect(typeof provider.getStatusByUserId).toBe('function');
+  });
+
+  it('refuses production on the sandbox token and on the mock', () => {
+    expect(() =>
+      accessTokenProviderFromEnv({
+        KYC_ENV: 'production',
+        SUMSUB_APP_TOKEN: 'sbx:app',
+        SUMSUB_SECRET_KEY: 'key',
+      }),
+    ).toThrow(ProductionConfigError);
+    expect(() =>
+      accessTokenProviderFromEnv(
+        { KYC_ENV: 'production', KYC_PROVIDER: 'mock' },
+        { logger: silent },
+      ),
+    ).toThrow(ProductionConfigError);
+  });
+
+  it('takes another default, another required set, a registry, and reports unknown names', async () => {
+    const mock = accessTokenProviderFromEnv(
+      {},
+      { default: 'mock', logger: silent },
+    );
+    await expect(
+      mock.createSession('u', { platform: 'WEB' }),
+    ).resolves.toMatchObject({ accessToken: expect.stringMatching(/^mock-/) });
+    expect(() =>
+      accessTokenProviderFromEnv(
+        { SUMSUB_APP_TOKEN: 'app' },
+        { sumsub: { required: ['appToken'] }, logger: silent },
+      ),
+    ).not.toThrow();
+    const onUnknown = jest.fn();
+    const own = { createSession: jest.fn() } as unknown as VerificationProvider;
+    expect(
+      accessTokenProviderFromEnv(
+        { KYC_PROVIDER: 'onfido' },
+        { registry: { own: () => own }, default: 'own', onUnknown },
+      ),
+    ).toBe(own);
+    expect(onUnknown).toHaveBeenCalledWith('onfido', 'own');
   });
 });

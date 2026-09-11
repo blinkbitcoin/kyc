@@ -63,6 +63,19 @@ describe('getProvider', () => {
     expect(() => getProvider('nope')).toThrow(/KYC_PROVIDER=mock/);
   });
 
+  it('KYC_ENV=production refuses the mock and a sandbox token unless demo is allowed', () => {
+    process.env.KYC_ENV = 'production';
+    expect(() => getProvider('mock')).toThrow(/the mock provider is a demo provider/);
+    Object.assign(process.env, SUMSUB_ENV, { SUMSUB_APP_TOKEN: 'sbx:app-token' });
+    expect(() => getProvider('sumsub')).toThrow(/SUMSUB_APP_TOKEN=sbx:… is a demo setting/);
+    process.env.KYC_ALLOW_DEMO = 'true';
+    expect(() => getProvider('sumsub')).not.toThrow();
+    expect(() => getProvider('mock')).not.toThrow();
+    delete process.env.KYC_ALLOW_DEMO;
+    process.env.SUMSUB_APP_TOKEN = 'prd:app-token';
+    expect(() => getProvider('sumsub')).not.toThrow();
+  });
+
   it('warns and falls back to mock for an unknown provider name', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const provider = getProvider('nope');

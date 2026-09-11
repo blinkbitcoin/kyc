@@ -4,7 +4,11 @@
 
 import express, { type RequestHandler } from 'express';
 import request from 'supertest';
-import { createKycRouter, type KycRouterOptions } from '../express';
+import {
+  createAccessTokenRouter,
+  createKycRouter,
+  type KycRouterOptions,
+} from '../express';
 import { createMockProvider } from '../providers/mock/provider';
 import { createVerificationService } from '../sessions';
 import { createMemorySessionStore } from '../store';
@@ -200,5 +204,92 @@ describe('POST /webhook/kyc/:provider', () => {
       JSON.stringify({ applicantId, pad: 'x'.repeat(2000) }),
     );
     expect(tooBig.status).toBe(413);
+  });
+});
+
+describe('createAccessTokenRouter', () => {
+  const provider = createMockProvider({
+    publicBaseUrl: () => 'https://kyc.example.com',
+    logger: silent,
+  });
+  const authenticate = (req: express.Request) =>
+    req.headers.authorization === 'Bearer jwt' ? 'user-1' : null;
+  const mount = (
+    overrides: Partial<Parameters<typeof createAccessTokenRouter>[0]> = {},
+  ) => {
+    const app = express();
+    app.use(
+      createAccessTokenRouter({
+        provider,
+        authenticate,
+        logger: silent,
+        ...overrides,
+      }),
+    );
+    return app;
+  };
+
+  it('mints a token for the authenticated caller and serves a health check', async () => {
+    const app = mount();
+    const minted = await request(app)
+      .post('/verification/token')
+      .set('authorization', 'Bearer jwt')
+      .send({ platform: 'IOS' });
+    expect(minted.status).toBe(200);
+    expect(minted.body.accessToken).toMatch(/^mock-token-/);
+    expect(
+      (await request(app).post('/verification/token').send({ platform: 'IOS' }))
+        .status,
+    ).toBe(401);
+    expect(
+      (
+        await request(app)
+          .post('/verification/token')
+          .set('authorization', 'Bearer jwt')
+          .send({ platform: 'TV' })
+      ).status,
+    ).toBe(400);
+    const health = await request(app).get('/health');
+    expect(health.status).toBe(200);
+    expect(health.body.status).toBe('ok');
+  });
+
+  it('takes another path, middleware, a body cap, the hook, and no health check', async () => {
+    const seen: string[] = [];
+    const guard: RequestHandler = (_req, _res, next) => {
+      seen.push('guard');
+      next();
+    };
+    const createSession = jest.fn(async () => ({ accessToken: 't' }));
+    const app = mount({
+      provider: { createSession },
+      path: '/token',
+      middleware: [guard],
+      bodyLimit: '100b',
+      health: false,
+      levelFor: (_input, { req, userId }) =>
+        `${userId}:${req.header('x-tier')}`,
+    });
+    const minted = await request(app)
+      .post('/token')
+      .set('authorization', 'Bearer jwt')
+      .set('x-tier', 'gold')
+      .send({ platform: 'WEB' });
+    expect(minted.status).toBe(200);
+    expect(seen).toEqual(['guard']);
+    expect(createSession).toHaveBeenCalledWith('user-1', {
+      platform: 'WEB',
+      levelName: 'user-1:gold',
+      locale: undefined,
+    });
+    expect(
+      (
+        await request(app)
+          .post('/token')
+          .set('authorization', 'Bearer jwt')
+          .send({ platform: 'WEB', levelName: 'x'.repeat(200) })
+      ).status,
+    ).toBe(413);
+    expect((await request(app).get('/health')).status).toBe(404);
   });
 });
