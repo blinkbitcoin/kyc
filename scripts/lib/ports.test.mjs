@@ -9,11 +9,15 @@ import {
   BLOCK_STEP,
   SERVICES,
   baseFrom,
+  claimedBase,
   devDatabaseUrl,
   envLines,
+  nextFreeBase,
+  parseWorktrees,
   portFrom,
   resolvePorts,
   testDatabaseUrl,
+  withClaimedBase,
 } from './ports.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -177,5 +181,72 @@ describe('the consumers', () => {
     expect(source).toContain(`hosted: ${SERVICES.webHosted.offset}`);
     expect(source).toContain(`proxy: ${SERVICES.webProxy.offset}`);
     expect(source).toContain(`API_OFFSET = ${SERVICES.api.offset}`);
+  });
+});
+
+describe("a worktree's block", () => {
+  it('reads the worktrees of the porcelain listing, the main clone first', () => {
+    const porcelain = [
+      'worktree /Users/x/Dev/kyc',
+      'HEAD 0000000000000000000000000000000000000000',
+      'branch refs/heads/main',
+      '',
+      'worktree /Users/x/Dev/kyc-topic',
+      'HEAD 1111111111111111111111111111111111111111',
+      'detached',
+      '',
+    ].join('\n');
+    expect(parseWorktrees(porcelain)).toEqual([
+      { path: '/Users/x/Dev/kyc', isMain: true },
+      { path: '/Users/x/Dev/kyc-topic', isMain: false },
+    ]);
+    expect(parseWorktrees('')).toEqual([]);
+  });
+
+  it.each([
+    ['KYC_PORT_BASE=5120\n', 5120],
+    ['export KYC_PORT_BASE="5140" # mine\n', 5140],
+    ["  KYC_PORT_BASE='5160'\n", 5160],
+    ['# KYC_PORT_BASE=5120\nOTHER=1\n', undefined],
+    ['KYC_PORT_BASE=5120\nKYC_PORT_BASE=5180\n', 5180],
+    ['KYC_PORT_BASE=\n', undefined],
+    ['', undefined],
+  ])('reads the claim in %j as %s', (text, base) => {
+    expect(claimedBase(text)).toBe(base);
+  });
+
+  it('refuses a claim that is not a port', () => {
+    expect(() => claimedBase('KYC_PORT_BASE=99999\n')).toThrow(
+      /KYC_PORT_BASE must be a port number/,
+    );
+  });
+
+  it('hands out the lowest free block above the default', () => {
+    expect(nextFreeBase([])).toBe(5120);
+    expect(nextFreeBase([5120, 5160])).toBe(5140);
+    expect(nextFreeBase([5100, 5120, 5140])).toBe(5160);
+    expect(nextFreeBase([5120], { base: 4100, step: 20, slots: 2 })).toBe(4120);
+  });
+
+  it('fails loudly when every block is claimed', () => {
+    const all = Array.from(
+      { length: BLOCK_SLOTS },
+      (_, i) => BASE_DEFAULT + (i + 1) * BLOCK_STEP,
+    );
+    expect(() => nextFreeBase(all)).toThrow(/no free port block/);
+  });
+
+  it('appends the claim to .env.local, once', () => {
+    const claimed = withClaimedBase('', 5120);
+    expect(claimed).toBe(
+      "# This worktree's port block (scripts/lib/ports.mjs; make ports shows it)\nKYC_PORT_BASE=5120\n",
+    );
+    expect(withClaimedBase(claimed, 5120)).toBe(claimed);
+    expect(withClaimedBase('OTHER=1', 5140)).toBe(
+      "OTHER=1\n# This worktree's port block (scripts/lib/ports.mjs; make ports shows it)\nKYC_PORT_BASE=5140\n",
+    );
+    expect(claimedBase(withClaimedBase('KYC_PORT_BASE=5120\n', 5160))).toBe(
+      5160,
+    );
   });
 });
