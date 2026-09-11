@@ -23,9 +23,11 @@ The kyc service (`packages/kyc-service`) is this package plus a Fetch
 runtime, Apollo and a Postgres store; a backend that already exists (Blink's
 GraphQL API) imports the package instead of running that service.
 
-Two worked hosts live in this repo, one per tier:
+Three worked hosts live in this repo, one per shape:
 [`examples/access-token-demo`](../../examples/access-token-demo/README.md)
-(one mutation on an existing API) and
+(one mutation on an existing API),
+[`examples/serverless-handler-demo`](../../examples/serverless-handler-demo/README.md)
+(the access-token preset behind a route handler) and
 [`packages/kyc-service`](../kyc-service/README.md) (the whole service, also
 shipped as the `kyc-service` image; its
 [Deploy table](../kyc-service/README.md#deploy) has one row per target).

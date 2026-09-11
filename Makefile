@@ -144,7 +144,7 @@ e2e-web-proxy: test-db-up build ## Playwright browser E2E for the web demo in pr
 	npm run test:e2e:proxy -w examples/react-demo
 	$(MAKE) test-db-down
 
-e2e-server-demos: ## Boot the access-token example (mock provider) and call its mutation
+e2e-server-demos: ## Boot the two in-process server examples (mock provider) and call their routes
 	bash scripts/e2e/server-demos-smoke.sh
 
 e2e-backend-up: ## The backend (mock provider) in the background on KYC_API_PORT, wait for /health (needs a migrated E2E database: Docker `make test-db-up` + `npm run migrate:test -w packages/kyc-service`, or CI's Homebrew Postgres; `make e2e-*-local` does it all)

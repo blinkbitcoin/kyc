@@ -40,6 +40,11 @@ export const SERVICES = {
     env: 'SMOKE_PORT',
     what: 'the host side of the image smoke (scripts/ci/docker-smoke.sh)',
   },
+  handler: {
+    offset: 6,
+    env: 'HANDLER_PORT',
+    what: 'serverless-handler-demo (make e2e-server-demos)',
+  },
 };
 
 /** The E2E database URL for that port (what .env.test carries for the default). */

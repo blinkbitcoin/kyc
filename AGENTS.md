@@ -35,7 +35,8 @@ the current state is [docs/index.md](docs/index.md).
 │           ├── config.ts            # validateConfig (pure, fail-closed boot guard)
 │           └── server.ts / node.ts  # The Node target (rate limits, drain) / the process entry; vercel.ts, cloudflare.ts
 ├── examples/
-│   ├── access-token-demo/       # 🖥️ the other server shape: an existing GraphQL API adds one mutation that mints a provider access token (mode 2)
+│   ├── access-token-demo/       # 🖥️ in-process tier, shape 1: an existing GraphQL API adds one mutation that mints a provider access token (mode 2)
+│   ├── serverless-handler-demo/ # 🖥️ in-process tier, shape 2: the access-token preset (Fetch handlers) behind a route handler, plain Node adapter
 │   ├── react-native-demo/       # 📱 RN host: KYC_MODE native|hosted|proxy|fake-native, KYC_UI default|themed; Maestro suite (.maestro/)
 │   └── react-demo/              # 🌐 Vite host: VITE_KYC_MODE hosted|proxy, VITE_KYC_UI default|themed; Playwright suites (e2e/; ports from KYC_PORT_BASE)
 ├── docs/                        # Current-state documentation (hand-maintained): architecture/, integration/, diagrams/ (sources in src/*.mmd), index.md is the map

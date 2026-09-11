@@ -34,6 +34,7 @@ describe('the port table', () => {
       token: 5103,
       testDb: 5104,
       smoke: 5105,
+      handler: 5106,
     });
     expect(testDatabaseUrl(5104)).toBe(
       'postgresql://test:test@localhost:5104/kyc_test',
@@ -87,6 +88,7 @@ describe('envLines', () => {
       'export TOKEN_PORT=9000',
       'export KYC_TEST_DB_PORT=5104',
       'export SMOKE_PORT=5105',
+      'export HANDLER_PORT=5106',
       'export KYC_TEST_DATABASE_URL=postgresql://test:test@localhost:5104/kyc_test',
     ]);
   });
@@ -96,7 +98,8 @@ describe('envLines', () => {
 // Native bundle, an ES-module example), so each declares its own offset as
 // a literal. These checks keep those literals on the table.
 describe('the consumers', () => {
-  const { base, api, webHosted, webProxy, token, testDb } = resolvePorts({});
+  const { base, api, webHosted, webProxy, token, testDb, handler } =
+    resolvePorts({});
 
   it.each([
     ['packages/kyc-service/src/port.ts', `PORT_BASE_DEFAULT = ${base}`],
@@ -108,6 +111,14 @@ describe('the consumers', () => {
     [
       'examples/access-token-demo/src/index.ts',
       `PORT_OFFSET = ${SERVICES.token.offset}`,
+    ],
+    [
+      'examples/serverless-handler-demo/src/index.ts',
+      `PORT_BASE_DEFAULT = ${base}`,
+    ],
+    [
+      'examples/serverless-handler-demo/src/index.ts',
+      `PORT_OFFSET = ${SERVICES.handler.offset}`,
     ],
     ['examples/react-native-demo/src/config.ts', `PORT_BASE_DEFAULT = ${base}`],
     [
@@ -129,6 +140,7 @@ describe('the consumers', () => {
       `http://localhost:${webHosted},http://localhost:${webProxy}`,
     ],
     ['examples/access-token-demo/.env.example', `PORT=${token}`],
+    ['examples/serverless-handler-demo/.env.example', `PORT=${handler}`],
     [
       'packages/kyc-service/.env.test',
       `DATABASE_URL=${testDatabaseUrl(testDb)}`,
