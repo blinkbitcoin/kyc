@@ -114,6 +114,14 @@ backend: ## Backend dev server (tsx watch; env via direnv/.env, DATABASE_URL def
 web: ## Vite dev server for the web example app
 	npm run web
 
+# ---------- Ports ----------
+
+ports: ## This worktree's port block (KYC_PORT_BASE + offsets, the two databases, Metro) and who holds each port
+	node scripts/e2e/ports.mjs table
+
+ports-free: ## Stop what this worktree left on its ports (its processes, its compose projects, its Metro); FORCE=1 also stops a sibling worktree's leftovers, never a foreign process
+	node scripts/e2e/ports.mjs free $(if $(FORCE),--force)
+
 # ---------- Database ----------
 
 db-up: ## Start this worktree's dev Postgres (examples/full-service-demo/docker-compose.yml on KYC_DEV_DB_PORT = KYC_PORT_BASE + 5, default 5105; its own compose project and volume)
@@ -223,7 +231,7 @@ help: ## List available targets
 		awk 'BEGIN {FS = ":.*##"} {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: install hooks pods release release-rc version registry-smoke unit coverage coverage-badge typecheck lint format format-check check-code \
-	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check codeql start ios android backend web db-up db-down migrate \
+	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check codeql start ios android backend web ports ports-free db-up db-down migrate \
 	diagrams test-db-up test-db-down e2e-backend e2e-web e2e-web-proxy \
 	e2e-server-demos e2e-backend-up e2e-backend-down e2e-metro-up e2e-metro-down android-build e2e-android e2e-android-local e2e-fake-native ios-build e2e-ios e2e-ios-local \
 	sumsub-env sumsub-check test-live e2e-live live-web live-ios live-android clean reset help
