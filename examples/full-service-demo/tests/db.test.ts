@@ -28,7 +28,7 @@ describe('db', () => {
   });
 
   it('exports a pg-backed knex instance when DATABASE_URL is set', async () => {
-    process.env.DATABASE_URL = 'postgresql://test:test@localhost:5433/kyc_test';
+    process.env.DATABASE_URL = 'postgresql://test:test@localhost:5104/kyc_test';
     vi.resetModules();
 
     const { knex } = await import('../src/db');
@@ -37,7 +37,7 @@ describe('db', () => {
     // knex parses the connection string into its component fields
     expect(knex.client.connectionSettings).toMatchObject({
       host: 'localhost',
-      port: '5433',
+      port: '5104',
       database: 'kyc_test',
       user: 'test',
     });

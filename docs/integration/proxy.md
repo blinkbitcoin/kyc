@@ -74,7 +74,7 @@ The hook does **not** poll, deliberately: webhooks are the backend's source of t
 ## Running the reference backend
 
 ```bash
-make db-up migrate backend        # dev Postgres on 5432, migrations, server on 5100
+make db-up migrate backend        # dev Postgres on KYC_DEV_DB_PORT (5105 in the main clone), migrations, server on 5100
 ```
 
 Minimum configuration for a real deployment:

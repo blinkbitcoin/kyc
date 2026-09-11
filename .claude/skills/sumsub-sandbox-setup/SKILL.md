@@ -27,9 +27,18 @@ the device matrix it must include an **identity document and a
 liveness/selfie step** - a document-only level never opens the camera and
 makes every camera check pass vacuously. Record the exact name.
 
+The live submission tests need a second, **document-only** level
+(`SUMSUB_E2E_LEVEL_NAME`, e.g. `kyc-library-e2e`: identity document,
+automated review): an API upload cannot satisfy a liveness step, so
+`status/pending` would refuse on the first one. Create it alongside the
+existing levels; never edit a level the app uses.
+
 ## 2. The App Token
 
-Dev space → App Tokens → Generate. Record the token
+Dev space → App Tokens → Generate, with the default permissions plus
+**Create applicants** (the submission tests create real sandbox
+applicants; a dashboard user without that permission cannot grant it, so
+an admin may have to generate the token). Record the token
 (`SUMSUB_APP_TOKEN`) and the **secret key** (`SUMSUB_SECRET_KEY`) - the
 secret is shown once. For CI make a second token, separate from any
 developer's, so it can be revoked on its own.
@@ -44,8 +53,10 @@ signs with (`SUMSUB_WEBHOOK_DIGEST_ALG`: `HMAC_SHA256_HEX` by default,
 `HMAC_SHA1_HEX` or `HMAC_SHA512_HEX`). The backend reads the algorithm from
 the `x-payload-digest-alg` header on every request; only the live test needs
 to know it, because it signs its own webhook with the same secret. The
-automated tier never waits for Sumsub to call back, so for CI the URL may
-be a placeholder; the device matrix needs a real, public one.
+automated tier never waits for Sumsub to call back (the service's status
+reads reconcile against the sandbox), so for CI the URL may be a
+placeholder; the device matrix needs a real, public one, and a local
+`make e2e-live` with the funnel up receives the real review webhooks too.
 
 ## 4. A public URL (device matrix only)
 
@@ -78,8 +89,8 @@ things is wrong (401: token/secret; a 4xx naming the level: the level;
 
 ## CI
 
-The same five names go into the `sumsub-sandbox` GitHub environment
-(three secrets) and two repository variables; `E2E_LIVE=true` or the
+The same names go into the `sumsub-sandbox` GitHub environment
+(three secrets) and three repository variables; `E2E_LIVE=true` or the
 `e2e:live` label turns the job on. `docs/operations/live-e2e-ci.md` has
 the table and the rotation steps.
 

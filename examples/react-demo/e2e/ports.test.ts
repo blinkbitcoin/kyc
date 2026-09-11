@@ -50,6 +50,7 @@ describe('the port table', () => {
       expect(portsFrom(env)).toEqual({
         api: table.api,
         web: { hosted: table.webHosted, proxy: table.webProxy },
+        testDb: table.testDb,
       });
     }
   });
@@ -79,6 +80,7 @@ describe('portsFrom', () => {
     expect(DEFAULT_PORTS).toEqual({
       api: 5100,
       web: { hosted: 5101, proxy: 5102 },
+      testDb: 5104,
     });
   });
 
@@ -89,7 +91,7 @@ describe('portsFrom', () => {
         KYC_WEB_PORT: '5111',
         KYC_WEB_PROXY_PORT: '5112',
       }),
-    ).toEqual({ api: 5110, web: { hosted: 5111, proxy: 5112 } });
+    ).toEqual({ api: 5110, web: { hosted: 5111, proxy: 5112 }, testDb: 5104 });
     expect(portsFrom({ KYC_WEB_PORT: '5111' }).api).toBe(5100);
   });
 });
@@ -122,6 +124,9 @@ describe('webServer entries', () => {
     const backend = backendServer();
     expect(backend.command).toContain(`PORT=${PORTS.api}`);
     expect(backend.command).toContain(`PUBLIC_BASE_URL=${API_ORIGIN}`);
+    expect(backend.command).toContain(
+      `DATABASE_URL=postgresql://test:test@localhost:${PORTS.testDb}/kyc_test`,
+    );
     expect(backend.command).toContain(
       `CORS_ALLOWED_ORIGINS=http://localhost:${PORTS.web.hosted},http://localhost:${PORTS.web.proxy}`,
     );

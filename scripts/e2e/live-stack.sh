@@ -56,13 +56,13 @@ live_public_url() {
 live_backend_up() {
   echo "== dev database + migrations"
   make db-up > /dev/null
-  npm run --silent migrate -w "$SERVICE" > /dev/null
+  bash scripts/e2e/dev-db.sh run npm run --silent migrate -w "$SERVICE" > /dev/null
   export CORS_ALLOWED_ORIGINS="http://localhost:$KYC_WEB_PORT,${CORS_ALLOWED_ORIGINS:-}"
   echo "== backend on :$KYC_API_PORT (Sumsub sandbox, level $SUMSUB_LEVEL_NAME)"
   if lsof -t -iTCP:"$KYC_API_PORT" -sTCP:LISTEN > /dev/null 2>&1; then
     echo "::error::port $KYC_API_PORT is taken - stop that backend first (make e2e-backend-down)"; exit 1
   fi
-  PORT="$KYC_API_PORT" npm run backend > "$LOG_DIR/backend-live.log" 2>&1 &
+  PORT="$KYC_API_PORT" bash scripts/e2e/dev-db.sh run npm run backend > "$LOG_DIR/backend-live.log" 2>&1 &
   wait_for backend 40 2 "$LOG_DIR/backend-live.log" http_ok "http://localhost:$KYC_API_PORT/health"
 }
 

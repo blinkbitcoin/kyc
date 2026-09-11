@@ -99,7 +99,7 @@ Persistence is a port of `@blinkbitcoin/kyc-server` (`packages/kyc-server/src/st
 
 ```bash
 make migrate                                      # apply to the dev database
-npm run migrate:test -w examples/full-service-demo   # apply to the E2E database on 5433
+npm run migrate:test -w examples/full-service-demo   # apply to the E2E database (KYC_TEST_DB_PORT, 5104)
 ```
 
 Migrations are code, not files: a new one is an entry in `KYC_MIGRATIONS` (`packages/kyc-server/src/knex/migrations.ts`) with a name that sorts after the existing ones, tested in the package's `migrations.test.ts` (exact columns, foreign key, index, literal names - an existing `knex_migrations` history must keep matching). `runKycMigrations(db)` applies them through `createKycMigrationSource()`; a host that manages its own Knex migrations can instead register the source with its `knex.migrate`.

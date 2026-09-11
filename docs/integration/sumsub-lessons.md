@@ -5,6 +5,37 @@ section per pass, newest first; the automated tier is `make e2e-live`
 (`docs/integration/sumsub.md`, "The automated tier"), the device rows are
 sections 3-5 of that checklist.
 
+## 2026-09-10 - second pass, the real-submission tier (step 0 with the local token)
+
+**Setup:** the same sandbox and token as the first pass, level
+`01-upgrade-to-level-TWO`; a throwaway script running the six sandbox calls
+the submission tests use (create applicant, upload the German passport
+template, steps status, request check, simulate the review, status).
+
+**Result:** stopped at the first call. `POST /resources/applicants?levelName=…`
+answers `403 {"description":"User not authorized."}` in 142 ms with the
+`kyc-library-local (jonas)` token: the dashboard user that generated it
+could not grant *Create applicants*, so the token does not have it. The
+submission tests (`tests/live/sumsub-submission.live.test.ts`) are written
+against Sumsub's documented contract and wait for a token with that
+permission (an admin generates it; `.claude/skills/sumsub-sandbox-setup`,
+step 2) and for a document-only level (`SUMSUB_E2E_LEVEL_NAME`,
+`kyc-library-e2e`) so `status/pending` is not refused for the missing
+liveness image. Open questions for the next pass: how long the sandbox
+takes from `testCompleted` to `completed` (the poll budget is 90 s), and
+whether the real `applicantReviewed` webhook reaches the funnel before the
+reconciling read (the test logs `approved:webhook` / `approved:api`).
+
+**What it taught:**
+
+- **Sumsub template images are recognised by their bytes.** The German
+  passport template is committed unmodified with its SHA-256 in
+  `tests/live/fixtures/sumsub/README.md`; a re-saved copy would be reviewed
+  as an ordinary photo.
+- **The request signature covers the body bytes.** `signPayload` now takes
+  `string | Uint8Array`, because a multipart upload cannot be signed as a
+  UTF-8 string.
+
 ## 2026-09-10 - first pass, Blink's sandbox, automated tier + section 2
 
 **Setup:** Blink's Sumsub sandbox (`blinkbtc.com`), a dedicated App Token

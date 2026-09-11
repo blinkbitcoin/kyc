@@ -3,6 +3,10 @@
 # Run `make` or `make help` to list targets.
 
 .DEFAULT_GOAL := help
+# This worktree's port block (scripts/lib/ports.mjs): a linked worktree's
+# claim from .env.local (made on first use), the default for the main clone
+# and CI; exported so compose, the scripts and $(MAKE) children see it
+export KYC_PORT_BASE ?= $(shell node scripts/e2e/ports.mjs claim)
 
 # ---------- Setup ----------
 
@@ -104,44 +108,51 @@ ios: ## Run the example app on the iOS simulator
 android: ## Run the example app on an Android emulator
 	npm run android
 
-backend: ## Backend dev server (tsx watch; env via direnv/.env)
-	npm run backend
+backend: ## Backend dev server (tsx watch; env via direnv/.env, DATABASE_URL defaults to this worktree's dev Postgres)
+	bash scripts/e2e/dev-db.sh run npm run backend
 
 web: ## Vite dev server for the web example app
 	npm run web
 
+# ---------- Ports ----------
+
+ports: ## This worktree's port block (KYC_PORT_BASE + offsets, the two databases, Metro) and who holds each port
+	node scripts/e2e/ports.mjs table
+
+ports-free: ## Stop what this worktree left on its ports (its processes, its compose projects, its Metro); FORCE=1 also stops a sibling worktree's leftovers, never a foreign process
+	node scripts/e2e/ports.mjs free $(if $(FORCE),--force)
+
 # ---------- Database ----------
 
-db-up: ## Start the dev Postgres (examples/full-service-demo/docker-compose.yml, port 5432)
-	cd examples/full-service-demo && docker compose up -d --wait
+db-up: ## Start this worktree's dev Postgres (examples/full-service-demo/docker-compose.yml on KYC_DEV_DB_PORT = KYC_PORT_BASE + 5, default 5105; its own compose project and volume)
+	bash scripts/e2e/dev-db.sh up
 
-db-down: ## Stop the dev Postgres
-	cd examples/full-service-demo && docker compose down
+db-down: ## Stop this worktree's dev Postgres
+	bash scripts/e2e/dev-db.sh down
 
-migrate: ## Apply Knex migrations to the dev database
-	npm run migrate -w examples/full-service-demo
+migrate: ## Apply Knex migrations to the dev database (DATABASE_URL from .env, else this worktree's dev Postgres)
+	bash scripts/e2e/dev-db.sh run npm run migrate -w examples/full-service-demo
 
 # ---------- E2E ----------
 
-test-db-up: ## Start the E2E Postgres (tmpfs, port 5433) and wait for it
-	docker compose -f docker-compose.test.yml up -d --wait
-	bash scripts/e2e/db-wait.sh
+test-db-up: ## Start the E2E Postgres (tmpfs, port KYC_TEST_DB_PORT = KYC_PORT_BASE + 4, default 5104) and wait for it
+	bash scripts/e2e/test-db.sh up
 
 test-db-down: ## Stop the E2E Postgres
-	docker compose -f docker-compose.test.yml down
+	bash scripts/e2e/test-db.sh down
 
 e2e-backend: test-db-up ## Backend E2E suite against real Postgres (then tears DB down)
-	npm run migrate:test -w examples/full-service-demo
-	npm run test:e2e -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run test:e2e -w examples/full-service-demo
 	$(MAKE) test-db-down
 
 e2e-web: test-db-up build ## Playwright browser E2E for the web demo (hosted mode; then tears DB down) - builds the libraries first (the demo bundles their dist)
-	npm run migrate:test -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
 	npm run test:e2e -w examples/react-demo
 	$(MAKE) test-db-down
 
 e2e-web-proxy: test-db-up build ## Playwright browser E2E for the web demo in proxy mode (then tears DB down) - builds the libraries first (the demo bundles their dist)
-	npm run migrate:test -w examples/full-service-demo
+	bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
 	npm run test:e2e:proxy -w examples/react-demo
 	$(MAKE) test-db-down
 
@@ -220,7 +231,7 @@ help: ## List available targets
 		awk 'BEGIN {FS = ":.*##"} {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: install hooks pods release release-rc version registry-smoke unit coverage coverage-badge typecheck lint format format-check check-code \
-	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check codeql start ios android backend web db-up db-down migrate \
+	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check codeql start ios android backend web ports ports-free db-up db-down migrate \
 	diagrams test-db-up test-db-down e2e-backend e2e-web e2e-web-proxy \
 	e2e-server-demos e2e-backend-up e2e-backend-down e2e-metro-up e2e-metro-down android-build e2e-android e2e-android-local e2e-fake-native ios-build e2e-ios e2e-ios-local \
 	sumsub-env sumsub-check test-live e2e-live live-web live-ios live-android clean reset help

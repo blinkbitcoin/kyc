@@ -12,18 +12,19 @@
 // read for a user who has not opened the SDK yet, the hosted page for a
 // real token, and a webhook signed with the real secret and digest
 // algorithm walking a session to `approved` (2.5 / 3.6 without a device).
-// The device matrix (sections 3-5: camera, liveness, the SDK screens) stays
-// manual - CI never drives the Sumsub UI.
+// sumsub-submission.live.test.ts takes it from there with a real applicant
+// and real reviews; the device matrix (sections 3-5: camera, liveness, the
+// SDK screens) stays manual - CI never drives the Sumsub UI.
 //
 // The contract checks call the package's client directly, so a mismatch
 // fails with Sumsub's raw HTTP status + body instead of the provider's
 // mapped error; the round trips go through the service.
 
-import { createHmac } from 'node:crypto';
 import { createSumsubClient, sumsubConfigFromEnv } from '@blinkbitcoin/kyc-server';
 import type { Express } from 'express';
 import request from 'supertest';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { signWebhook, type WebhookDigestAlg } from './sumsub-sandbox';
 
 const REQUIRED_ENV = ['SUMSUB_APP_TOKEN', 'SUMSUB_SECRET_KEY', 'SUMSUB_WEBHOOK_SECRET'] as const;
 
@@ -38,16 +39,9 @@ if (missing.length === 0 && !hasDatabase) {
   );
 }
 
-// Sumsub's header value -> node's hash name (the same table the package's
-// verifyHexDigest accepts). The dashboard decides which one the webhook is
-// signed with; SUMSUB_WEBHOOK_DIGEST_ALG says which one to sign with here.
-const DIGEST = {
-  HMAC_SHA1_HEX: 'sha1',
-  HMAC_SHA256_HEX: 'sha256',
-  HMAC_SHA512_HEX: 'sha512',
-} as const;
-const digestAlg = (process.env.SUMSUB_WEBHOOK_DIGEST_ALG ||
-  'HMAC_SHA256_HEX') as keyof typeof DIGEST;
+// The dashboard decides which algorithm the webhook is signed with;
+// SUMSUB_WEBHOOK_DIGEST_ALG says which one to sign with here.
+const digestAlg = (process.env.SUMSUB_WEBHOOK_DIGEST_ALG || 'HMAC_SHA256_HEX') as WebhookDigestAlg;
 
 const config = sumsubConfigFromEnv();
 const liveUser = (what: string): string => `live-${what}-${Date.now()}`;
@@ -160,15 +154,17 @@ describe.runIf(missing.length === 0 && hasDatabase)(
         reviewStatus: 'completed',
         reviewResult: { reviewAnswer: 'GREEN' },
       });
-      const digest = createHmac(DIGEST[digestAlg], process.env.SUMSUB_WEBHOOK_SECRET as string)
-        .update(body, 'utf8')
-        .digest('hex');
+      const { digest, alg } = signWebhook(
+        body,
+        process.env.SUMSUB_WEBHOOK_SECRET as string,
+        digestAlg
+      );
 
       const res = await request(app)
         .post('/webhook/kyc/sumsub')
         .set('Content-Type', 'application/json')
         .set('x-payload-digest', digest)
-        .set('x-payload-digest-alg', digestAlg)
+        .set('x-payload-digest-alg', alg)
         .send(body);
       expect(res.status).toBe(200);
       expect(res.body.outcome).toBe('updated');

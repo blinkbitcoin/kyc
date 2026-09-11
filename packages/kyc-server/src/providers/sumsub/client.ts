@@ -9,8 +9,8 @@
 // The signature covers the path AND the query string, so every URL here is
 // built once and passed through unchanged.
 
-import type { SumsubReviewPayload } from '@blinkbitcoin/kyc-core/sumsub';
 import { createHmac } from 'node:crypto';
+import type { SumsubReviewPayload } from '@blinkbitcoin/kyc-core/sumsub';
 import { HttpError } from '../../http';
 import { consoleLogger, type Logger } from '../../log';
 import type { FetchLike } from '../../types';
@@ -20,7 +20,8 @@ export interface SignPayloadArgs {
   ts: number;
   method: string;
   pathWithQuery: string;
-  body: string;
+  /** The exact request body bytes: a string (UTF-8) or binary (a multipart upload). */
+  body: string | Uint8Array;
   secretKey: string;
 }
 
@@ -30,10 +31,15 @@ export const signPayload = ({
   pathWithQuery,
   body,
   secretKey,
-}: SignPayloadArgs): string =>
-  createHmac('sha256', secretKey)
-    .update(`${ts}${method.toUpperCase()}${pathWithQuery}${body}`, 'utf8')
-    .digest('hex');
+}: SignPayloadArgs): string => {
+  const hmac = createHmac('sha256', secretKey).update(
+    `${ts}${method.toUpperCase()}${pathWithQuery}`,
+    'utf8',
+  );
+  return (
+    typeof body === 'string' ? hmac.update(body, 'utf8') : hmac.update(body)
+  ).digest('hex');
+};
 
 export interface SumsubAccessToken {
   token: string;

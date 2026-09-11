@@ -25,6 +25,18 @@ timeout_seconds() {
   esac
 }
 
+# Every process with `maestro` in its command line except this shell: the
+# script that sourced this file is called *-maestro.sh, so a plain
+# `pkill -f maestro` would match it too - and on Linux (procps) pkill does
+# not spare the caller's ancestors the way BSD pkill on macOS does, which
+# killed the bounding shell before it could return 124.
+signal_maestro() { # TERM | KILL
+  local p
+  for p in $(pgrep -f 'maestro' 2> /dev/null); do
+    [ "$p" = "$$" ] || [ "$p" = "${BASHPID:-$$}" ] || kill "-$1" "$p" 2> /dev/null || true
+  done
+}
+
 bounded_maestro() {
   local limit waited=0 pid status
   limit=$(timeout_seconds "$MAESTRO_SUITE_TIMEOUT")
@@ -34,10 +46,10 @@ bounded_maestro() {
     if [ "$waited" -ge "$limit" ]; then
       echo "::error::Maestro suite exceeded $MAESTRO_SUITE_TIMEOUT without completing (#41)"
       # npm wraps the Maestro CLI (a Java process): stop both, gently then hard
-      pkill -TERM -f 'maestro' 2> /dev/null || true
+      signal_maestro TERM
       kill -TERM "$pid" 2> /dev/null || true
       sleep "$MAESTRO_KILL_GRACE_SECONDS"
-      pkill -KILL -f 'maestro' 2> /dev/null || true
+      signal_maestro KILL
       kill -KILL "$pid" 2> /dev/null || true
       wait "$pid" 2> /dev/null
       return 124

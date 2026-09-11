@@ -60,6 +60,7 @@ one-line description. The ones you will reach for:
 | `make docs-check` | Warn when architecture-relevant changes ship without a `docs/` update;<br>fail on a README table cell line wider than 72 characters (break with `<br>`) |
 | `make db-up migrate backend` | Dev Postgres, migrations, backend dev server |
 | `make e2e-backend` / `make e2e-web` | Backend E2E against real Postgres / Playwright browser E2E (`e2e-web` builds the libraries first and bundles the demo against their dist) |
+| `make ports` / `make ports-free` | This worktree's port block and who holds each port / stop what this<br>worktree left on them (its processes, its compose projects, its Metro;<br>`FORCE=1` also a sibling worktree's, never a foreign process) |
 | `make live-web` / `make live-ios` / `make live-android` | The web demo / the RN demo on the attached phone against the real Sumsub<br>sandbox (`.env` + Tailscale Funnel + backend), waiting for the manual rows<br>of `docs/integration/sumsub.md`; Ctrl-C tears down |
 | `make e2e-android-local` / `make e2e-ios-local` | The whole mobile stack on a laptop (DB, backend, APK or .app, Metro, Maestro, teardown); Android needs a running emulator, iOS boots a simulator. `e2e-backend-up` / `android-build` or `ios-build` / `e2e-metro-up` / `e2e-android` or `e2e-ios` are the steps |
 | `make start` / `make ios` / `make android` / `make web` | Demo apps |
@@ -124,14 +125,22 @@ The reasons behind these rules, and the check that holds each one, are in
 - `graphql` stays on 16.x repo-wide (Apollo Server 5 peer range)
 - Every service listens on `KYC_PORT_BASE` (default 5100 - 5000 is
   everybody's, 4100 is esign's) plus its offset: the backend +0, the web demo
-  +1 (hosted) / +2 (proxy), the access-token example +3. The table is
+  +1 (hosted) / +2 (proxy), the access-token example +3, the E2E Postgres
+  +4, the dev Postgres +5. The table is
   `scripts/lib/ports.mjs`; shell reads it through `scripts/e2e/ports-env.sh`
-  (`$KYC_API_PORT`, `$KYC_WEB_PORT`, `$TOKEN_PORT`, ...), the Playwright
-  configs through `examples/react-demo/e2e/ports.ts`, and each service
+  (`$KYC_API_PORT`, `$KYC_WEB_PORT`, `$TOKEN_PORT`, `$KYC_TEST_DATABASE_URL`, ...),
+  the compose files read the two database variables, the Playwright
+  configs read `examples/react-demo/e2e/ports.ts`, and each service
   declares its own offset (`ports.test.mjs` checks the literal against the
-  table). A second worktree sets one variable (`KYC_PORT_BASE=5300 make
-  e2e-web`); a service's own variable (`PORT`, `KYC_WEB_PORT`, `TOKEN_PORT`,
-  ...) overrides just that service. Nothing hard-codes a port outside those
+  table). A linked worktree claims its own block automatically
+  (`ports.mjs claim`, run by `.envrc` and the Makefile: the lowest block no
+  sibling holds, written once to its `.env.local`); the main clone and CI
+  keep the default; an explicit `KYC_PORT_BASE` still wins, and a service's
+  own variable (`PORT`, `KYC_WEB_PORT`, `TOKEN_PORT`, ...) overrides just
+  that service. `make ports` shows the block and who holds each port,
+  `make ports-free` clears this worktree's leftovers (never a foreign
+  process). Each worktree's dev Postgres is its own compose project
+  (`<worktree>-dev`) and volume. Nothing hard-codes a port outside those
   defaults
 - A CodeQL false positive is suppressed where it sits: a
   `// codeql[<rule-id>]` comment alone on the line above the flagged line

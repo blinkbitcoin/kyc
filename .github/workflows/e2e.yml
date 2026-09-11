@@ -69,12 +69,10 @@ jobs:
         run: make test-db-up
 
       - name: Run database migrations
-        run: npm run migrate:test
-        working-directory: examples/full-service-demo
+        run: bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
 
       - name: Run E2E tests
-        run: npm run test:e2e
-        working-directory: examples/full-service-demo
+        run: bash scripts/e2e/test-db.sh run npm run test:e2e -w examples/full-service-demo
 
       - name: Stop test database
         if: always()
@@ -186,17 +184,21 @@ jobs:
 
   # Live Sumsub (opt-in, docs/operations/live-e2e-ci.md): app-token auth, a
   # real access token through the package, the service and the access-token
-  # example, the hosted page for a real token, and a webhook signed with the
-  # real secret. Secrets come from the `sumsub-sandbox` environment; the
-  # caller decides when this runs (never for fork PRs - they get no secrets).
-  # Every run mints tokens on the sandbox, hence opt-in and serialized. CI
-  # never drives the Sumsub UI: the device matrix (docs/integration/sumsub.md)
-  # is manual.
+  # example, the hosted page for a real token, a webhook signed with the
+  # real secret, and real applicants - a document upload, the check and
+  # GREEN / RED reviews walking sessions to every terminal state (no
+  # ingress here, so the service's status reads reconcile against Sumsub
+  # instead of waiting for the webhook). Secrets come from the
+  # `sumsub-sandbox` environment; the caller decides when this runs (never
+  # for fork PRs - they get no secrets). Every run mints tokens and creates
+  # a few throwaway sandbox applicants, hence opt-in and serialized. CI
+  # never drives the Sumsub UI: the camera rows (docs/integration/sumsub.md)
+  # are manual.
   live:
     name: Live Sumsub
     if: inputs.live
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     environment: sumsub-sandbox
     concurrency:
       group: live-sumsub
@@ -206,6 +208,7 @@ jobs:
       SUMSUB_SECRET_KEY: ${{ secrets.SUMSUB_SECRET_KEY }}
       SUMSUB_WEBHOOK_SECRET: ${{ secrets.SUMSUB_WEBHOOK_SECRET }}
       SUMSUB_LEVEL_NAME: ${{ vars.SUMSUB_LEVEL_NAME }}
+      SUMSUB_E2E_LEVEL_NAME: ${{ vars.SUMSUB_E2E_LEVEL_NAME }}
       SUMSUB_WEBHOOK_DIGEST_ALG: ${{ vars.SUMSUB_WEBHOOK_DIGEST_ALG }}
 
     steps:
@@ -267,7 +270,7 @@ jobs:
         run: make test-db-up
 
       - name: Run migrations (test database)
-        run: npm run migrate:test -w examples/full-service-demo
+        run: bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
 
       - name: Run browser E2E (Playwright starts the backend, builds + previews the demo)
         run: npm run test:e2e -w examples/react-demo
@@ -381,11 +384,11 @@ jobs:
           cache: 'npm'
 
       # macOS runners have no Docker - run the test database via Homebrew
-      # Postgres instead, matching docker-compose.test.yml (test/test@5433,
-      # tmpfs-equivalent: the runner is ephemeral anyway). The ~1 min install
+      # Postgres instead, matching docker-compose.test.yml (test/test on
+      # KYC_TEST_DB_PORT, tmpfs-equivalent: the runner is ephemeral anyway). The ~1 min install
       # runs in the background from here so it overlaps npm ci, Maestro, the
       # simulator pick and Metro; "Wait for test database" below joins it.
-      - name: Start test database (Homebrew Postgres, port 5433, background)
+      - name: Start test database (Homebrew Postgres, background)
         run: bash scripts/ci/postgres-brew.sh background
 
       - name: Install dependencies (workspace root)
@@ -417,8 +420,7 @@ jobs:
         run: bash scripts/ci/postgres-brew.sh wait
 
       - name: Run database migrations
-        run: npm run migrate:test
-        working-directory: examples/full-service-demo
+        run: bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
 
       - name: Start backend with mock provider
         run: make e2e-backend-up
@@ -594,8 +596,7 @@ jobs:
         run: make test-db-up
 
       - name: Run database migrations
-        run: npm run migrate:test
-        working-directory: examples/full-service-demo
+        run: bash scripts/e2e/test-db.sh run npm run migrate:test -w examples/full-service-demo
 
       - name: Start backend with mock provider
         run: make e2e-backend-up

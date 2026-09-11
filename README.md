@@ -126,7 +126,8 @@ npm i @blinkbitcoin/kyc-react-native @apollo/client graphql
 1. Run the service and point it at your provider credentials:
 
 ```bash
-make db-up migrate backend      # dev Postgres, migrations, server on :5100
+make db-up migrate backend      # dev Postgres, migrations, server on :5100 (the main clone;
+                                # a worktree gets its own port block - `make ports` shows it)
 ```
 
 2. Register `https://your-api/webhook/kyc/sumsub` in the provider dashboard.
@@ -216,7 +217,8 @@ matrix stays manual - [docs/integration/sumsub.md](docs/integration/sumsub.md).
 | `make diagrams`<br>`make diagrams-check` | Render `docs/diagrams/dist/*.svg` and reassemble the page / fail on drift |
 | `make docs-check` | Warn on architecture changes without docs; fail on a stale diagram SVG |
 | `make e2e-backend` | Backend E2E with a dockerized Postgres |
-| `make e2e-web`<br>`make e2e-web-proxy` | Playwright, hosted and proxy - both build the libraries first<br>and bundle the demo against their dist. Every service is<br>`KYC_PORT_BASE` (5100) + its offset, so one variable moves a<br>worktree (`KYC_PORT_BASE=5300 make e2e-web`) |
+| `make e2e-web`<br>`make e2e-web-proxy` | Playwright, hosted and proxy - both build the libraries first<br>and bundle the demo against their dist. Every service is<br>`KYC_PORT_BASE` + its offset; a worktree claims its own block |
+| `make ports`<br>`make ports-free` | This worktree's port block (every service, both databases, Metro)<br>and who holds each port; stop what this worktree left on them |
 | `make e2e-android`<br>`make e2e-ios`<br>`make e2e-fake-native` | Maestro suites (see `make help` for the prerequisites) |
 | `make version`<br>`make release` | What CI would publish / merge the release PR release-please<br>maintains ([docs/releasing.md](docs/releasing.md)) |
 

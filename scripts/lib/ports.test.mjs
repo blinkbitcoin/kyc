@@ -5,11 +5,19 @@ import { describe, expect, it } from 'vitest';
 import {
   BASE_DEFAULT,
   BASE_VAR,
+  BLOCK_SLOTS,
+  BLOCK_STEP,
   SERVICES,
   baseFrom,
+  claimedBase,
+  devDatabaseUrl,
   envLines,
+  nextFreeBase,
+  parseWorktrees,
   portFrom,
   resolvePorts,
+  testDatabaseUrl,
+  withClaimedBase,
 } from './ports.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -24,6 +32,21 @@ describe('the port table', () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
+  it('fits a worktree block, and the blocks stay below 6000', () => {
+    expect(Object.keys(SERVICES).length).toBeLessThanOrEqual(BLOCK_STEP);
+    expect(
+      BASE_DEFAULT + BLOCK_SLOTS * BLOCK_STEP + BLOCK_STEP,
+    ).toBeLessThanOrEqual(6000);
+  });
+
+  it('lists every key in the type declaration', () => {
+    const union = read('scripts/lib/ports.d.mts').match(
+      /export type ServiceKey =([^;]*);/,
+    )[1];
+    const declared = [...union.matchAll(/'([A-Za-z]+)'/g)].map(m => m[1]);
+    expect(declared).toEqual(Object.keys(SERVICES));
+  });
+
   it('resolves the documented defaults', () => {
     expect(resolvePorts({})).toEqual({
       base: 5100,
@@ -31,7 +54,15 @@ describe('the port table', () => {
       webHosted: 5101,
       webProxy: 5102,
       token: 5103,
+      testDb: 5104,
+      devDb: 5105,
     });
+    expect(testDatabaseUrl(5104)).toBe(
+      'postgresql://test:test@localhost:5104/kyc_test',
+    );
+    expect(devDatabaseUrl(5305)).toBe(
+      'postgresql://dev:dev@localhost:5305/kyc',
+    );
   });
 
   it('moves every service with the base', () => {
@@ -79,6 +110,10 @@ describe('envLines', () => {
       'export KYC_WEB_PORT=5101',
       'export KYC_WEB_PROXY_PORT=5102',
       'export TOKEN_PORT=9000',
+      'export KYC_TEST_DB_PORT=5104',
+      'export KYC_DEV_DB_PORT=5105',
+      'export KYC_TEST_DATABASE_URL=postgresql://test:test@localhost:5104/kyc_test',
+      'export KYC_DEV_DATABASE_URL=postgresql://dev:dev@localhost:5105/kyc',
     ]);
   });
 });
@@ -87,7 +122,9 @@ describe('envLines', () => {
 // Native bundle, an ES-module example), so each declares its own offset as
 // a literal. These checks keep those literals on the table.
 describe('the consumers', () => {
-  const { base, api, webHosted, webProxy, token } = resolvePorts({});
+  const { base, api, webHosted, webProxy, token, testDb, devDb } = resolvePorts(
+    {},
+  );
 
   it.each([
     ['examples/full-service-demo/src/port.ts', `PORT_BASE_DEFAULT = ${base}`],
@@ -120,6 +157,21 @@ describe('the consumers', () => {
       `http://localhost:${webHosted},http://localhost:${webProxy}`,
     ],
     ['examples/access-token-demo/.env.example', `PORT=${token}`],
+    [
+      'examples/full-service-demo/.env.test',
+      `DATABASE_URL=${testDatabaseUrl(testDb)}`,
+    ],
+    ['docker-compose.test.yml', `"\${KYC_TEST_DB_PORT:-${testDb}}:5432"`],
+    [
+      'examples/full-service-demo/docker-compose.yml',
+      `"\${KYC_DEV_DB_PORT:-${devDb}}:5432"`,
+    ],
+    ['examples/full-service-demo/.env.example', devDatabaseUrl(devDb)],
+    ['scripts/ci/postgres-brew.sh', 'KYC_TEST_DB_PORT'],
+    [
+      'examples/react-demo/e2e/ports.ts',
+      `TEST_DB_OFFSET = ${SERVICES.testDb.offset}`,
+    ],
   ])('%s carries %s', (file, literal) => {
     expect(read(file)).toContain(literal);
   });
@@ -129,5 +181,72 @@ describe('the consumers', () => {
     expect(source).toContain(`hosted: ${SERVICES.webHosted.offset}`);
     expect(source).toContain(`proxy: ${SERVICES.webProxy.offset}`);
     expect(source).toContain(`API_OFFSET = ${SERVICES.api.offset}`);
+  });
+});
+
+describe("a worktree's block", () => {
+  it('reads the worktrees of the porcelain listing, the main clone first', () => {
+    const porcelain = [
+      'worktree /Users/x/Dev/kyc',
+      'HEAD 0000000000000000000000000000000000000000',
+      'branch refs/heads/main',
+      '',
+      'worktree /Users/x/Dev/kyc-topic',
+      'HEAD 1111111111111111111111111111111111111111',
+      'detached',
+      '',
+    ].join('\n');
+    expect(parseWorktrees(porcelain)).toEqual([
+      { path: '/Users/x/Dev/kyc', isMain: true },
+      { path: '/Users/x/Dev/kyc-topic', isMain: false },
+    ]);
+    expect(parseWorktrees('')).toEqual([]);
+  });
+
+  it.each([
+    ['KYC_PORT_BASE=5120\n', 5120],
+    ['export KYC_PORT_BASE="5140" # mine\n', 5140],
+    ["  KYC_PORT_BASE='5160'\n", 5160],
+    ['# KYC_PORT_BASE=5120\nOTHER=1\n', undefined],
+    ['KYC_PORT_BASE=5120\nKYC_PORT_BASE=5180\n', 5180],
+    ['KYC_PORT_BASE=\n', undefined],
+    ['', undefined],
+  ])('reads the claim in %j as %s', (text, base) => {
+    expect(claimedBase(text)).toBe(base);
+  });
+
+  it('refuses a claim that is not a port', () => {
+    expect(() => claimedBase('KYC_PORT_BASE=99999\n')).toThrow(
+      /KYC_PORT_BASE must be a port number/,
+    );
+  });
+
+  it('hands out the lowest free block above the default', () => {
+    expect(nextFreeBase([])).toBe(5120);
+    expect(nextFreeBase([5120, 5160])).toBe(5140);
+    expect(nextFreeBase([5100, 5120, 5140])).toBe(5160);
+    expect(nextFreeBase([5120], { base: 4100, step: 20, slots: 2 })).toBe(4120);
+  });
+
+  it('fails loudly when every block is claimed', () => {
+    const all = Array.from(
+      { length: BLOCK_SLOTS },
+      (_, i) => BASE_DEFAULT + (i + 1) * BLOCK_STEP,
+    );
+    expect(() => nextFreeBase(all)).toThrow(/no free port block/);
+  });
+
+  it('appends the claim to .env.local, once', () => {
+    const claimed = withClaimedBase('', 5120);
+    expect(claimed).toBe(
+      "# This worktree's port block (scripts/lib/ports.mjs; make ports shows it)\nKYC_PORT_BASE=5120\n",
+    );
+    expect(withClaimedBase(claimed, 5120)).toBe(claimed);
+    expect(withClaimedBase('OTHER=1', 5140)).toBe(
+      "OTHER=1\n# This worktree's port block (scripts/lib/ports.mjs; make ports shows it)\nKYC_PORT_BASE=5140\n",
+    );
+    expect(claimedBase(withClaimedBase('KYC_PORT_BASE=5120\n', 5160))).toBe(
+      5160,
+    );
   });
 });
