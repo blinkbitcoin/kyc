@@ -440,22 +440,37 @@ jobs:
     needs: [build-ios]
 
     steps:
+      # Step order is about CPU, not dependencies: the runner has 3 vCPUs
+      # and the simulator boot is the one job that saturates them for ~3-4
+      # min. Everything measured while it overlapped other CPU work ran 5-50x
+      # slower than on the Android runner (backend start 116 s vs 2 s,
+      # migrations 12 s vs 1 s, bundle prewarm 125 s vs 14 s, kyc run
+      # 34644837934). So: the boot starts first and overlaps only the
+      # downloads (Postgres bottle, npm ci, Maestro CLI, the .app artifact);
+      # Metro, the other CPU-bound piece, starts once the boot is done.
       - name: Checkout code
         uses: actions/checkout@v7
+
+      # Runner images rotate simulator generations (iPhone 15 -> 16 -> 17...);
+      # pick whatever iPhone the image actually ships instead of hardcoding.
+      # Booting starts here, before anything else, so the whole setup below
+      # overlaps it; "Wait for iOS Simulator" joins it.
+      - name: Pick a simulator device
+        run: bash scripts/e2e/ios-simulator.sh pick
+
+      # macOS runners have no Docker - run the test database via Homebrew
+      # Postgres instead, matching docker-compose.test.yml (test/test on
+      # KYC_TEST_DB_PORT, tmpfs-equivalent: the runner is ephemeral anyway). The ~1 min install
+      # runs in the background from here so it overlaps the simulator boot,
+      # npm ci and Maestro; "Wait for test database" below joins it.
+      - name: Start test database (Homebrew Postgres, background)
+        run: bash scripts/ci/postgres-brew.sh background
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'npm'
-
-      # macOS runners have no Docker - run the test database via Homebrew
-      # Postgres instead, matching docker-compose.test.yml (test/test on
-      # KYC_TEST_DB_PORT, tmpfs-equivalent: the runner is ephemeral anyway). The ~1 min install
-      # runs in the background from here so it overlaps npm ci, Maestro, the
-      # simulator pick and Metro; "Wait for test database" below joins it.
-      - name: Start test database (Homebrew Postgres, background)
-        run: bash scripts/ci/postgres-brew.sh background
 
       - name: Install dependencies (workspace root)
         run: npm ci --prefer-offline --no-audit
@@ -469,19 +484,6 @@ jobs:
       - name: Install Maestro CLI (version pinned in scripts/ci/maestro-install.sh)
         run: bash scripts/ci/maestro-install.sh
 
-      # Runner images rotate simulator generations (iPhone 15 -> 16 -> 17...);
-      # pick whatever iPhone the image actually ships instead of hardcoding.
-      # Booting starts here so it overlaps everything below (build or cache
-      # restore, Postgres, backend, Metro).
-      - name: Pick a simulator device
-        run: bash scripts/e2e/ios-simulator.sh pick
-
-      # Metro starts in the background here so its boot overlaps the Postgres
-      # install and the backend; it is awaited (and the bundle prewarmed) right before
-      # Maestro runs.
-      - name: Start Metro bundler (background)
-        run: bash scripts/e2e/metro-start.sh
-
       - name: Wait for test database (installing since checkout)
         run: bash scripts/ci/postgres-brew.sh wait
 
@@ -494,6 +496,12 @@ jobs:
 
       - name: Wait for iOS Simulator (booting since device pick)
         run: bash scripts/e2e/ios-simulator.sh wait
+
+      # Metro starts only now, after the boot: its workspace crawl overlaps
+      # the .app download and install (I/O), and the bundle is prewarmed
+      # right before Maestro runs.
+      - name: Start Metro bundler (background)
+        run: bash scripts/e2e/metro-start.sh
 
       # The .app comes from build-ios as a tar (upload-artifact zips and drops
       # executable bits + symlinks, which breaks simctl install).
