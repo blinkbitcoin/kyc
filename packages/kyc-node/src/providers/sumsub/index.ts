@@ -17,13 +17,17 @@ export type {
 export { createSumsubClient, signPayload } from './client';
 export type { Env, SumsubConfig, SumsubConfigKey } from './config';
 export {
+  ACCESS_TOKEN_SETTINGS,
   assertSumsubConfig,
+  isSumsubSandboxToken,
   missingSumsubConfig,
   SUMSUB_CREDENTIALS,
   SUMSUB_DEFAULTS,
   SUMSUB_ENV,
+  SUMSUB_SANDBOX_TOKEN_PREFIX,
   SumsubConfigError,
   sumsubConfigFromEnv,
+  sumsubDemoSettingsInUse,
 } from './config';
 export {
   buildSumsubStatusTable,

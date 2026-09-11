@@ -1,5 +1,9 @@
 # @blinkbitcoin/kyc-node
 
+**For the backend developer who owns a Node API.** If you would rather deploy
+a ready service than import a package, that is the other tier,
+[`@blinkbitcoin/kyc-service`](../kyc-service/README.md).
+
 The server half of identity verification, for any Node ≥ 18 backend, no
 framework, no peers:
 
@@ -15,18 +19,25 @@ framework, no peers:
   reconciliation and the webhook state machine (terminal statuses never
   downgrade; the guard lives inside the write).
 
-This repo's reference backend is this package plus Express, Apollo and a
-Postgres store; a backend that already exists (Blink's GraphQL API) imports
-the package instead of running that service.
+The kyc service (`packages/kyc-service`) is this package plus Express, Apollo
+and a Postgres store; a backend that already exists (Blink's GraphQL API)
+imports the package instead of running that service.
+
+Two worked hosts live in this repo, one per shape:
+[`examples/access-token-demo`](../../examples/access-token-demo/README.md)
+(one mutation on an existing API) and
+[`packages/kyc-service`](../kyc-service/README.md) (the whole service).
 
 ## Mint a token for the native SDK (mode 2)
 
 ```ts
-import { defaultRegistry, providerFromEnv } from '@blinkbitcoin/kyc-node';
+import { accessTokenProviderFromEnv } from '@blinkbitcoin/kyc-node';
 
-// Once, at startup: KYC_PROVIDER selects sumsub or mock; SUMSUB_* is read
-// only when sumsub is selected
-const provider = providerFromEnv(process.env, defaultRegistry(process.env));
+// Once, at startup: KYC_PROVIDER selects sumsub (the default here) or mock.
+// Everything a mint needs is checked now, not on the first request: the
+// app token and secret must be set, and KYC_ENV=production refuses the
+// sandbox token and the mock (KYC_ALLOW_DEMO=true overrides).
+const provider = accessTokenProviderFromEnv(process.env);
 
 // Per request, for the authenticated user
 const { accessToken } = await provider.createSession(session.userId, {
@@ -36,9 +47,34 @@ const { accessToken } = await provider.createSession(session.userId, {
 // Hand `accessToken` to the app's createSumsubNativeSource({ getAccessToken })
 ```
 
-Missing settings fail fast (`SumsubConfigError`), transient Sumsub failures
-(5xx, 429, network) are retried with backoff, and a 4xx becomes
+Missing settings fail fast (`SumsubConfigError`), demo settings in
+production too (`ProductionConfigError`), transient Sumsub failures (5xx,
+429, network) are retried with backoff, and a 4xx becomes
 `SESSION_CREATION_FAILED` rather than an invitation to retry.
+
+The whole endpoint is a preset when the host would rather mount than write
+it: `POST /verification/token` for the authenticated caller, a health check,
+and nothing else - no session domain, no store, no webhook route.
+
+```ts
+import { createAccessTokenApp } from '@blinkbitcoin/kyc-node';
+// or, on Express: import { createAccessTokenRouter } from '@blinkbitcoin/kyc-node/express';
+
+export const { fetch } = createAccessTokenApp({
+  provider,
+  authenticate: request => userIdFromSession(request),   // null → 401
+  // The level from the host's own data; the client's levelName is input,
+  // never trusted on its own (undefined = the provider's default)
+  levelFor: (input, { userId }) => levelForUser(userId),
+  cors: { origins: ['https://app.example.com'] },       // optional
+});
+```
+
+The SDK asks the app for a token again when it expires, so this one call is
+also the refresh: nothing to store, nothing to look up. Both presets share
+`mintAccessTokenHttp`, so a route handler of your own gets the same
+decisions (401, 400 - also for a `levelFor` that throws
+`Errors.validationError` - 502 when the provider cannot mint).
 
 ## The verification domain (proxy mode without hosting the service)
 
@@ -182,7 +218,9 @@ The package reaches `@blinkbitcoin/kyc-core` only through its Apollo-free
 | `SUMSUB_WEBHOOK_SECRET` | webhook signing secret | required; `X-Payload-Digest` is verified over the raw body |
 | `SUMSUB_LEVEL_NAME` | default level | `basic-kyc-level` unless the session input names one |
 | `SUMSUB_BASE_URL`, `SUMSUB_TOKEN_TTL_SECS`, `SUMSUB_REQUEST_TIMEOUT_MS` | tuning | `https://api.sumsub.com`, 600 s, 10 000 ms |
-| `KYC_PROVIDER` | `sumsub` or `mock` | `mock` by default; an unknown name warns once and falls back |
+| `KYC_PROVIDER` | `sumsub` or `mock` | `mock` by default (`sumsub` for<br>`accessTokenProviderFromEnv`); an unknown name<br>warns once and falls back |
+| `KYC_ENV` | `production` declares a production deployment | selecting the mock or a `sbx:` Sumsub token then<br>refuses to boot (`ProductionConfigError`); never<br>`NODE_ENV`, which every image sets |
+| `KYC_ALLOW_DEMO` | `true` allows demo settings in production | a production-shaped staging deployment on the sandbox |
 | `MOCK_WEBHOOK_SECRET`, `PUBLIC_BASE_URL` | the mock's webhooks | the reference backend's `.env.example` lists them |
 
 ## Development (in this monorepo)

@@ -4,13 +4,9 @@
 // mints a mock-token-… string, so the mutation runs with no Sumsub account.
 
 import {
-  assertSumsubConfig,
-  createSumsubProvider,
-  defaultRegistry,
-  type ProviderRegistry,
+  type AccessTokenProviderOptions,
+  accessTokenProviderFromEnv,
   type ProviderSession,
-  providerFromEnv,
-  sumsubConfigFromEnv,
   type VerificationPlatform,
 } from '@blinkbitcoin/kyc-node';
 
@@ -20,24 +16,18 @@ export type StartSession = (
   levelName: string,
 ) => Promise<ProviderSession>;
 
-// The package's registry, with this host's Sumsub entry: the credentials are
-// checked when the provider is selected (fail at startup, not on the first
-// mutation). This host never receives webhooks, so no webhook policy.
-export const registry = (env: NodeJS.ProcessEnv): ProviderRegistry => ({
-  ...defaultRegistry(env),
-  sumsub: () => {
-    const config = sumsubConfigFromEnv(env);
-    assertSumsubConfig(config, ['appToken', 'secretKey']);
-    return createSumsubProvider({ config });
-  },
-});
-
-// The session minter for the selected provider (KYC_PROVIDER, Sumsub unless set)
+// The session minter for the selected provider (KYC_PROVIDER, Sumsub unless
+// set), through the package's access-token preset: the app token and secret
+// are required when the provider is selected (fail at startup, not on the
+// first mutation), and KYC_ENV=production refuses the sandbox token and the
+// mock. This host never receives webhooks, so no webhook secret and no
+// webhook policy. The options reach the preset: a registry of the host's
+// own adapters, a fetch, a logger.
 export const createStartSession = (
   env: NodeJS.ProcessEnv = process.env,
-  providers: ProviderRegistry = registry(env),
+  options: AccessTokenProviderOptions = {},
 ): StartSession => {
-  const provider = providerFromEnv(env, providers, { default: 'sumsub' });
+  const provider = accessTokenProviderFromEnv(env, options);
   return (userId, platform, levelName) =>
     provider.createSession(userId, { platform, levelName });
 };

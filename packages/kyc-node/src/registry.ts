@@ -5,9 +5,17 @@
 // adapter adds an entry.
 
 import type { Logger } from './log';
+import { assertProductionConfig } from './production';
 import type { VerificationProvider } from './provider';
 import { createMockProvider } from './providers/mock/provider';
-import { type Env, sumsubConfigFromEnv } from './providers/sumsub/config';
+import {
+  ACCESS_TOKEN_SETTINGS,
+  assertSumsubConfig,
+  type Env,
+  type SumsubConfigKey,
+  sumsubConfigFromEnv,
+  sumsubDemoSettingsInUse,
+} from './providers/sumsub/config';
 import {
   createSumsubProvider,
   type SumsubWebhookOptions,
@@ -70,6 +78,13 @@ export interface DefaultRegistryOptions {
   sumsubWebhook?: SumsubWebhookOptions;
   fetch?: FetchLike;
   logger?: Logger;
+  sumsub?: {
+    // The settings that must be present when the Sumsub entry is selected
+    // (default: none - the adapter validates per operation). A host that
+    // mints access tokens passes ACCESS_TOKEN_SETTINGS to fail at boot
+    // instead of on the first mutation.
+    required?: readonly SumsubConfigKey[];
+  };
 }
 
 // The two adapters this package ships, configured from `env`:
@@ -79,22 +94,70 @@ export const defaultRegistry = (
   env: Env,
   options: DefaultRegistryOptions = {},
 ): ProviderRegistry => ({
-  mock: () =>
-    createMockProvider({
+  // Selecting the mock is a boot check: production must not run on it
+  mock: () => {
+    assertProductionConfig(env, { provider: 'mock', demo: true });
+    return createMockProvider({
       publicBaseUrl:
         options.publicBaseUrl ??
         (() => env.PUBLIC_BASE_URL || 'http://localhost:5100'),
       webhookSecret:
         options.mockWebhookSecret ?? (() => env.MOCK_WEBHOOK_SECRET || 'mock'),
       logger: options.logger,
-    }),
-  sumsub: () =>
-    createSumsubProvider({
-      // A getter: the credentials are read on first use, so a selected mock
-      // never touches them
+    });
+  },
+  // Selecting Sumsub is a boot check: the settings the host declared
+  // required must be present, and production must not be on the sandbox
+  // token. The adapter itself keeps reading the environment per call, so
+  // credential rotation and tests see the current values.
+  sumsub: () => {
+    const config = sumsubConfigFromEnv(env);
+    assertSumsubConfig(config, options.sumsub?.required ?? []);
+    assertProductionConfig(env, {
+      provider: 'sumsub',
+      demoSettings: sumsubDemoSettingsInUse(config),
+    });
+    return createSumsubProvider({
       config: () => sumsubConfigFromEnv(env),
       webhook: options.sumsubWebhook,
       fetch: options.fetch,
       logger: options.logger,
-    }),
+    });
+  },
 });
+
+export interface AccessTokenProviderOptions
+  extends DefaultRegistryOptions,
+    ProviderFromEnvOptions {
+  // The registry to select from (default: defaultRegistry(env, options))
+  registry?: ProviderRegistry;
+}
+
+// The provider an access-token host mints with: KYC_PROVIDER over the
+// default registry, Sumsub unless set, with everything a mint needs
+// required at selection time. Throws when the settings are missing
+// (SumsubConfigError) or when production is on demo settings
+// (ProductionConfigError) - both at boot, never on the first request.
+export const accessTokenProviderFromEnv = (
+  env: Env,
+  options: AccessTokenProviderOptions = {},
+): VerificationProvider => {
+  const {
+    registry,
+    default: fallback,
+    onUnknown,
+    ...registryOptions
+  } = options;
+  return providerFromEnv(
+    env,
+    registry ??
+      defaultRegistry(env, {
+        ...registryOptions,
+        sumsub: {
+          ...registryOptions.sumsub,
+          required: registryOptions.sumsub?.required ?? ACCESS_TOKEN_SETTINGS,
+        },
+      }),
+    { default: fallback ?? 'sumsub', onUnknown },
+  );
+};
