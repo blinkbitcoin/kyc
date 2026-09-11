@@ -406,6 +406,10 @@ const source = createSumsubNativeSource({
 
 `getAccessToken` doubles as the SDK's own expiry handler, so there is
 nothing to refresh: the SDK calls it again and the backend mints again.
+With sessions on (Tier B, or a host running the store), wrap the two
+session calls in `createSessionTokenProvider` so an expiry refreshes the
+session instead of starting another one
+([native-sdk.md](../integration/native-sdk.md#with-sessions-on-the-backend)).
 
 Mode 1 (the hosted page) needs Tier B with sessions and the `/hosted`
 entry - `createHostedSource({ getSession })` over the service's start

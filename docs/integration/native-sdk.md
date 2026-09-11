@@ -47,6 +47,38 @@ const source = createSumsubNativeSource({
 | `debug` | `boolean` | `false` | Routes the SDK's log stream to `console` with a `[kyc-sumsub]` prefix |
 | `sdk` | `SumsubSdkLike` | the real module | Injection point for tests |
 
+## With sessions on the backend
+
+Mode 2 needs only a token, but a backend that runs sessions (Tier B, or a
+host on `kyc-node` with the store) wants one session row per attempt, not one
+per token expiry. Because `getAccessToken` is also the SDK's expiration
+handler, wiring it straight to `verificationSessionStart` would open a new
+session every time a token expires - and the webhook, which binds to the
+user's newest unbound session, would bind the wrong one. Start once and
+refresh after:
+
+```ts
+import { createSessionTokenProvider } from '@blinkbitcoin/kyc-core/hosted';
+import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
+
+const tokens = createSessionTokenProvider({
+  start: async () => {
+    const { sessionId, accessToken } = await yourApi.verificationSessionStart({ platform: 'IOS' });
+    return { sessionId, accessToken };
+  },
+  refresh: async sessionId => (await yourApi.verificationSessionRefresh(sessionId)).accessToken,
+});
+
+const source = createSumsubNativeSource({ getAccessToken: tokens.getAccessToken });
+```
+
+The first call starts the session, every later one refreshes it; concurrent
+first calls share one start; a failed start leaves nothing behind, so the
+next call starts again. `tokens.reset()` forgets the session for a deliberate
+restart, and `tokens.sessionId` is the id your status query reads later. The
+provider is Apollo-free and knows nothing of GraphQL - the two calls are
+whatever your API exposes.
+
 ## What the component does in this mode
 
 `isLaunchable(source)` is true, so **no WebView is rendered**. The component shows its `launch-screen` while `source.launch(session, onEvent)` runs and the SDK owns the screen. The resolved `IdentityVerificationResult` is the terminal `complete`. A `cancel` emitted before resolution means the user aborted and the resolved status is advisory (typically `incomplete`); a rejection is a real failure and becomes the error state.

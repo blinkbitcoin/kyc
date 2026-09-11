@@ -155,6 +155,9 @@ make e2e-android            # Maestro (see make help for prerequisites)
 1. [integration/sumsub.md](integration/sumsub.md) - dashboard setup, the automated tier (`make e2e-live`), and the manual device checklist
 2. [operations/live-e2e-ci.md](operations/live-e2e-ci.md) - the same run as an opt-in CI job
 
+### "I run sessions on the backend and the native SDK in the app"
+1. [integration/native-sdk.md](integration/native-sdk.md#with-sessions-on-the-backend) - `createSessionTokenProvider`: start once, refresh on expiry, one session row per attempt
+
 ### "I want my backend to act on an approval"
 1. [architecture/backend.md](architecture/backend.md#what-the-host-does-with-a-status-change) - `effects.onStatusTransition`, what it guarantees and what it does not
 2. [integration/proxy.md](integration/proxy.md#acting-on-the-result-on-your-backend) - why the app's `onComplete` is advisory
