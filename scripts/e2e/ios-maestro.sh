@@ -14,7 +14,9 @@ export PATH="$HOME/.maestro/bin:$PATH"
 # laptop, not CI) Maestro would otherwise pick whichever device it lists
 # first and look for the iOS bundle id on Android.
 UDID=$(/usr/bin/xcrun simctl list devices booted -j | jq -r '[.devices[][] | select(.state == "Booted")][0].udid')
-[ -n "$UDID" ] && [ "$UDID" != "null" ] || { echo "::error::no booted iOS simulator (make e2e-ios-local boots one)"; exit 1; }
+if [ -z "$UDID" ] || [ "$UDID" = "null" ]; then
+  echo "::error::no booted iOS simulator (make e2e-ios-local boots one)"; exit 1
+fi
 # The demo's test:e2e script appends --device from this variable (an
 # argument would be eaten by the two npm layers in between)
 export MAESTRO_DEVICE="$UDID"
