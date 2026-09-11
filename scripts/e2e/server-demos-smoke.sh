@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Boots the access-token example and calls its mutation for real. Default:
-# the mock provider, no database, no Sumsub (make e2e-server-demos; CI: E2E /
-# Server demos). PROVIDER=sumsub: the real provider with the SUMSUB_* values
-# from the environment - the example mints a real access token (part of
-# make e2e-live). Port: TOKEN_PORT (KYC_PORT_BASE + 3, table scripts/lib/ports.mjs).
+# Boots the two in-process server examples and calls their routes for real:
+# the access-token example's mutation and the serverless handler's endpoint.
+# Default: the mock provider, no database, no Sumsub (make e2e-server-demos;
+# CI: E2E / Server demos). PROVIDER=sumsub: the real provider with the
+# SUMSUB_* values from the environment - both mint a real access token (part
+# of make e2e-live). Ports: TOKEN_PORT (KYC_PORT_BASE + 3) and HANDLER_PORT
+# (KYC_PORT_BASE + 6), table scripts/lib/ports.mjs.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 # shellcheck source=scripts/e2e/wait-lib.sh
@@ -37,7 +39,9 @@ expect_match() { # <label> <pattern> <body>
 }
 
 start access-token-demo "$TOKEN_PORT"
+start serverless-handler-demo "$HANDLER_PORT"
 up access-token-demo "http://127.0.0.1:$TOKEN_PORT/"
+up serverless-handler-demo "http://127.0.0.1:$HANDLER_PORT/health"
 
 # access-token-demo: the mutation maps the tier and mints a token
 BODY=$(curl -fsS "http://127.0.0.1:$TOKEN_PORT/" -H 'content-type: application/json' \
@@ -48,4 +52,13 @@ expect_match "access-token provider name" "\"provider\":\"$PROVIDER\"" "$BODY"
 BODY=$(curl -fsS "http://127.0.0.1:$TOKEN_PORT/" -H 'content-type: application/json' \
   -d '{"query":"mutation { verificationAccessToken(platform: IOS, tier: \"basic\") { accessToken } }"}')
 expect_match "access-token refuses anonymous" '"Unauthenticated"' "$BODY"
+
+# serverless-handler-demo: the access-token preset behind plain Node
+BODY=$(curl -fsS -X POST "http://127.0.0.1:$HANDLER_PORT/verification/token" \
+  -H 'content-type: application/json' -H 'authorization: Bearer smoke-user' \
+  -d '{"platform":"IOS"}')
+expect_match "serverless handler mint ($PROVIDER)" "$TOKEN_PATTERN" "$BODY"
+STATUS=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:$HANDLER_PORT/verification/token" \
+  -H 'content-type: application/json' -d '{"platform":"IOS"}')
+expect_match "serverless handler refuses anonymous" '^401$' "$STATUS"
 echo "server demos smoke: all ok ($PROVIDER)"

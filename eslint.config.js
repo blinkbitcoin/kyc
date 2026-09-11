@@ -16,6 +16,7 @@ module.exports = [
       '**/node_modules/**',
       'packages/kyc-service/**',
       'examples/access-token-demo/**',
+      'examples/serverless-handler-demo/**',
       '**/coverage/**',
       '**/ios/**',
       '**/android/**',

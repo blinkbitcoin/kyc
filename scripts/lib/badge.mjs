@@ -17,6 +17,7 @@ export const WORKSPACES = [
   { ws: 'packages/kyc-react', reportDir: 'coverage/lcov-report' },
   { ws: 'packages/kyc-service', reportDir: 'coverage' },
   { ws: 'examples/access-token-demo', reportDir: 'coverage' },
+  { ws: 'examples/serverless-handler-demo', reportDir: 'coverage' },
   { ws: 'scripts', reportDir: 'coverage' },
 ];
 

@@ -37,6 +37,7 @@
 
 - **`react-native-demo`** - React Native 0.86, `KYC_MODE` = `native` | `hosted` | `proxy` | `fake-native`, Maestro flows in `.maestro/`
 - **`access-token-demo`** - the in-process tier as a runnable host: an existing GraphQL API adds one mutation that mints a provider access token for mode 2 (`make e2e-server-demos` boots it)
+- **`serverless-handler-demo`** - the in-process tier as Fetch handlers: the access-token preset behind a route handler (Vercel, Cloudflare, Next.js), plain Node adapter here (`make e2e-server-demos` boots it too)
 - **`react-demo`** - Vite + React 19, `VITE_KYC_MODE` = `hosted` | `proxy`, `VITE_KYC_UI` = `default` | `themed`, Playwright specs in `e2e/` on per-worktree ports
 
 #### Tooling (`scripts/`)
@@ -87,6 +88,7 @@ Organized by namespace - pick by what you are doing:
 | [../examples/react-native-demo/README.md](../examples/react-native-demo/README.md) | The four `KYC_MODE` modes, the screen/testID contract, the Maestro suite |
 | [../examples/react-demo/README.md](../examples/react-demo/README.md) | The two web modes, the themed variant and the Playwright suites |
 | [../examples/access-token-demo/README.md](../examples/access-token-demo/README.md) | The other server shape: one mutation that mints a provider access token |
+| [../examples/serverless-handler-demo/README.md](../examples/serverless-handler-demo/README.md) | The access-token preset behind a route handler, one line per platform |
 
 ### Root
 

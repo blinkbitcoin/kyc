@@ -25,6 +25,7 @@ COPY packages/kyc-react-native/package.json packages/kyc-react-native/
 COPY examples/react-demo/package.json examples/react-demo/
 COPY examples/react-native-demo/package.json examples/react-native-demo/
 COPY examples/access-token-demo/package.json examples/access-token-demo/
+COPY examples/serverless-handler-demo/package.json examples/serverless-handler-demo/
 COPY scripts/package.json scripts/
 RUN npm ci --ignore-scripts --no-audit --no-fund
 
@@ -51,6 +52,7 @@ COPY packages/kyc-react-native/package.json packages/kyc-react-native/
 COPY examples/react-demo/package.json examples/react-demo/
 COPY examples/react-native-demo/package.json examples/react-native-demo/
 COPY examples/access-token-demo/package.json examples/access-token-demo/
+COPY examples/serverless-handler-demo/package.json examples/serverless-handler-demo/
 COPY scripts/package.json scripts/
 # Runtime dependencies of the service, the Node package and the core it
 # pins only

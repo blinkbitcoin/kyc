@@ -126,8 +126,10 @@ kyc/
 │       ├── schema.graphql           # Emitted artifact - the wire contract ⭐
 │       └── tests/ , tests/e2e/ , tests/live/   # unit (composition), real Postgres, real Sumsub sandbox (opt-in)
 │
-│   └── examples/access-token-demo/  # 🖥️ the in-process tier as a host: an existing GraphQL API adds one mint mutation (mode 2's backend)
-│       └── src/{level,session,schema,server}.ts   # tier → level, accessTokenProviderFromEnv, one provider.createSession call
+│   ├── examples/access-token-demo/  # 🖥️ the in-process tier as a host: an existing GraphQL API adds one mint mutation (mode 2's backend)
+│   │   └── src/{level,session,schema,server}.ts   # tier → level, accessTokenProviderFromEnv, one provider.createSession call
+│   └── examples/serverless-handler-demo/  # 🖥️ the in-process tier as Fetch handlers: the access-token preset behind a route handler
+│       └── src/{handlers,node,index}.ts   # createAccessTokenApp over accessTokenProviderFromEnv; IncomingMessage ↔ Request adapter
 │
 ├── 🧪 DEMOS - executable integration docs and E2E hosts
 │   │

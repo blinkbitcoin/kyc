@@ -12,6 +12,7 @@ package.
 | Example | Hosts | Modes | E2E |
 |---------|-------|-------|-----|
 | [`access-token-demo/`](access-token-demo/README.md) | 🖥️ **In-process tier.**<br>`@blinkbitcoin/kyc-node` from an API you already have | one mutation that mints a provider access token for mode 2: `mock` \| `sumsub` | booted on the mock provider, the mutation called (`make e2e-server-demos`) |
+| [`serverless-handler-demo/`](serverless-handler-demo/README.md) | 🖥️ **In-process tier**, as Fetch handlers.<br>`@blinkbitcoin/kyc-node` behind a route handler or<br>edge function (plain Node adapter here) | the access-token preset, `POST /verification/token`: `mock` \| `sumsub` | booted on the mock provider, the route called (`make e2e-server-demos`) |
 | [`react-native-demo/`](react-native-demo/README.md) | 📱 `@blinkbitcoin/kyc-react-native` | `KYC_MODE` = native \| hosted \| proxy \| fake-native | Maestro (`make e2e-android`, `make e2e-ios`, `make e2e-fake-native`) |
 | [`react-demo/`](react-demo/README.md) | 🌐 `@blinkbitcoin/kyc-react` (Vite) | `VITE_KYC_MODE` = hosted \| proxy | Playwright (`make e2e-web`, `make e2e-web-proxy`) |
 

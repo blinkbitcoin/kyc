@@ -12,8 +12,11 @@ Two shapes, both supported, same environment contract:
 - **Tier A - in-process.** The host's own Node API mints. Nothing extra is
   deployed; the recipe is the
   [`kyc-node` README](../../packages/kyc-node/README.md#mint-a-token-for-the-native-sdk-mode-1)
-  and the runnable example is
-  [`examples/access-token-demo`](../../examples/access-token-demo/README.md).
+  and the runnable examples are
+  [`examples/access-token-demo`](../../examples/access-token-demo/README.md)
+  (one mutation on an existing API) and
+  [`examples/serverless-handler-demo`](../../examples/serverless-handler-demo/README.md)
+  (the preset behind a route handler).
 - **Tier B - the service.** `@blinkbitcoin/kyc-service` runs as a function
   or a container next to the host's API, which keeps the session. Its deploy
   targets are in

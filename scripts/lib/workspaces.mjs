@@ -25,6 +25,7 @@ export const INTERNAL_DEPENDENCIES = {
   'packages/kyc-react': ['@blinkbitcoin/kyc-core'],
   'packages/kyc-service': ['@blinkbitcoin/kyc-node'],
   'examples/access-token-demo': ['@blinkbitcoin/kyc-node'],
+  'examples/serverless-handler-demo': ['@blinkbitcoin/kyc-node'],
   'examples/react-demo': ['@blinkbitcoin/kyc-react'],
   'examples/react-native-demo': ['@blinkbitcoin/kyc-react-native'],
 };
