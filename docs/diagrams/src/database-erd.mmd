@@ -16,7 +16,7 @@ erDiagram
     AuditLog {
         text id PK
         text sessionId FK "ON DELETE CASCADE"
-        text action "session_created|token_refreshed|status_updated|webhook_rejected|creation_failed"
+        text action "session_created|token_refreshed|status_updated|webhook_rejected|creation_failed|effect_failed"
         timestamp timestamp "precision 3, default now()"
         jsonb metadata "nullable - nine-key allow-list, no PII"
     }

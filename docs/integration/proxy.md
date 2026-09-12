@@ -94,6 +94,15 @@ The service refuses to boot if any of the required secrets is missing (see [../a
 
 Register `https://api.example.com/webhook/kyc/sumsub` in the provider dashboard - without it, statuses never advance past `pending`. The full dashboard walkthrough is [sumsub.md](sumsub.md).
 
+## Acting on the result on your backend
+
+`onComplete` in the app is advisory. The decision that matters - the account
+level, the feature that unlocks - belongs where the webhook lands. The
+service takes it there for you: compose `createVerificationService` with
+`effects.onStatusTransition`, and your policy runs after every committed
+change, once, whether a webhook or a reconciled status read produced it
+([backend.md](../architecture/backend.md#what-the-host-does-with-a-status-change)).
+
 ## Auth
 
 The bearer token is your app's, not the provider's. With `JWT_SECRET` set, `packages/kyc-service` verifies it as HS256 and uses the `sub` claim as the user id; every session read and refresh is owner-scoped against it. In development without `JWT_SECRET`, the raw token is the user id - which is why the demos simply send `demo-user`.

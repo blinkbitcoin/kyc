@@ -74,6 +74,7 @@ One session has many audit entries (`AuditLog.sessionId`, `ON DELETE CASCADE`).
 | `status_updated` | A webhook transition (`source: 'webhook'`) or a reconciled status query (`source: 'api'`) |
 | `webhook_rejected` | A webhook that would have downgraded a terminal status (`reason: 'terminal_status'`), or one whose applicant id does not match the session it would otherwise bind (`reason: 'applicant_mismatch'`) |
 | `creation_failed` | A provider failure during session start, with the coded `errorCode` |
+| `effect_failed` | The host's `effects.onStatusTransition` threw after a committed change, with the coded `errorCode`; the status itself stands |
 
 ### Metadata allow-list
 
@@ -93,7 +94,7 @@ Persistence is a port of `@blinkbitcoin/kyc-node` (`packages/kyc-node/src/store.
 | `bindApplicantId(id, providerApplicantId)` | Idempotent - binds only an unbound session or one already bound to the same applicant; a session bound to a *different* applicant is left untouched and returned as-is, so the caller can refuse the event |
 | `appendAuditEntry(entry)` / `listAuditEntries(sessionId)` | Applies the allow-list; newest first |
 
-`applyStatusTransition(id, status, source, opts)` in `src/sessions.ts` is the single write path every status change goes through - optional binding, the conditional status update and the matching audit row, in one transaction. A guard test fails if `updateSessionStatus` is called anywhere else.
+`applyStatusTransition(id, status, source, opts)` in `src/sessions.ts` is the single write path every status change goes through - optional binding, the conditional status update and the matching audit row, in one transaction. Once that transaction has committed, and only when the outcome is `updated`, the host's optional `effects.onStatusTransition` runs ([backend.md](backend.md#what-the-host-does-with-a-status-change)). A guard test fails if `updateSessionStatus` is called anywhere else.
 
 ## Migration commands
 

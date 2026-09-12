@@ -97,6 +97,13 @@ const store: SessionStore = createMemorySessionStore(); // or your own, over you
 const sessions = createVerificationService({
   provider, providerName, store,
   publicBaseUrl: () => 'https://api.example.com', // the hosted page lives under it
+  effects: {
+    // Your policy, on the package's write path: runs after the commit, once
+    // per real change, for webhooks and reconciled reads alike.
+    onStatusTransition: async ({ session, previousStatus, source }) => {
+      if (session.status === 'approved') await grantEntitlement(session.userId);
+    },
+  },
 });
 
 // In your API, with the authenticated user:
@@ -110,6 +117,11 @@ const event = provider.parseWebhookEvent(rawBody);
 if (!event) return 400;
 await sessions.handleWebhookEvent(event); // idempotent; terminal statuses never downgrade
 ```
+
+`effects.onStatusTransition` is where an approval becomes something in
+your system. It is awaited and at-least-once: keep it idempotent, keep slow
+work behind a queue, and expect an `effect_failed` audit row (never a
+rolled-back status) when it throws.
 
 `createKycGraphQL({ sessions })` gives your Apollo (or any GraphQL) server
 the schema the client packages codegen against: `typeDefs` plus resolvers

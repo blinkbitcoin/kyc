@@ -40,6 +40,7 @@ sequenceDiagram
                     Note over SM,AL: bindApplicantId (when matched by externalUserId) + updateSessionStatus + status_updated, one transaction
                     SM->>DB: updateSessionStatus
                     SM->>AL: status_updated
+                    Note over SM,AL: after the commit - effects.onStatusTransition, the host policy. A throw is audited as effect_failed
                     SM-->>WH: updated
                 end
                 WH-->>PR: 200 received true with the outcome

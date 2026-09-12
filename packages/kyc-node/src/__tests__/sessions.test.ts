@@ -652,6 +652,120 @@ describe('applyStatusTransition', () => {
   });
 });
 
+describe('effects', () => {
+  const started = async (over: Partial<VerificationServiceDeps> = {}) => {
+    const ctx = setup(over);
+    await ctx.service.start(user, { platform: 'WEB' });
+    return ctx;
+  };
+
+  it('runs the host effect once per committed change, with the source and the new row', async () => {
+    const onStatusTransition = jest.fn();
+    const { service, store } = await started({
+      effects: { onStatusTransition },
+    });
+    await service.applyStatusTransition('id-1', 'pending', 'webhook');
+    expect(onStatusTransition).toHaveBeenCalledTimes(1);
+    expect(onStatusTransition).toHaveBeenCalledWith({
+      outcome: 'updated',
+      source: 'webhook',
+      previousStatus: 'initial',
+      session: expect.objectContaining({ id: 'id-1', status: 'pending' }),
+    });
+    // After the commit: the effect sees what a concurrent reader sees
+    expect((await store.getSessionById('id-1'))?.status).toBe('pending');
+  });
+
+  it('is silent for an idempotent redelivery, a refused downgrade and a refused bind', async () => {
+    const onStatusTransition = jest.fn();
+    const { service } = await started({ effects: { onStatusTransition } });
+    await service.applyStatusTransition('id-1', 'approved', 'webhook');
+    await service.applyStatusTransition('id-1', 'approved', 'webhook');
+    await service.applyStatusTransition('id-1', 'declined', 'webhook');
+    await service.applyStatusTransition('id-1', 'pending', 'webhook', {
+      bindApplicantId: 'someone-else',
+    });
+    expect(onStatusTransition).toHaveBeenCalledTimes(1);
+  });
+
+  it('reaches the effect from a webhook and from a reconciled status read alike', async () => {
+    const onStatusTransition = jest.fn();
+    const { service, provider } = await started({
+      effects: { onStatusTransition },
+    });
+    await service.handleWebhookEvent({
+      providerApplicantId: 'app-1',
+      status: 'pending',
+      rawStatus: 'pending',
+    });
+    provider.getStatus.mockResolvedValue('approved');
+    await service.status(user, 'id-1');
+    expect(
+      onStatusTransition.mock.calls.map(([e]) => [e.source, e.session.status]),
+    ).toEqual([
+      ['webhook', 'pending'],
+      ['api', 'approved'],
+    ]);
+  });
+
+  it('logs and audits a failing effect, and still reports the committed transition', async () => {
+    const { service, store, logger } = await started({
+      effects: {
+        onStatusTransition: async () => {
+          throw Errors.providerUnavailable('downstream is away');
+        },
+      },
+    });
+    await expect(
+      service.applyStatusTransition('id-1', 'approved', 'webhook'),
+    ).resolves.toMatchObject({ outcome: 'updated' });
+    expect((await store.getSessionById('id-1'))?.status).toBe('approved');
+    expect(logger.error).toHaveBeenCalledWith(
+      'Status transition effect failed:',
+      expect.objectContaining({
+        action: 'effect_failed',
+        errorCode: 'PROVIDER_UNAVAILABLE',
+        sessionId: 'id-1',
+        status: 'approved',
+      }),
+    );
+    expect((await store.listAuditEntries('id-1'))[0]).toMatchObject({
+      action: 'effect_failed',
+      metadata: {
+        status: 'approved',
+        previousStatus: 'initial',
+        source: 'webhook',
+        errorCode: 'PROVIDER_UNAVAILABLE',
+      },
+    });
+  });
+
+  it('records an uncoded effect failure as UNKNOWN_ERROR', async () => {
+    const { service, store } = await started({
+      effects: {
+        onStatusTransition: () => {
+          throw new Error('boom');
+        },
+      },
+    });
+    await service.applyStatusTransition('id-1', 'pending', 'api');
+    expect((await store.listAuditEntries('id-1'))[0]).toMatchObject({
+      action: 'effect_failed',
+      metadata: { errorCode: 'UNKNOWN_ERROR', source: 'api' },
+    });
+  });
+
+  it('is optional: no effects, and effects without the hook, change nothing', async () => {
+    const { service: plain, store } = await started();
+    await plain.applyStatusTransition('id-1', 'pending', 'webhook');
+    const { service: empty } = await started({ effects: {} });
+    await empty.applyStatusTransition('id-1', 'pending', 'webhook');
+    expect(
+      (await store.listAuditEntries('id-1')).map(entry => entry.action),
+    ).toEqual(['status_updated', 'session_created']);
+  });
+});
+
 describe('hostedPage', () => {
   it('is not found for a missing session, another provider or a terminal session', async () => {
     const { service, store } = setup();

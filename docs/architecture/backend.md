@@ -115,6 +115,29 @@ Three rules the service layer states, and the resolvers only relay:
 - **Ownership is checked on every read.** `verificationSession` and `verificationSessionRefresh` load by `(id, userId)`; a session belonging to someone else is indistinguishable from a missing one (`SESSION_NOT_FOUND`). A terminal session refuses a refresh (`VALIDATION_ERROR`) rather than minting a live token for a decision that cannot change.
 - **`verificationSession` self-heals a non-terminal session.** When the stored status is not `approved`/`finallyRejected`, the service asks the provider (`getStatus(applicantId)` once an applicant id is bound, else `getStatusByUserId` when supported) and applies any change through `applyStatusTransition`. Best-effort reconciliation, not the source of truth - **webhooks are** - and a lookup failure leaves the stored status in place.
 
+## What the host does with a status change
+
+An approval usually means something to the host - an account level, a
+notification, the next step of an onboarding. That policy is the host's,
+but the place it runs is the package's: `createVerificationService` takes
+an optional `effects.onStatusTransition(event)`, called by
+`applyStatusTransition` once its transaction has committed and only when
+the row actually changed (`outcome === 'updated'`). Because every status
+write takes that path, the effect sees a webhook transition, a reconciled
+status read and any future admin action alike, and never an idempotent
+redelivery or a refused downgrade.
+
+The event is the committed transition plus its `source`: `{ session,
+previousStatus, outcome: 'updated', source: 'webhook' | 'api' }`. A host
+that must act on webhooks only (the provider is the source of truth) checks
+`source`. Delivery is at-least-once: a crash between the commit and the
+effect loses that one call, and an effect that throws is logged and written
+to the audit trail as `effect_failed` with the coded reason - the status is
+never rolled back. A host that needs exactly-once keeps its own outbox keyed
+on the session and the status. The call is awaited, so slow work (a
+downstream RPC with retries) belongs behind the host's queue, or the
+provider's webhook times out and retries.
+
 ## Webhook processing
 
 `POST /webhook/kyc/:provider` is rate-limited (120/min, on the Node target) and reads the body as **text**, not JSON, because the signature is over the raw bytes.
@@ -128,7 +151,7 @@ Three rules the service layer states, and the resolvers only relay:
 | `unchanged` | The stored status already equals the incoming one |
 | `rejected_terminal` | The stored status is `approved` or `finallyRejected` - recorded as a `webhook_rejected` audit entry with `reason: 'terminal_status'` |
 | `rejected_unbound` | The event is the first one for a session (matched by `externalUserId`), but the applicant id it carries does not match the one the bind attempt found on that session - `webhook_rejected` with `reason: 'applicant_mismatch'` |
-| `updated` | Bind (when this is the first event for the session) + the conditional status write + `status_updated` audit, in one transaction |
+| `updated` | Bind (when this is the first event for the session) + the conditional status write + `status_updated` audit, in one transaction - then the host's `effects.onStatusTransition`, if it composed one |
 
 All six answer `200` with `{ received: true, outcome }`: a provider retry loop is not an error signal. Only signature failure (`401`), an unparseable body (`400`), an unknown or non-configured provider (`404`) and a genuine processing failure (`500`, which Sumsub retries) diverge.
 
