@@ -58,11 +58,19 @@ describe('createStartSession', () => {
     });
     await start('user-2', 'ANDROID', 'enhanced-kyc-level');
     expect(fetch).toHaveBeenCalledTimes(2);
-    const urls = (fetch as ReturnType<typeof vi.fn>).mock.calls.map(([url]) =>
-      String(url),
-    );
-    expect(urls[0]).toContain('levelName=basic-kyc-level');
-    expect(urls[1]).toContain('levelName=enhanced-kyc-level');
+    // The SDK endpoint carries the level in the JSON body, not the query
+    const calls = (fetch as ReturnType<typeof vi.fn>).mock.calls as [
+      string,
+      { body: string },
+    ][];
+    expect(String(calls[0][0])).toContain('/resources/accessTokens/sdk');
+    expect(JSON.parse(calls[0][1].body)).toMatchObject({
+      userId: 'user-2',
+      levelName: 'basic-kyc-level',
+    });
+    expect(JSON.parse(calls[1][1].body)).toMatchObject({
+      levelName: 'enhanced-kyc-level',
+    });
   });
 
   it('warns and falls back to the default for an unknown name; takes another registry', async () => {
