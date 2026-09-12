@@ -22,6 +22,7 @@ const fakeClient = (): SumsubClient & {
   createAccessToken: jest.Mock;
   fetchApplicantStatus: jest.Mock;
   fetchApplicantByExternalUserId: jest.Mock;
+  createShareToken: jest.Mock;
 } => ({
   request: jest.fn(),
   createAccessToken: jest
@@ -29,6 +30,9 @@ const fakeClient = (): SumsubClient & {
     .mockResolvedValue({ token: 'sumsub-token', userId: 'user-1' }),
   fetchApplicantStatus: jest.fn(),
   fetchApplicantByExternalUserId: jest.fn(),
+  createShareToken: jest
+    .fn()
+    .mockResolvedValue({ token: 'share-token', forClientId: 'issuer' }),
 });
 
 const fakeLogger = (): Logger & { error: jest.Mock; warn: jest.Mock } => ({
@@ -190,6 +194,37 @@ describe('getStatus / getStatusByUserId', () => {
     await expect(provider.getStatusByUserId('user-1')).rejects.toMatchObject({
       extensions: { code: 'PROVIDER_UNAVAILABLE' },
     });
+  });
+});
+
+describe('createShareToken', () => {
+  it('mints a share token for the other client with the access-token TTL by default, and reports the expiry', async () => {
+    const { provider, client } = setup();
+    await expect(provider.createShareToken('a1', 'issuer')).resolves.toEqual({
+      token: 'share-token',
+      expiresAt: new Date('2026-09-06T00:10:00.000Z'),
+    });
+    expect(client.createShareToken).toHaveBeenCalledWith('a1', 'issuer', 600);
+    await provider.createShareToken('a1', 'issuer', 1800);
+    expect(client.createShareToken).toHaveBeenLastCalledWith(
+      'a1',
+      'issuer',
+      1800,
+    );
+  });
+
+  it('maps a 404 to SESSION_NOT_FOUND, another 4xx to VALIDATION_ERROR and 5xx to PROVIDER_UNAVAILABLE', async () => {
+    const { provider, client } = setup();
+    for (const [status, code] of [
+      [404, 'SESSION_NOT_FOUND'],
+      [400, 'VALIDATION_ERROR'],
+      [503, 'PROVIDER_UNAVAILABLE'],
+    ] as const) {
+      client.createShareToken.mockRejectedValue(new HttpError(status, ''));
+      await expect(
+        provider.createShareToken('a1', 'issuer'),
+      ).rejects.toMatchObject({ extensions: { code } });
+    }
   });
 });
 

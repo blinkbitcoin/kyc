@@ -92,6 +92,8 @@ export interface VerificationProvider {
 
 `getStatusByUserId` answers with the status *and* the applicant id once the provider has one, so a reconciling read binds the session without waiting for its first webhook. It and `hostedPage` are **optional capabilities**, detected with `supportsUserStatusLookup` / `supportsHostedPage` - the same Interface-Segregation shape the client packages use for `isLaunchable` / `isTokenRefreshable`. No generic layer branches on a provider name: the status query uses the lookup when it exists, the hosted route renders the provider's page when it exists and the not-found page otherwise.
 
+The Sumsub handle adds one capability outside the port: `createShareToken(applicantId, forClientId, ttlSecs?)`, the token another Sumsub client (a card issuer, a partner) imports the applicant with - minted here, authorized by the host.
+
 The service's `instrumentProvider(provider, name)` wraps every method in a span (`kyc.provider.create_session`, `…refresh_token`, `…get_status`, `…get_status_by_user_id`, `…verify_webhook`, `…parse_webhook_event`) so observability is a decorator on the service side, never a concern of an adapter.
 
 ### Implementations

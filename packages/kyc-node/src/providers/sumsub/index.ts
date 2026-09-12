@@ -13,6 +13,7 @@ export type {
   SumsubApplicant,
   SumsubClient,
   SumsubClientOptions,
+  SumsubShareToken,
 } from './client';
 export { createSumsubClient, signPayload } from './client';
 export type { Env, SumsubConfig, SumsubConfigKey } from './config';
@@ -44,6 +45,7 @@ export {
 export type {
   SumsubProviderHandle,
   SumsubProviderOptions,
+  SumsubShareTokenResult,
   SumsubWebhookOptions,
 } from './provider';
 export {

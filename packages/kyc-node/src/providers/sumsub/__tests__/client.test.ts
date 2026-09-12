@@ -192,7 +192,7 @@ describe('request', () => {
 });
 
 describe('endpoint helpers', () => {
-  it('mints an access token with url-encoded query parameters', async () => {
+  it('mints an SDK access token with a JSON body', async () => {
     const f = fakeFetch([jsonResponse({ token: 't', userId: 'u1' })]);
     await expect(
       createSumsubClient(config, { fetch: f.fetchImpl }).createAccessToken(
@@ -202,9 +202,36 @@ describe('endpoint helpers', () => {
       ),
     ).resolves.toEqual({ token: 't', userId: 'u1' });
     expect(f.calls[0].url).toBe(
-      'https://api.sumsub.test/resources/accessTokens?userId=user%201&levelName=basic%20level&ttlInSecs=600',
+      'https://api.sumsub.test/resources/accessTokens/sdk',
     );
     expect(f.calls[0].init.method).toBe('POST');
+    expect(JSON.parse(f.calls[0].init.body as string)).toEqual({
+      userId: 'user 1',
+      levelName: 'basic level',
+      ttlInSecs: 600,
+    });
+    expect(
+      (f.calls[0].init.headers as Record<string, string>)['Content-Type'],
+    ).toBe('application/json');
+  });
+
+  it('mints a share token for another client with a JSON body', async () => {
+    const f = fakeFetch([jsonResponse({ token: 's', forClientId: 'issuer' })]);
+    await expect(
+      createSumsubClient(config, { fetch: f.fetchImpl }).createShareToken(
+        'a1',
+        'issuer',
+        1800,
+      ),
+    ).resolves.toEqual({ token: 's', forClientId: 'issuer' });
+    expect(f.calls[0].url).toBe(
+      'https://api.sumsub.test/resources/accessTokens/shareToken',
+    );
+    expect(JSON.parse(f.calls[0].init.body as string)).toEqual({
+      applicantId: 'a1',
+      forClientId: 'issuer',
+      ttlInSecs: 1800,
+    });
   });
 
   it('reads an applicant status by applicant id', async () => {
