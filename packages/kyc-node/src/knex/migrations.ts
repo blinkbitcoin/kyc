@@ -65,9 +65,30 @@ const createVerificationSessionAndAuditTables: KycMigration = {
   },
 };
 
+// A provider files one applicant per user across every level, so the same
+// applicant id legitimately stands on several sessions (a second level after
+// an approved first one). The unique constraint made that impossible; the
+// composite index keeps the webhook lookup fast.
+const oneApplicantManySessions: KycMigration = {
+  name: '20260911000000_one_applicant_many_sessions.ts',
+  async up(db) {
+    await db.schema.alterTable('VerificationSession', table => {
+      table.dropUnique(['providerApplicantId']);
+      table.index(['provider', 'providerApplicantId']);
+    });
+  },
+  async down(db) {
+    await db.schema.alterTable('VerificationSession', table => {
+      table.dropIndex(['provider', 'providerApplicantId']);
+      table.unique(['providerApplicantId']);
+    });
+  },
+};
+
 // In order; append new migrations here, never edit a shipped one
 export const KYC_MIGRATIONS: readonly KycMigration[] = [
   createVerificationSessionAndAuditTables,
+  oneApplicantManySessions,
 ];
 
 export const createKycMigrationSource =

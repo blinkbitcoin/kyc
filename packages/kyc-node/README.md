@@ -137,7 +137,7 @@ tests; `Tracing` and `Logger` are optional seams.
 | Store method | Contract |
 |---|---|
 | `transaction(fn)` | every write through the store `fn` receives commits together or not at all |
-| `createSession`, `getSessionById`, `getSessionByIdForUser`,<br>`getSessionByProviderApplicantId`, `getLatestUnboundSessionForUser` | session rows; the user-scoped read returns `null` for a wrong owner<br>(no info leak) |
+| `createSession`, `getSessionById`, `getSessionByIdForUser`,<br>`getSessionByProviderApplicantId`, `getLatestUnboundSessionForUser` | session rows; the user-scoped read returns `null` for a wrong owner<br>(no info leak); the applicant lookup takes the event's `levelName`, since<br>one applicant stands on one session per level |
 | `updateSessionStatus` | the conditional write: refuses to move a terminal session<br>(`rejected_terminal`), reports `unchanged` and `updated`; throws for an<br>unknown id. Only the domain calls it (guard-tested) |
 | `bindApplicantId` | binds an unbound session, idempotently; reports another applicant<br>rather than stealing a bound one |
 | `appendAuditEntry`, `listAuditEntries` | audit rows, newest first |

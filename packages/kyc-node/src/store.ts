@@ -57,6 +57,33 @@ export interface StatusWrite {
   session: SessionRecord;
 }
 
+export interface ApplicantLookupOptions {
+  /** The level the event names, when the provider told us. */
+  levelName?: string | null;
+}
+
+/**
+ * Which of an applicant's sessions an event is about, newest first: the one
+ * on the event's level, else one still in progress (a second level after an
+ * approved first one is the common case), else the newest. Pure, so both
+ * stores decide the same way.
+ */
+export const pickSessionForApplicant = (
+  records: readonly SessionRecord[],
+  levelName?: string | null,
+): SessionRecord | null => {
+  const newestFirst = [...records].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+  );
+  const onLevel = levelName
+    ? newestFirst.find(record => record.levelName === levelName)
+    : undefined;
+  const inProgress = newestFirst.find(
+    record => !TERMINAL_STATUSES.has(record.status),
+  );
+  return onLevel ?? inProgress ?? newestFirst[0] ?? null;
+};
+
 export interface SessionStore {
   // Run `fn` atomically: every write through the store it receives commits
   // together or not at all
@@ -69,8 +96,16 @@ export interface SessionStore {
     id: string,
     userId: string,
   ): Promise<SessionRecord | null>;
+  /**
+   * The session an applicant's event belongs to. A provider files one
+   * applicant per user across every level, so one applicant id can stand
+   * on several sessions; the newest one on the event's level wins, else
+   * the newest still in progress, else the newest of all
+   * (`pickSessionForApplicant`).
+   */
   getSessionByProviderApplicantId(
     providerApplicantId: string,
+    options?: ApplicantLookupOptions,
   ): Promise<SessionRecord | null>;
   /**
    * The user's newest UNBOUND session with this provider. Used to bind the
@@ -171,13 +206,14 @@ export const createMemorySessionStore = (
       return record && record.userId === userId ? { ...record } : null;
     },
 
-    async getSessionByProviderApplicantId(providerApplicantId) {
-      for (const record of sessions.values()) {
-        if (record.providerApplicantId === providerApplicantId) {
-          return { ...record };
-        }
-      }
-      return null;
+    async getSessionByProviderApplicantId(providerApplicantId, options = {}) {
+      const picked = pickSessionForApplicant(
+        [...sessions.values()].filter(
+          record => record.providerApplicantId === providerApplicantId,
+        ),
+        options.levelName,
+      );
+      return picked ? { ...picked } : null;
     },
 
     async getLatestUnboundSessionForUser(userId, provider) {

@@ -1,4 +1,9 @@
-import { createMemorySessionStore, type SessionStore } from '../store';
+import {
+  createMemorySessionStore,
+  pickSessionForApplicant,
+  type SessionRecord,
+  type SessionStore,
+} from '../store';
 
 // A clock that advances one second per read, so timestamps are distinct
 const ticking = () => {
@@ -13,6 +18,7 @@ const seed = (
     userId?: string;
     provider?: string;
     providerApplicantId?: string;
+    levelName?: string;
   } = {},
 ) =>
   store.createSession({
@@ -102,6 +108,44 @@ describe('createMemorySessionStore', () => {
       copy!.status = 'approved';
       expect((await store.getSessionById('s1'))?.status).toBe('initial');
       expect(await store.getSessionByProviderApplicantId('a2')).toBeNull();
+    });
+
+    it('getSessionByProviderApplicantId prefers the event level, then a session in progress, then the newest', async () => {
+      const store = createMemorySessionStore(ticking());
+      await seed(store, 'l2-done', {
+        providerApplicantId: 'a1',
+        levelName: 'l2',
+      });
+      await store.updateSessionStatus('l2-done', 'approved');
+      await seed(store, 'card', {
+        providerApplicantId: 'a1',
+        levelName: 'card',
+      });
+      await seed(store, 'other', {
+        providerApplicantId: 'a2',
+        levelName: 'card',
+      });
+      // the event names a level
+      expect(
+        (await store.getSessionByProviderApplicantId('a1', { levelName: 'l2' }))
+          ?.id,
+      ).toBe('l2-done');
+      // no level, or an unknown one: the session still in progress
+      expect((await store.getSessionByProviderApplicantId('a1'))?.id).toBe(
+        'card',
+      );
+      expect(
+        (
+          await store.getSessionByProviderApplicantId('a1', {
+            levelName: 'zzz',
+          })
+        )?.id,
+      ).toBe('card');
+      // everything terminal: the newest
+      await store.updateSessionStatus('card', 'finallyRejected');
+      expect((await store.getSessionByProviderApplicantId('a1'))?.id).toBe(
+        'card',
+      );
     });
 
     it('getLatestUnboundSessionForUser picks the newest unbound session of that provider', async () => {
@@ -310,5 +354,58 @@ describe('createMemorySessionStore', () => {
       await seed(store, 'session-2');
       expect(await store.getSessionById('session-2')).not.toBeNull();
     });
+  });
+});
+
+describe('pickSessionForApplicant', () => {
+  const record = (
+    id: string,
+    createdAt: string,
+    over: Partial<SessionRecord> = {},
+  ): SessionRecord => ({
+    id,
+    userId: 'u',
+    provider: 'mock',
+    providerApplicantId: 'a1',
+    levelName: null,
+    locale: null,
+    platform: 'WEB',
+    status: 'initial',
+    createdAt: new Date(createdAt),
+    updatedAt: new Date(createdAt),
+    ...over,
+  });
+
+  it('is null for no records and does not mutate its input', () => {
+    expect(pickSessionForApplicant([])).toBeNull();
+    const records = [record('a', '2026-01-01'), record('b', '2026-01-02')];
+    pickSessionForApplicant(records);
+    expect(records.map(r => r.id)).toEqual(['a', 'b']);
+  });
+
+  it('takes the newest on the level, else the newest in progress, else the newest', () => {
+    const records = [
+      record('old-card', '2026-01-01', {
+        levelName: 'card',
+        status: 'approved',
+      }),
+      record('l2', '2026-01-02', {
+        levelName: 'l2',
+        status: 'finallyRejected',
+      }),
+      record('new-card', '2026-01-03', {
+        levelName: 'card',
+        status: 'approved',
+      }),
+    ];
+    expect(pickSessionForApplicant(records, 'card')?.id).toBe('new-card');
+    expect(pickSessionForApplicant(records, 'l2')?.id).toBe('l2');
+    expect(pickSessionForApplicant(records, null)?.id).toBe('new-card');
+    expect(
+      pickSessionForApplicant(
+        [...records, record('pending', '2026-01-01', { status: 'pending' })],
+        'nope',
+      )?.id,
+    ).toBe('pending');
   });
 });

@@ -14,8 +14,18 @@ describe('webhook (E2E)', () => {
     return { status: response.status, body: await asJson<{ outcome?: string }>(response) };
   };
 
-  const payload = (applicantId: string, status: string, externalUserId?: string) =>
-    JSON.stringify({ applicantId, status, ...(externalUserId && { externalUserId }) });
+  const payload = (
+    applicantId: string,
+    status: string,
+    externalUserId?: string,
+    levelName?: string
+  ) =>
+    JSON.stringify({
+      applicantId,
+      status,
+      ...(externalUserId && { externalUserId }),
+      ...(levelName && { levelName }),
+    });
 
   const statusOf = async (id: string): Promise<string> =>
     (await knex('VerificationSession').where({ id }).first()).status;
@@ -163,6 +173,38 @@ describe('webhook (E2E)', () => {
     const rows = await knex('VerificationSession').whereIn('id', [older.id, newer.id]);
     const boundIds = rows.map((row) => row.providerApplicantId).sort();
     expect(boundIds).toEqual(['mock-applicant-first', 'mock-applicant-second']);
+  });
+
+  it('drives a second level of the same applicant without touching the approved first one', async () => {
+    const level2 = await createTestSession({
+      providerApplicantId: 'mock-applicant-shared',
+      levelName: 'level-two',
+      status: 'approved',
+      createdAt: new Date('2026-09-05T00:00:00.000Z'),
+    });
+    const card = await createTestSession({
+      providerApplicantId: null,
+      levelName: 'card',
+      createdAt: new Date('2026-09-06T00:00:00.000Z'),
+    });
+
+    // The first card event binds the shared applicant to the card session
+    const first = await deliver(payload('mock-applicant-shared', 'pending', 'e2e-user', 'card'));
+    expect(first.body.outcome).toBe('updated');
+    expect(
+      (await knex('VerificationSession').where({ id: card.id }).first()).providerApplicantId
+    ).toBe('mock-applicant-shared');
+
+    // Later card events reach the card session by level; the approved one stands
+    const second = await deliver(payload('mock-applicant-shared', 'declined', undefined, 'card'));
+    expect(second.body.outcome).toBe('updated');
+    expect(await statusOf(card.id)).toBe('declined');
+    expect(await statusOf(level2.id)).toBe('approved');
+
+    // An event without a level goes to the session still in progress
+    const third = await deliver(payload('mock-applicant-shared', 'approved'));
+    expect(third.body.outcome).toBe('updated');
+    expect(await statusOf(card.id)).toBe('approved');
   });
 
   it('refuses a webhook whose user has no unbound session left', async () => {

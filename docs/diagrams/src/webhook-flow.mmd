@@ -22,7 +22,7 @@ sequenceDiagram
                 WH-->>PR: 400 Invalid payload
             else Parsed WebhookEvent
                 WH->>SM: handleWebhookEvent(event, provider)
-                SM->>DB: find by providerApplicantId, else latest unbound session for externalUserId
+                SM->>DB: find by providerApplicantId and the event level, else latest unbound session for externalUserId
                 alt No status mapped
                     SM-->>WH: ignored_unknown_status
                 else No matching session

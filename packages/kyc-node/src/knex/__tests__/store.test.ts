@@ -107,11 +107,32 @@ describe('createKnexSessionStore', () => {
       ).resolves.toBeNull();
     });
 
-    it('getSessionByProviderApplicantId returns the row or null', async () => {
-      tracker.on.select('VerificationSession').responseOnce([row]);
+    it('getSessionByProviderApplicantId reads every session of the applicant, newest first, and picks by level', async () => {
+      const basic = {
+        ...row,
+        id: 'basic',
+        levelName: 'basic',
+        status: 'approved' as const,
+      };
+      const card = {
+        ...row,
+        id: 'card',
+        levelName: 'card',
+        status: 'pending' as const,
+      };
+      tracker.on.select('VerificationSession').responseOnce([card, basic]);
+      await expect(
+        store.getSessionByProviderApplicantId('mock-applicant-1', {
+          levelName: 'basic',
+        }),
+      ).resolves.toEqual(basic);
+      expect(tracker.history.select[0].sql).toMatch(
+        /order by "createdAt" desc/i,
+      );
+      tracker.on.select('VerificationSession').responseOnce([card, basic]);
       await expect(
         store.getSessionByProviderApplicantId('mock-applicant-1'),
-      ).resolves.toEqual(row);
+      ).resolves.toEqual(card);
       tracker.on.select('VerificationSession').responseOnce([]);
       await expect(
         store.getSessionByProviderApplicantId('nope'),
