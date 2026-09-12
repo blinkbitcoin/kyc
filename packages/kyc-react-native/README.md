@@ -55,6 +55,8 @@ import { IdentityVerification } from '@blinkbitcoin/kyc-react-native/hosted';
 import { createSumsubNativeSource } from '@blinkbitcoin/kyc-react-native/sumsub';
 
 const source = createSumsubNativeSource({ getAccessToken: fetchTokenFromYourApi });
+// With sessions on your backend, start once and refresh after:
+// createSessionTokenProvider({ start, refresh }).getAccessToken (from @blinkbitcoin/kyc-core/hosted)
 
 <IdentityVerification
   source={source}

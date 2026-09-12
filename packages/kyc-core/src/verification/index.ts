@@ -45,6 +45,13 @@ export type {
   IdentityVerificationLabels,
 } from './labels';
 
+export { createSessionTokenProvider } from './sessionToken';
+export type {
+  SessionTokenProvider,
+  SessionTokenProviderOptions,
+  SessionTokenStart,
+} from './sessionToken';
+
 export { createHostedSource } from './hostedSource';
 export type {
   HostedRefreshToken,
