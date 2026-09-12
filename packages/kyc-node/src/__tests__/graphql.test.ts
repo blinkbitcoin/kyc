@@ -51,6 +51,7 @@ describe('the verification session SDL', () => {
     expect(fieldNames(objectType('Query'))).toEqual([
       'health',
       'verificationSession',
+      'myVerification',
     ]);
     expect(fieldNames(objectType('Mutation'))).toEqual([
       'verificationSessionStart',
@@ -112,6 +113,7 @@ describe('createKycGraphQL', () => {
     start: jest.fn().mockResolvedValue({ sessionId: 's1' }),
     refresh: jest.fn().mockResolvedValue({ accessToken: 't2' }),
     status: jest.fn().mockResolvedValue({ sessionId: 's1', status: 'pending' }),
+    latestForUser: jest.fn().mockResolvedValue(null),
   } as unknown as VerificationService;
   const user = { userId: 'user-1' };
 
@@ -159,5 +161,16 @@ describe('createKycGraphQL', () => {
       ),
     ).resolves.toMatchObject({ status: 'pending' });
     expect(sessions.status).toHaveBeenCalledWith(null, 's1');
+
+    await expect(
+      resolvers.Query.myVerification(undefined, { reconcile: null }, user),
+    ).resolves.toBeNull();
+    expect(sessions.latestForUser).toHaveBeenCalledWith('user-1', {
+      reconcile: false,
+    });
+    await resolvers.Query.myVerification(undefined, { reconcile: true }, user);
+    expect(sessions.latestForUser).toHaveBeenLastCalledWith('user-1', {
+      reconcile: true,
+    });
   });
 });

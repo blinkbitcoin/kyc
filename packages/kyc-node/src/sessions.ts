@@ -70,6 +70,11 @@ export interface RefreshResult {
   accessToken: string;
 }
 
+export interface LatestForUserOptions {
+  /** Ask the provider when the stored status is not terminal (what `status` always does). */
+  reconcile?: boolean;
+}
+
 export type StatusTransitionOutcome = StatusWriteOutcome | 'rejected_unbound';
 
 export interface StatusTransition {
@@ -137,6 +142,15 @@ export interface VerificationService {
   refresh(userId: string | null, sessionId: string): Promise<RefreshResult>;
   /** The session's status, reconciled against the provider when not terminal. */
   status(userId: string | null, id: string): Promise<SessionView>;
+  /**
+   * Where the user stands: their newest session with this provider, or null
+   * before any. A plain read by default - the webhook keeps the row current -
+   * with `reconcile` opting into the same provider check `status` makes.
+   */
+  latestForUser(
+    userId: string | null,
+    options?: LatestForUserOptions,
+  ): Promise<SessionView | null>;
   /** Sync a verified, parsed provider event into the stored status. */
   handleWebhookEvent(event: WebhookEvent): Promise<WebhookOutcome>;
   /** The session and a fresh token for its hosted page, or why not. */
@@ -298,6 +312,50 @@ export const createVerificationService = (
       return transition;
     });
 
+  // Self-heal a non-terminal session against the provider. Once an
+  // applicant id is bound we ask about that applicant directly; before that
+  // (a Sumsub session mints tokens per external user id, so the applicant
+  // does not exist yet) we fall back to the optional user-id lookup.
+  // Webhooks remain the source of truth - this only repairs a session whose
+  // webhook was lost or is still in flight, and it is best effort: a failed
+  // lookup keeps the stored status rather than failing the read.
+  const reconcile = async (
+    session: SessionRecord,
+  ): Promise<VerificationStatus> => {
+    if (TERMINAL_STATUSES.has(session.status)) {
+      return session.status;
+    }
+    const lookupProviderStatus =
+      async (): Promise<VerificationStatus | null> => {
+        if (session.providerApplicantId) {
+          return provider.getStatus(session.providerApplicantId);
+        }
+        return supportsUserStatusLookup(provider)
+          ? provider.getStatusByUserId(session.userId)
+          : null;
+      };
+    try {
+      const providerStatus = await lookupProviderStatus();
+      // Applied through the SAME conditional write the webhook path uses,
+      // so a lookup racing an in-flight webhook can never bypass the
+      // state machine.
+      if (providerStatus) {
+        const transition = await applyStatusTransition(
+          session.id,
+          providerStatus,
+          'api',
+        );
+        return transition.session.status;
+      }
+    } catch (error) {
+      logger.warn(
+        'Verification status reconciliation failed:',
+        getErrorCode(error) ?? 'UNKNOWN_ERROR',
+      );
+    }
+    return session.status;
+  };
+
   return {
     async start(userId, input) {
       const owner = requireUser(userId);
@@ -411,49 +469,20 @@ export const createVerificationService = (
     async status(userId, id) {
       const owner = requireUser(userId);
       const session = await requireOwned(requireId(id, 'id'), owner);
-      let status: VerificationStatus = session.status;
+      return { ...view(session), status: await reconcile(session) };
+    },
 
-      // Self-heal a non-terminal session against the provider. Once an
-      // applicant id is bound we ask about that applicant directly; before
-      // that (a Sumsub session mints tokens per external user id, so the
-      // applicant does not exist yet) we fall back to the optional user-id
-      // lookup. Webhooks remain the source of truth - this only repairs a
-      // session whose webhook was lost or is still in flight.
-      const lookupProviderStatus =
-        async (): Promise<VerificationStatus | null> => {
-          if (session.providerApplicantId) {
-            return provider.getStatus(session.providerApplicantId);
-          }
-          return supportsUserStatusLookup(provider)
-            ? provider.getStatusByUserId(session.userId)
-            : null;
-        };
-
-      if (!TERMINAL_STATUSES.has(status)) {
-        try {
-          const providerStatus = await lookupProviderStatus();
-          // Applied through the SAME conditional write the webhook path uses,
-          // so a lookup racing an in-flight webhook can never bypass the
-          // state machine.
-          if (providerStatus) {
-            const transition = await applyStatusTransition(
-              session.id,
-              providerStatus,
-              'api',
-            );
-            status = transition.session.status;
-          }
-        } catch (error) {
-          // Reconciliation is best effort: keep the stored status and answer
-          // the client with it rather than failing the query.
-          logger.warn(
-            'Verification status reconciliation failed:',
-            getErrorCode(error) ?? 'UNKNOWN_ERROR',
-          );
-        }
+    async latestForUser(userId, options = {}) {
+      const owner = requireUser(userId);
+      const session = await store.getLatestSessionForUser(owner, providerName);
+      if (!session) {
+        return null;
       }
-
-      return { ...view(session), status };
+      tracing.annotate?.({ 'kyc.session_id': session.id });
+      return {
+        ...view(session),
+        status: options.reconcile ? await reconcile(session) : session.status,
+      };
     },
 
     handleWebhookEvent(event) {

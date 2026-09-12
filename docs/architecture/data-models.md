@@ -89,6 +89,7 @@ Persistence is a port of `@blinkbitcoin/kyc-node` (`packages/kyc-node/src/store.
 | `createSession(data)` | Writes the row and its `session_created` audit entry together; `data` includes the optional `locale` |
 | `getSessionById(id)` / `getSessionByIdForUser(id, userId)` | The owner-scoped form is what the service uses for reads |
 | `getSessionByProviderApplicantId(id, { levelName? })` | The webhook's primary lookup. One applicant can stand on several sessions, so the newest on the event's level wins, else the newest still in progress, else the newest (`pickSessionForApplicant`, shared by both stores) |
+| `getLatestSessionForUser(userId, provider)` | The user's newest session with the provider, bound or not - what `myVerification` reads |
 | `getLatestUnboundSessionForUser(userId, provider)` | The webhook's fallback when only `externalUserId` is known: the newest session for that user and provider that is still **unbound** (`providerApplicantId IS NULL`), ordered by `createdAt desc` |
 | `updateSessionStatus(id, status)` | The conditional write: `WHERE status NOT IN (terminal) AND status <> :status`, so the terminal guard is part of the UPDATE itself, not a check before it (the Knex store locks the row `FOR UPDATE`) |
 | `bindApplicantId(id, providerApplicantId)` | Idempotent - binds only an unbound session or one already bound to the same applicant; a session bound to a *different* applicant is left untouched and returned as-is, so the caller can refuse the event |

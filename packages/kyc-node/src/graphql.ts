@@ -21,6 +21,9 @@ export const typeDefs = `#graphql
     health: HealthCheck!
     # Status of a session this backend brokered.
     verificationSession(id: ID!): VerificationSessionStatus!
+    # Where the authenticated user stands: their newest session, or null
+    # before any. A stored read unless \`reconcile\` asks the provider.
+    myVerification(reconcile: Boolean = false): VerificationSessionStatus
   }
 
   type Mutation {
@@ -121,6 +124,15 @@ export const createKycGraphQL = (options: KycGraphQLOptions) => {
         { id }: { id: string },
         context: GraphQLContext,
       ) => sessions.status(context.userId, id),
+
+      myVerification: (
+        _parent: unknown,
+        { reconcile }: { reconcile?: boolean | null },
+        context: GraphQLContext,
+      ) =>
+        sessions.latestForUser(context.userId, {
+          reconcile: reconcile === true,
+        }),
     },
 
     Mutation: {

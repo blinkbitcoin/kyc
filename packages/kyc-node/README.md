@@ -110,6 +110,7 @@ const sessions = createVerificationService({
 const started = await sessions.start(userId, { platform: 'WEB' }); // { sessionId, accessToken, url, allowedOrigin, ... }
 const { accessToken } = await sessions.refresh(userId, started.sessionId);
 const view = await sessions.status(userId, started.sessionId);     // reconciled against the provider when not terminal
+const mine = await sessions.latestForUser(userId);                 // where the user stands, no session id needed (null before any)
 
 // In your webhook route, with the RAW body bytes:
 if (!provider.verifyWebhook(req.headers, rawBody, req.ip)) return 401;
@@ -137,7 +138,7 @@ tests; `Tracing` and `Logger` are optional seams.
 | Store method | Contract |
 |---|---|
 | `transaction(fn)` | every write through the store `fn` receives commits together or not at all |
-| `createSession`, `getSessionById`, `getSessionByIdForUser`,<br>`getSessionByProviderApplicantId`, `getLatestUnboundSessionForUser` | session rows; the user-scoped read returns `null` for a wrong owner<br>(no info leak); the applicant lookup takes the event's `levelName`, since<br>one applicant stands on one session per level |
+| `createSession`, `getSessionById`, `getSessionByIdForUser`,<br>`getSessionByProviderApplicantId`, `getLatestUnboundSessionForUser`,<br>`getLatestSessionForUser` | session rows; the user-scoped read returns `null` for a wrong owner<br>(no info leak); the applicant lookup takes the event's `levelName`, since<br>one applicant stands on one session per level |
 | `updateSessionStatus` | the conditional write: refuses to move a terminal session<br>(`rejected_terminal`), reports `unchanged` and `updated`; throws for an<br>unknown id. Only the domain calls it (guard-tested) |
 | `bindApplicantId` | binds an unbound session, idempotently; reports another applicant<br>rather than stealing a bound one |
 | `appendAuditEntry`, `listAuditEntries` | audit rows, newest first |

@@ -1,6 +1,7 @@
 type Query {
   health: HealthCheck!
   verificationSession(id: ID!): VerificationSessionStatus!
+  myVerification(reconcile: Boolean = false): VerificationSessionStatus
 }
 
 type Mutation {
