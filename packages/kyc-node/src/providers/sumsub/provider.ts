@@ -70,6 +70,14 @@ const headerValue = (
   return Array.isArray(value) ? JSON.stringify(value) : value;
 };
 
+/** The strings of a provider list, or nothing when it is absent, empty or not a list of strings. */
+const stringList = (value: unknown): string[] | undefined =>
+  Array.isArray(value) &&
+  value.length > 0 &&
+  value.every(item => typeof item === 'string')
+    ? (value as string[])
+    : undefined;
+
 export const createSumsubProvider = (
   options: SumsubProviderOptions,
 ): SumsubProviderHandle => {
@@ -191,11 +199,16 @@ export const createSumsubProvider = (
         return null;
       }
 
+      const rejectLabels = stringList(payload.reviewResult?.rejectLabels);
       return {
         providerApplicantId: payload.applicantId,
         externalUserId: payload.externalUserId,
         status: mapSumsubWebhookStatus(payload),
         rawStatus: `${payload.type}:${payload.reviewStatus ?? ''}`,
+        ...(typeof payload.levelName === 'string' && payload.levelName
+          ? { levelName: payload.levelName }
+          : {}),
+        ...(rejectLabels ? { rejectLabels } : {}),
       };
     },
 

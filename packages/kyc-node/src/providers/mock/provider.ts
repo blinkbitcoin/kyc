@@ -174,6 +174,8 @@ export const createMockProvider = (
         applicantId?: unknown;
         status?: unknown;
         externalUserId?: unknown;
+        levelName?: unknown;
+        rejectLabels?: unknown;
       };
       try {
         const parsed: unknown = JSON.parse(rawBody);
@@ -210,6 +212,14 @@ export const createMockProvider = (
             : undefined,
         status,
         rawStatus: String(payload.status),
+        ...(typeof payload.levelName === 'string' && payload.levelName
+          ? { levelName: payload.levelName }
+          : {}),
+        ...(Array.isArray(payload.rejectLabels) &&
+        payload.rejectLabels.length > 0 &&
+        payload.rejectLabels.every(label => typeof label === 'string')
+          ? { rejectLabels: payload.rejectLabels as string[] }
+          : {}),
       };
     },
 

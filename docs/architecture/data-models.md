@@ -71,14 +71,14 @@ One session has many audit entries (`AuditLog.sessionId`, `ON DELETE CASCADE`).
 |--------|-----------|
 | `session_created` | `verificationSessionStart`, in the same transaction as the row |
 | `token_refreshed` | `verificationSessionRefresh` |
-| `status_updated` | A webhook transition (`source: 'webhook'`) or a reconciled status query (`source: 'api'`) |
+| `status_updated` | A webhook transition (`source: 'webhook'`) or a reconciled status query (`source: 'api'`); a decline carries the provider's `rejectLabels` verbatim |
 | `webhook_rejected` | A webhook that would have downgraded a terminal status (`reason: 'terminal_status'`), or one whose applicant id does not match the session it would otherwise bind (`reason: 'applicant_mismatch'`) |
 | `creation_failed` | A provider failure during session start, with the coded `errorCode` |
 | `effect_failed` | The host's `effects.onStatusTransition` threw after a committed change, with the coded `errorCode`; the status itself stands |
 
 ### Metadata allow-list
 
-Only these nine keys are ever persisted: `userId`, `provider`, `platform`, `levelName`, `status`, `previousStatus`, `source`, `errorCode`, `reason`. Anything else is dropped before the write, so an accidental spread of a provider payload cannot leak applicant data into the audit trail.
+Only these ten keys are ever persisted: `userId`, `provider`, `platform`, `levelName`, `status`, `previousStatus`, `source`, `errorCode`, `reason`, `rejectLabels`. Anything else is dropped before the write, so an accidental spread of a provider payload cannot leak applicant data into the audit trail.
 
 ## The `SessionStore` port
 

@@ -81,6 +81,8 @@ export interface StatusTransition {
 export interface ApplyStatusTransitionOptions {
   /** Applicant id to bind in the same transaction (first webhook of a session). */
   bindApplicantId?: string;
+  /** The provider's reasons for a decline, audited with the change and handed to the effects. */
+  rejectLabels?: string[];
 }
 
 // How a webhook event was handled (also recorded on the span)
@@ -95,6 +97,8 @@ export type StatusSource = 'api' | 'webhook';
 export interface StatusTransitionEvent extends StatusTransition {
   outcome: 'updated';
   source: StatusSource;
+  /** The provider's decline reasons, when the change came with any. */
+  rejectLabels?: string[];
 }
 
 /**
@@ -204,13 +208,19 @@ export const createVerificationService = (
     id: string,
     source: StatusSource,
     transition: StatusTransition,
+    rejectLabels?: string[],
   ): Promise<void> => {
     const onStatusTransition = deps.effects?.onStatusTransition;
     if (transition.outcome !== 'updated' || !onStatusTransition) {
       return;
     }
     try {
-      await onStatusTransition({ ...transition, outcome: 'updated', source });
+      await onStatusTransition({
+        ...transition,
+        outcome: 'updated',
+        source,
+        ...(rejectLabels ? { rejectLabels } : {}),
+      });
     } catch (error) {
       const errorCode = getErrorCode(error) ?? 'UNKNOWN_ERROR';
       logger.error('Status transition effect failed:', {
@@ -232,7 +242,7 @@ export const createVerificationService = (
   const applyStatusTransition: VerificationService['applyStatusTransition'] =
     async (id, status, source, options = {}) => {
       const transition = await writeStatus(id, status, source, options);
-      await runEffects(id, source, transition);
+      await runEffects(id, source, transition, options.rejectLabels);
       return transition;
     };
 
@@ -268,6 +278,9 @@ export const createVerificationService = (
           status,
           previousStatus: transition.previousStatus,
           source,
+          ...(options.rejectLabels
+            ? { rejectLabels: options.rejectLabels }
+            : {}),
         });
       } else if (
         transition.outcome === 'rejected_terminal' &&
@@ -490,7 +503,14 @@ export const createVerificationService = (
             session.id,
             newStatus,
             'webhook',
-            needsBinding ? { bindApplicantId: event.providerApplicantId } : {},
+            {
+              ...(needsBinding
+                ? { bindApplicantId: event.providerApplicantId }
+                : {}),
+              ...(event.rejectLabels
+                ? { rejectLabels: event.rejectLabels }
+                : {}),
+            },
           );
 
           if (outcome === 'updated') {

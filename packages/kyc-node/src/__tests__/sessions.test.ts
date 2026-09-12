@@ -464,6 +464,37 @@ describe('handleWebhookEvent', () => {
     );
   });
 
+  it('audits a decline with the provider reasons and hands them to the effects', async () => {
+    const onStatusTransition = jest.fn();
+    const { service, store } = setup({ effects: { onStatusTransition } });
+    await service.start(user, { platform: 'WEB' });
+    await expect(
+      service.handleWebhookEvent(
+        event({ status: 'declined', rejectLabels: ['BAD_SELFIE'] }),
+      ),
+    ).resolves.toBe('updated');
+    expect((await store.listAuditEntries('id-1'))[0]).toMatchObject({
+      action: 'status_updated',
+      metadata: { status: 'declined', rejectLabels: ['BAD_SELFIE'] },
+    });
+    expect(onStatusTransition).toHaveBeenCalledWith(
+      expect.objectContaining({ rejectLabels: ['BAD_SELFIE'] }),
+    );
+  });
+
+  it('keeps the audit row and the effect free of a reasons key when the event has none', async () => {
+    const onStatusTransition = jest.fn();
+    const { service, store } = setup({ effects: { onStatusTransition } });
+    await service.start(user, { platform: 'WEB' });
+    await service.handleWebhookEvent(event({ status: 'pending' }));
+    expect(
+      (await store.listAuditEntries('id-1'))[0]?.metadata,
+    ).not.toHaveProperty('rejectLabels');
+    expect(onStatusTransition.mock.calls[0]?.[0]).not.toHaveProperty(
+      'rejectLabels',
+    );
+  });
+
   it('binds the applicant in the same write on the first webhook of an unbound session', async () => {
     const { service, store, provider } = setup();
     provider.createSession.mockResolvedValue({ accessToken: 't' });

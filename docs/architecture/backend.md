@@ -128,7 +128,12 @@ status read and any future admin action alike, and never an idempotent
 redelivery or a refused downgrade.
 
 The event is the committed transition plus its `source`: `{ session,
-previousStatus, outcome: 'updated', source: 'webhook' | 'api' }`. A host
+previousStatus, outcome: 'updated', source: 'webhook' | 'api', rejectLabels? }`.
+A decline arrives with the provider's own reasons (`rejectLabels`, Sumsub's
+vocabulary, untranslated) - the same list the `status_updated` audit row
+keeps - so a host can tell the user why without a second provider call. The
+`WebhookEvent` also names the `levelName` the provider filed the event under
+when it does, which is what tells two sessions of one user apart. A host
 that must act on webhooks only (the provider is the source of truth) checks
 `source`. Delivery is at-least-once: a crash between the commit and the
 effect loses that one call, and an effect that throws is logged and written

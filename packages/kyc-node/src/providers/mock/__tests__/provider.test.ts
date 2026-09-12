@@ -174,6 +174,31 @@ describe('parseWebhookEvent', () => {
     });
   });
 
+  it('passes a level and reject labels through, and ignores malformed ones', () => {
+    const { provider } = setup();
+    expect(
+      provider.parseWebhookEvent(
+        JSON.stringify({
+          applicantId: 'a1',
+          status: 'declined',
+          levelName: 'card',
+          rejectLabels: ['BAD_SELFIE'],
+        }),
+      ),
+    ).toMatchObject({ levelName: 'card', rejectLabels: ['BAD_SELFIE'] });
+    for (const extra of [
+      { levelName: '', rejectLabels: [] },
+      { levelName: 7, rejectLabels: ['x', 1] },
+      { rejectLabels: 'BAD' },
+    ]) {
+      const event = provider.parseWebhookEvent(
+        JSON.stringify({ applicantId: 'a1', status: 'declined', ...extra }),
+      );
+      expect(event).not.toHaveProperty('levelName');
+      expect(event).not.toHaveProperty('rejectLabels');
+    }
+  });
+
   it('updates a known applicant status as a side effect', async () => {
     const { provider } = setup();
     provider.addApplicant('mock-applicant-y');

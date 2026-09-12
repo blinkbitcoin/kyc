@@ -94,6 +94,14 @@ export interface WebhookEvent {
   externalUserId?: string;
   status: VerificationStatus | null;
   rawStatus: string;
+  /** The level the event is about, when the provider names one (a user may hold sessions on several). */
+  levelName?: string;
+  /**
+   * The provider's reasons for a `declined` / `finallyRejected` status, in
+   * the provider's own vocabulary (Sumsub: `rejectLabels`). Carried through
+   * to the audit trail and the host's effects, never interpreted here.
+   */
+  rejectLabels?: string[];
 }
 
 /** Mutation.verificationSessionStart(input:) */
