@@ -12,7 +12,7 @@ import {
 } from '../sessions';
 import { createMemorySessionStore, type SessionStore } from '../store';
 import type { SpanAttributes, Tracing } from '../tracing';
-import type { VerificationStatus } from '../types';
+import type { UserStatusLookup } from '../types';
 
 const fakeLogger = (): Logger & {
   log: jest.Mock;
@@ -159,6 +159,18 @@ describe('start', () => {
     ).resolves.toMatchObject({
       url: 'localhost/hosted/id-1',
       allowedOrigin: 'localhost',
+    });
+  });
+
+  it('lets the host place the hosted page, and pins the origin to that URL', async () => {
+    const { service } = setup({
+      hostedUrlFor: id => `https://app.example.com/kyc/${id}/page`,
+    });
+    await expect(
+      service.start(user, { platform: 'WEB' }),
+    ).resolves.toMatchObject({
+      url: 'https://app.example.com/kyc/id-1/page',
+      allowedOrigin: 'https://app.example.com',
     });
   });
 
@@ -392,7 +404,7 @@ describe('status', () => {
     const provider = {
       ...fakeProvider(),
       getStatusByUserId: jest.fn(
-        async (): Promise<VerificationStatus> => 'pending',
+        async (): Promise<UserStatusLookup> => ({ status: 'pending' }),
       ),
     };
     provider.createSession.mockResolvedValue({ accessToken: 't' });
@@ -400,9 +412,40 @@ describe('status', () => {
     await service.start(user, { platform: 'WEB' });
     await expect(service.status(user, 'id-1')).resolves.toMatchObject({
       status: 'pending',
+      applicantId: null,
     });
     expect(provider.getStatusByUserId).toHaveBeenCalledWith(user);
     expect(provider.getStatus).not.toHaveBeenCalled();
+  });
+
+  it('binds the applicant the provider now knows in the same write as the reconciled status', async () => {
+    const provider = {
+      ...fakeProvider(),
+      getStatusByUserId: jest.fn(
+        async (): Promise<UserStatusLookup> => ({
+          status: 'pending',
+          providerApplicantId: 'app-found',
+        }),
+      ),
+    };
+    provider.createSession.mockResolvedValue({ accessToken: 't' });
+    const { service, store } = setup({ provider });
+    await service.start(user, { platform: 'WEB' });
+    await expect(service.status(user, 'id-1')).resolves.toMatchObject({
+      status: 'pending',
+      applicantId: 'app-found',
+    });
+    expect(await store.getSessionById('id-1')).toMatchObject({
+      providerApplicantId: 'app-found',
+      status: 'pending',
+    });
+    // bound now: the next read asks about the applicant, not the user
+    provider.getStatus.mockResolvedValue('approved');
+    await expect(service.status(user, 'id-1')).resolves.toMatchObject({
+      status: 'approved',
+    });
+    expect(provider.getStatusByUserId).toHaveBeenCalledTimes(1);
+    expect(provider.getStatus).toHaveBeenCalledWith('app-found');
   });
 
   it('does nothing when the provider cannot look a status up by user id', async () => {

@@ -17,12 +17,14 @@ describe('supportsUserStatusLookup', () => {
   it('is true once the capability is implemented', async () => {
     const capable: VerificationProvider = {
       ...base,
-      getStatusByUserId: async () => 'approved',
+      getStatusByUserId: async () => ({ status: 'approved' as const }),
     };
     expect(supportsUserStatusLookup(capable)).toBe(true);
     // Narrowed: calling it needs no non-null assertion.
     if (supportsUserStatusLookup(capable)) {
-      await expect(capable.getStatusByUserId('u1')).resolves.toBe('approved');
+      await expect(capable.getStatusByUserId('u1')).resolves.toEqual({
+        status: 'approved',
+      });
     }
   });
 });

@@ -19,6 +19,7 @@ import type {
   CreateSessionOptions,
   FetchLike,
   ProviderSession,
+  UserStatusLookup,
   ProviderToken,
   TokenSubject,
   VerificationStatus,
@@ -50,7 +51,7 @@ export interface SumsubProviderOptions {
 }
 
 export interface SumsubProviderHandle extends VerificationProvider {
-  getStatusByUserId(userId: string): Promise<VerificationStatus>;
+  getStatusByUserId(userId: string): Promise<UserStatusLookup>;
   hostedPage: HostedPageRenderer;
 }
 
@@ -149,19 +150,22 @@ export const createSumsubProvider = (
       }
     },
 
-    async getStatusByUserId(userId: string): Promise<VerificationStatus> {
+    async getStatusByUserId(userId: string): Promise<UserStatusLookup> {
       try {
         const applicant = await withRetry(() =>
           client.fetchApplicantByExternalUserId(userId),
         );
-        return mapSumsubStatus(
-          applicant.review.reviewStatus,
-          applicant.review.reviewResult,
-        );
+        return {
+          status: mapSumsubStatus(
+            applicant.review.reviewStatus,
+            applicant.review.reviewResult,
+          ),
+          providerApplicantId: applicant.applicantId,
+        };
       } catch (error) {
         // No applicant yet is the normal state right after a session starts.
         if (isNotFoundError(error)) {
-          return 'initial';
+          return { status: 'initial' };
         }
         throw Errors.providerUnavailable();
       }

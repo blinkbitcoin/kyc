@@ -202,6 +202,7 @@ export type {
   ProviderSession,
   ProviderToken,
   TokenSubject,
+  UserStatusLookup,
   VerificationPlatform,
   VerificationSessionStartInput,
   VerificationStatus,

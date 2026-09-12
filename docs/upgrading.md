@@ -3,6 +3,20 @@
 What changes for you between kyc releases, by audience. Entries are listed
 newest first; each names the pull request that made the change.
 
+## `getStatusByUserId` answers with the applicant id too
+
+For whoever implements a `VerificationProvider` of their own: the optional
+`getStatusByUserId(userId)` capability now resolves to
+`{ status, providerApplicantId? }` instead of a bare status, so a
+reconciling read can bind the session to the applicant the provider filed
+the user under without waiting for a webhook. The Sumsub adapter fills it
+from the applicant lookup; a provider that has no applicant yet returns
+`{ status: 'initial' }`. Hosts that only consume the packages see no change.
+
+`createVerificationService` also takes `hostedUrlFor(sessionId)` for a
+hosted page served under the host's own path or domain; the default
+`<publicBaseUrl>/hosted/<id>` is unchanged.
+
 ## The service is Fetch-native: Express is gone
 
 `@blinkbitcoin/kyc-service` is one Fetch handler, `createKycApp(env, deps)`,

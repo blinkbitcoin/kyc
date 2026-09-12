@@ -142,9 +142,18 @@ describe('instrumentProvider', () => {
   });
 
   it('tags getStatusByUserId with the resulting status when implemented', async () => {
-    const inner = { ...baseProvider(), getStatusByUserId: vi.fn(async () => 'pending' as const) };
+    const inner = {
+      ...baseProvider(),
+      getStatusByUserId: vi.fn(async () => ({
+        status: 'pending' as const,
+        providerApplicantId: 'a1',
+      })),
+    };
     const traced = instrumentProvider(inner, 'sumsub');
-    await expect(traced.getStatusByUserId!('u1')).resolves.toBe('pending');
+    await expect(traced.getStatusByUserId!('u1')).resolves.toEqual({
+      status: 'pending',
+      providerApplicantId: 'a1',
+    });
     expect(span.setAttribute).toHaveBeenCalledWith('kyc.status', 'pending');
   });
 

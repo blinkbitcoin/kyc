@@ -170,7 +170,10 @@ describe('getStatus / getStatusByUserId', () => {
       applicantId: 'a1',
       review: { reviewStatus: 'pending' },
     });
-    await expect(provider.getStatusByUserId('user-1')).resolves.toBe('pending');
+    await expect(provider.getStatusByUserId('user-1')).resolves.toEqual({
+      status: 'pending',
+      providerApplicantId: 'a1',
+    });
   });
 
   it('reports initial rather than failing when the applicant does not exist yet', async () => {
@@ -178,7 +181,9 @@ describe('getStatus / getStatusByUserId', () => {
     client.fetchApplicantByExternalUserId.mockRejectedValueOnce(
       new HttpError(404, ''),
     );
-    await expect(provider.getStatusByUserId('user-1')).resolves.toBe('initial');
+    await expect(provider.getStatusByUserId('user-1')).resolves.toEqual({
+      status: 'initial',
+    });
     client.fetchApplicantByExternalUserId.mockRejectedValue(
       new HttpError(500, ''),
     );

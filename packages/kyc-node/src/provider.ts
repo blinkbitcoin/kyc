@@ -9,6 +9,7 @@ import type {
   ProviderSession,
   ProviderToken,
   TokenSubject,
+  UserStatusLookup,
   VerificationStatus,
   WebhookEvent,
   WebhookHeaders,
@@ -52,12 +53,14 @@ export interface VerificationProvider {
   parseWebhookEvent(rawBody: string): WebhookEvent | null;
 
   /**
-   * OPTIONAL capability (Interface Segregation): look a status up by our own
-   * user id, before any webhook has told us the provider's applicant id.
-   * Sumsub can (GET /resources/applicants/-;externalUserId=<id>/one); the
-   * mock provider cannot, so callers must use `supportsUserStatusLookup`.
+   * OPTIONAL capability (Interface Segregation): look a user up by our own
+   * user id, before any webhook has told us the provider's applicant id -
+   * the status, and the applicant id itself once the provider has one, so
+   * the session can be bound without waiting for a webhook. Sumsub can
+   * (GET /resources/applicants/-;externalUserId=<id>/one); the mock provider
+   * cannot, so callers must use `supportsUserStatusLookup`.
    */
-  getStatusByUserId?(userId: string): Promise<VerificationStatus>;
+  getStatusByUserId?(userId: string): Promise<UserStatusLookup>;
 
   /**
    * OPTIONAL capability: the hosted verification page (mode 2). A provider
