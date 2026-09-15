@@ -1,3 +1,17 @@
+// A worktree runs on its own port block, and KYC_PORT_BASE / KYC_API_PORT
+// come from the shell, so a developer's base is not the documented 5100 these
+// tests assert. That is machine state, not a property of the code under test.
+// It has to be cleared HERE, not in jest.setup.ts: babel.config.js inlines
+// both variables into the demo's modules at transform time (the RN bundle has
+// no process.env at runtime), so by the time a setup file runs the value is
+// already baked in. This file is evaluated by the jest CLI before any worker
+// transforms anything. Empty, not deleted: every reader treats an empty value
+// as unset, and `delete` does not take on the sandboxed process.env Jest hands
+// a test file. A test that exercises the derivation passes the base
+// explicitly (resolveBackendPort takes it as an argument).
+process.env.KYC_PORT_BASE = '';
+process.env.KYC_API_PORT = '';
+
 module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   preset: '@react-native/jest-preset',

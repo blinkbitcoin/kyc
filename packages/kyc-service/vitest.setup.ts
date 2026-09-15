@@ -6,6 +6,14 @@
 
 import { afterEach, beforeEach, vi } from 'vitest';
 
+// A worktree runs on its own port block and direnv/the shell exports
+// KYC_PORT_BASE, but these tests assert the documented 5100 default. That is
+// machine state, not a property of the code under test: clear it so a run
+// means the same thing in a worktree, the main clone and CI. Empty rather
+// than deleted - every reader in the repo already treats an empty value as
+// unset. A test that exercises the derivation passes the base explicitly.
+process.env.KYC_PORT_BASE = '';
+
 type ConsoleMethod = 'error' | 'warn' | 'log';
 const METHODS: ConsoleMethod[] = ['error', 'warn', 'log'];
 

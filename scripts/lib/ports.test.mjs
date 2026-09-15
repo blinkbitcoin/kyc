@@ -95,8 +95,13 @@ describe('envLines', () => {
 });
 
 // The services cannot import this module (a browser tsconfig, a React
-// Native bundle, an ES-module example), so each declares its own offset as
-// a literal. These checks keep those literals on the table.
+// Native bundle, an ES-module example), so each declares the base and its
+// own offset as literals and derives its port from KYC_PORT_BASE. These
+// checks keep those literals on the table - and, below, keep the
+// derivation: a file that freezes a whole origin instead of deriving it
+// looks correct here while ignoring the base entirely, which is how the
+// mock's callbacks and the web demo ended up nailed to :5100 in every
+// worktree.
 describe('the consumers', () => {
   const { base, api, webHosted, webProxy, token, testDb, handler } =
     resolvePorts({});
@@ -131,8 +136,13 @@ describe('the consumers', () => {
     ],
     ['examples/react-demo/vite.config.ts', `PORT_BASE_DEFAULT = ${base}`],
     ['examples/react-demo/src/config.ts', `http://localhost:${api}`],
+    [
+      'examples/react-demo/vite.config.ts',
+      `API_OFFSET = ${SERVICES.api.offset}`,
+    ],
     ['examples/react-demo/e2e/ports.ts', `BASE_DEFAULT = ${base}`],
-    ['packages/kyc-node/src/registry.ts', `http://localhost:${api}`],
+    ['packages/kyc-node/src/port.ts', `PORT_BASE_DEFAULT = ${base}`],
+    ['packages/kyc-node/src/port.ts', `API_OFFSET = ${SERVICES.api.offset}`],
     ['packages/kyc-service/.env.example', `PORT=${api}`],
     ['packages/kyc-service/.env.test', `http://localhost:${api}`],
     [
@@ -156,6 +166,33 @@ describe('the consumers', () => {
     ],
   ])('%s carries %s', (file, literal) => {
     expect(read(file)).toContain(literal);
+  });
+
+  // The check the pins above cannot make: a file may carry the right port
+  // literal and still ignore KYC_PORT_BASE, which is a frozen origin and so
+  // wrong in every worktree but the default one. Every file that resolves a
+  // port at runtime has to name the base variable.
+  // examples/react-demo/src/config.ts is the one exception and stays out of
+  // this list: it is browser code and can only see import.meta.env.VITE_*,
+  // so vite.config.ts derives VITE_API_ORIGIN from the base on its behalf.
+  it.each([
+    'packages/kyc-service/src/port.ts',
+    'packages/kyc-node/src/port.ts',
+    'examples/access-token-demo/src/index.ts',
+    'examples/serverless-handler-demo/src/index.ts',
+    'examples/react-native-demo/src/config.ts',
+    'examples/react-demo/vite.config.ts',
+    'examples/react-demo/e2e/ports.ts',
+  ])('%s derives its port from the base, not a frozen literal', file => {
+    // Comment lines only: a file that merely EXPLAINS the base while
+    // freezing its origin would otherwise pass on its own prose. Trailing
+    // comments are left alone on purpose - stripping from the first `//`
+    // would also eat `http://localhost:${...}`, the very line being checked.
+    const code = read(file)
+      .split('\n')
+      .filter(line => !/^\s*(\/\/|\/?\*)/.test(line))
+      .join('\n');
+    expect(code).toContain(BASE_VAR);
   });
 
   it('the Playwright module maps the web modes onto the web offsets', () => {

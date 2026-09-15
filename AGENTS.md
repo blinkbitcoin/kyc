@@ -135,7 +135,16 @@ The reasons behind these rules, and the check that holds each one, are in
   table). A second worktree sets one variable (`KYC_PORT_BASE=5300 make
   e2e-web`); a service's own variable (`PORT`, `KYC_WEB_PORT`, `TOKEN_PORT`,
   ...) overrides just that service. Nothing hard-codes a port outside those
-  defaults
+  defaults, and nothing freezes a whole origin: derive it from the base, the
+  way every `PORT_BASE_DEFAULT + OFFSET` reader does. A frozen
+  `http://localhost:5100` carries the right number and still ignores the
+  worktree. `ports.test.mjs` checks both - the offset literals against the
+  table, and that every port-resolving file names `KYC_PORT_BASE` in code
+  rather than only in a comment. Test runs pin the base themselves
+  (`examples/react-native-demo/jest.config.js`,
+  `packages/kyc-service/vitest.setup.ts`) so a developer's block never fails
+  a suite that asserts the default; the RN demo has to do it in the jest
+  config because babel inlines the variable at transform time
 - A CodeQL false positive is suppressed where it sits: a
   `// codeql[<rule-id>]` comment alone on the line above the flagged line
   (`.github/codeql/codeql-config.yml` runs the pack's AlertSuppression
