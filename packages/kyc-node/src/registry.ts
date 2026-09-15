@@ -5,6 +5,7 @@
 // adapter adds an entry.
 
 import type { Logger } from './log';
+import { serviceOrigin } from './port';
 import { assertProductionConfig } from './production';
 import type { VerificationProvider } from './provider';
 import { createMockProvider } from './providers/mock/provider';
@@ -70,7 +71,8 @@ export const providerFromEnv = (
 
 export interface DefaultRegistryOptions {
   // Where the hosted page's webhooks post back (the mock signs them).
-  // Default: PUBLIC_BASE_URL, else http://localhost:5100.
+  // Default: PUBLIC_BASE_URL, else the service's origin for this worktree
+  // (KYC_PORT_BASE + the service's offset - see ./port).
   publicBaseUrl?: () => string;
   // The mock's webhook signing secret. Default: MOCK_WEBHOOK_SECRET, else "mock".
   mockWebhookSecret?: () => string;
@@ -100,7 +102,7 @@ export const defaultRegistry = (
     return createMockProvider({
       publicBaseUrl:
         options.publicBaseUrl ??
-        (() => env.PUBLIC_BASE_URL || 'http://localhost:5100'),
+        (() => env.PUBLIC_BASE_URL || serviceOrigin(env)),
       webhookSecret:
         options.mockWebhookSecret ?? (() => env.MOCK_WEBHOOK_SECRET || 'mock'),
       logger: options.logger,
