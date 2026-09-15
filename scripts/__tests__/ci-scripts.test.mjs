@@ -1,5 +1,6 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
+  existsSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
@@ -11,9 +12,11 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
-// Drives scripts/ci/changed-class.mjs and scripts/ci/docs-freshness.sh against
-// throwaway git repos, reproducing exactly the env contracts their callers in
-// .github/workflows/checks.yml set up (see the `changes` and `docs` jobs).
+// Drives the CI shell/node scripts against throwaway fixtures, reproducing
+// exactly the env contracts their callers in .github/workflows set up:
+// changed-class.mjs and docs-freshness.sh against git repos (the `changes` and
+// `docs` jobs in checks.yml), android-sdk-install.sh against a fake Android SDK
+// root (the emulator install step in e2e.yml).
 // What counts as documentation is scripts/lib/docs-only.test.mjs's table;
 // these tests cover the other half - reading the right commit range.
 
@@ -82,21 +85,21 @@ function createFixtureRepo() {
   return { dir, initialSha };
 }
 
+// spawnSync, not execFileSync: stderr is part of what these tests assert
+// (a green run must be quiet, and a run that retried must say so), so it is
+// captured on success too.
 function runScript(scriptPath, repoDir, env, extraArgs = []) {
-  try {
-    const runner = scriptPath.endsWith('.mjs') ? process.execPath : 'bash';
-    const stdout = execFileSync(runner, [scriptPath, ...extraArgs], {
-      cwd: repoDir,
-      env: { ...gitEnv(repoDir), ...env },
-    });
-    return { status: 0, stdout: stdout.toString(), stderr: '' };
-  } catch (error) {
-    return {
-      status: error.status,
-      stdout: (error.stdout ?? '').toString(),
-      stderr: (error.stderr ?? '').toString(),
-    };
-  }
+  const runner = scriptPath.endsWith('.mjs') ? process.execPath : 'bash';
+  const result = spawnSync(runner, [scriptPath, ...extraArgs], {
+    cwd: repoDir,
+    env: { ...gitEnv(repoDir), ...env },
+    encoding: 'utf8',
+  });
+  return {
+    status: result.status,
+    stdout: result.stdout ?? '',
+    stderr: result.stderr ?? '',
+  };
 }
 
 // The classifier's output is read by ci.yml and codeql.yml as a job output,
@@ -434,5 +437,135 @@ describe('docs-freshness.sh', () => {
     expect(result.status).toBe(0);
     expect(result.summary).toContain('## Documentation Status');
     expect(result.summary).toContain('packages/kyc-core/src/index.ts');
+  });
+});
+
+describe('android-sdk-install.sh', () => {
+  // A fake SDK root with a stub sdkmanager where the real one lives. The stub
+  // appends its argv to a log and fails its first `failures` invocations, so a
+  // test can assert both what the script asked for and how often it retried.
+  function createSdkRoot({
+    binDir = 'cmdline-tools/latest/bin',
+    failures = 0,
+  } = {}) {
+    const dir = makeTempDir('android-sdk-');
+    const log = join(dir, 'sdkmanager.log');
+    if (binDir) {
+      const bin = join(dir, binDir, 'sdkmanager');
+      mkdirSync(dirname(bin), { recursive: true });
+      writeFileSync(
+        bin,
+        [
+          '#!/usr/bin/env bash',
+          `echo "$@" >> ${JSON.stringify(log)}`,
+          `attempts=$(wc -l < ${JSON.stringify(log)})`,
+          `[ "$attempts" -gt ${failures} ] || { echo "Error on ZipFile unknown archive" >&2; exit 1; }`,
+          'exit 0',
+        ].join('\n'),
+      );
+      execFileSync('chmod', ['+x', bin]);
+    }
+    // The cache the script purges between attempts, so a test can see it go.
+    mkdirSync(join(dir, '.downloadIntermediates'), { recursive: true });
+    return { dir, log };
+  }
+
+  function runInstall(sdkRoot, env = {}, args = ['emulator']) {
+    const result = runScript(
+      join(REPO_ROOT, 'scripts/ci/android-sdk-install.sh'),
+      sdkRoot,
+      { ANDROID_HOME: sdkRoot, HOME: sdkRoot, ...env },
+      args,
+    );
+    const calls = existsSync(join(sdkRoot, 'sdkmanager.log'))
+      ? readFileSync(join(sdkRoot, 'sdkmanager.log'), 'utf8')
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+      : [];
+    return { ...result, calls };
+  }
+
+  // The regression this suite exists for: a bare `sdkmanager` is not on the
+  // runners' PATH, so every attempt dies with "command not found" in
+  // milliseconds and the retry loop hides it behind three of them.
+  it('runs the sdkmanager that ships inside the SDK root, not one from PATH', () => {
+    const { dir } = createSdkRoot();
+
+    const result = runInstall(dir, { PATH: '/usr/bin:/bin' });
+
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+    expect(result.calls).toEqual(['--install emulator --channel=0']);
+  });
+
+  it('finds sdkmanager in a versioned cmdline-tools directory', () => {
+    const { dir } = createSdkRoot({ binDir: 'cmdline-tools/13.0/bin' });
+
+    expect(runInstall(dir).status).toBe(0);
+  });
+
+  it('falls back to ANDROID_SDK_ROOT when ANDROID_HOME is unset', () => {
+    const { dir } = createSdkRoot();
+
+    const result = runInstall(dir, { ANDROID_HOME: '', ANDROID_SDK_ROOT: dir });
+
+    expect(result.status).toBe(0);
+  });
+
+  it('retries a failed install after purging the download cache, then succeeds', () => {
+    const { dir } = createSdkRoot({ failures: 2 });
+
+    const result = runInstall(dir);
+
+    expect(result.status).toBe(0);
+    expect(result.calls).toHaveLength(3);
+    expect(result.stderr).toContain('retry 1 of 2');
+    expect(result.stderr).toContain('retry 2 of 2');
+    expect(existsSync(join(dir, '.downloadIntermediates'))).toBe(false);
+  });
+
+  it('gives up after the configured number of retries', () => {
+    const { dir } = createSdkRoot({ failures: 99 });
+
+    const result = runInstall(dir, { ANDROID_SDK_RETRIES: '1' });
+
+    expect(result.status).toBe(1);
+    expect(result.calls).toHaveLength(2);
+    expect(result.stderr).toContain(
+      "could not install 'emulator' in 2 attempts",
+    );
+  });
+
+  // A missing binary is a broken runner image, not a flaky download: retrying
+  // it just burns the budget and buries the real cause.
+  it('fails immediately, without retrying, when the SDK holds no sdkmanager', () => {
+    const { dir } = createSdkRoot({ binDir: null });
+
+    const result = runInstall(dir);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`no sdkmanager under ${dir}`);
+    expect(result.stderr).not.toContain('retry');
+  });
+
+  it('fails when neither ANDROID_HOME nor ANDROID_SDK_ROOT is set', () => {
+    const { dir } = createSdkRoot();
+
+    const result = runInstall(dir, { ANDROID_HOME: '', ANDROID_SDK_ROOT: '' });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      'neither ANDROID_HOME nor ANDROID_SDK_ROOT is set',
+    );
+  });
+
+  it('rejects a call that names no package', () => {
+    const { dir } = createSdkRoot();
+
+    const result = runInstall(dir, {}, []);
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('usage:');
   });
 });
