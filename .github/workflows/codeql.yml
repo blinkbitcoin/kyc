@@ -6,13 +6,15 @@ name: CodeQL
 # Informational: not a required check in the main ruleset, so a runner hiccup
 # cannot block a merge. Alerts land under Security -> Code scanning.
 
+# No paths-ignore: it was a second, narrower copy of the docs list that
+# disagreed with the classifier (it knew nothing about LICENSE or the
+# templates), so a documentation change still paid for a full analysis. The
+# Changes job below asks the same question ci.yml does, once.
 on:
   push:
     branches: [main]
-    paths-ignore: ['docs/**', '**.md']
   pull_request:
     branches: [main]
-    paths-ignore: ['docs/**', '**.md']
   schedule:
     - cron: '17 6 * * 1' # weekly, so new queries re-scan an idle main
 
@@ -24,8 +26,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The same classifier ci.yml's Checks stage uses (scripts/lib/docs-only.mjs).
+  # A scheduled run has no base to diff, so it classifies as "run everything" -
+  # which is what the weekly re-scan of an idle main is for.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      docs-only: ${{ steps.classify.outputs.docs-only }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the PR base / the commit a push replaced
+
+      - name: Classify changed files
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: node scripts/ci/changed-class.mjs
+
   analyze:
     name: Analyze
+    needs: [changes]
+    # Nothing to analyse when no code moved. CodeQL is informational and not
+    # a required check, so a skip here blocks nothing.
+    if: needs.changes.outputs.docs-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

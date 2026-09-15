@@ -151,7 +151,8 @@ The reasons behind these rules, and the check that holds each one, are in
 
 One pipeline per branch (`ci.yml`): Checks → Unit → E2E (incl. the one build
 of the packages, which Web tests) → Badges, then Publish (ships that build) +
-Verify on `main`. Docs-only PRs stop after Checks. The iOS E2E
+Verify on `main`. A docs-only change stops after Checks, on the PR and on
+its merge alike (`scripts/lib/docs-only.mjs`). The iOS E2E
 suite always runs (GitHub-hosted macOS is free on a public repo;
 `E2E_IOS_RUNNER` points it at a self-hosted Mac). Native E2E builds are cached on the inputs
 `scripts/native-deps-hash.sh` sees; bump the key's `v` suffix when an input it
