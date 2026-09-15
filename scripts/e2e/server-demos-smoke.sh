@@ -16,8 +16,19 @@ LOG_DIR="${RUNNER_TEMP:-/tmp}"
 PROVIDER="${PROVIDER:-mock}"
 if [ "$PROVIDER" = sumsub ]; then
   : "${SUMSUB_APP_TOKEN:?}" "${SUMSUB_SECRET_KEY:?}"
-  # The example's "basic" tier mints on the sandbox's configured level
+  # Both of the example's tiers mint on the sandbox's configured levels.
+  # Derived here rather than inherited: live.sh sources the service's .env
+  # with `set -a`, so locally these arrive whether or not anyone passes them,
+  # while the CI job exports only the SUMSUB_* values. A tier left to its
+  # repo default would then be green locally and a Sumsub 4xx in CI - the
+  # first live run against Blink's sandbox already hit exactly that
+  # (examples/access-token-demo/src/level.ts).
   export KYC_LEVEL_BASIC="${KYC_LEVEL_BASIC:-${SUMSUB_LEVEL_NAME:-basic-kyc-level}}"
+  # Both tiers fall back to the one level this sandbox is known to have
+  # (SUMSUB_LEVEL_NAME). Not SUMSUB_E2E_LEVEL_NAME - that is the
+  # document-only level the submission tests create applicants on, a
+  # different job. What the smoke needs is a level that exists.
+  export KYC_LEVEL_ENHANCED="${KYC_LEVEL_ENHANCED:-${SUMSUB_LEVEL_NAME:-enhanced-kyc-level}}"
   TOKEN_PATTERN='"accessToken":"[^"]+"'
 else
   TOKEN_PATTERN='"accessToken":"mock-token-'
