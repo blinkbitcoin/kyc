@@ -192,9 +192,9 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   pre-push, `npm ci` on post-merge/post-checkout when the lockfile changed.
   Escape hatches: `git commit --no-verify`, `LEFTHOOK=0 git push`
 - Commit messages and PR titles follow Conventional Commits with an allowed
-  scope list: `core`, `server`, `rn`, `react`, `demo`, `e2e`, `ci`,
+  scope list: `core`, `node`, `service`, `rn`, `react`, `demo`, `e2e`, `ci`,
   `deps`, `deps-dev`, `docs`, `release` (`commitlint.config.mjs` is the source
-  of truth; e.g. `feat(rn): ...`, `fix(server): ...`, `ci(e2e): ...`, `docs: ...`).
+  of truth; e.g. `feat(rn): ...`, `fix(node): ...`, `ci(e2e): ...`, `docs: ...`).
   Squash merges take the PR title, so name the PR like a commit. Details in
   `CONTRIBUTING.md`
 - Change code and the relevant `docs/` page in the same change; the CI Docs
@@ -225,8 +225,11 @@ rm -rf node_modules package-lock.json && npm install  # Full reinstall (root loc
   Packages → Web, Backend, Build Android → Android, Build iOS → iOS) → Badges,
   then Publish → Verify on `main`. Build Packages is the one build of the
   libraries: Web bundles the demo against its dist and Publish ships its
-  tarballs unchanged. Docs-only PRs stop after Checks; `main` skips docs-only
-  pushes.
+  tarballs unchanged. A docs-only change stops after Checks - on the PR and on
+  the merge that follows it, since both ask the same classifier
+  (`scripts/lib/docs-only.mjs`, table-tested), so a docs push to main ships no
+  prerelease. Never add a second path list to a workflow trigger: one drifted
+  from the classifier's and cost two full matrix runs.
 - CodeQL (`codeql.yml`, informational) reads `.github/codeql/codeql-config.yml`,
   which runs the suite plus the pack's AlertSuppression query. A false
   positive is suppressed in place with `// codeql[<rule-id>]` alone on the
