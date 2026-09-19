@@ -72,10 +72,10 @@
     "graphql": { "optional": true }
   },
   "devDependencies": {
-    "@apollo/client": "^4.2.12",
+    "@apollo/client": "^4.3.0",
     "@babel/preset-env": "^7.29.7",
     "@babel/preset-typescript": "^7.29.0",
-    "@graphql-codegen/cli": "^7.3.1",
+    "@graphql-codegen/cli": "^7.4.1",
     "@graphql-codegen/typescript": "^6.0.2",
     "@graphql-codegen/typescript-operations": "^6.0.5",
     "@types/jest": "^30.0.0",
