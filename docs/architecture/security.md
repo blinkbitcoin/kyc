@@ -69,7 +69,7 @@ Span attributes are ids, statuses and types: `kyc.provider`, `enduser.id`, `kyc.
 
 ## Supply chain
 
-`audit-ci` runs in CI with `audit-ci.jsonc`; Dependabot keeps actions and dependencies current; CodeQL analyses the repo; publishing happens only from a green `main` run, and `scripts/release/registry-smoke.sh` installs the published artifact from GitHub Packages and asserts the consumer contract before anyone else does.
+`make audit` runs osv-scanner in CI over `package-lock.json` and the React Native demo's `Gemfile.lock`, with accepted findings in `osv-scanner.toml`; Dependabot keeps actions and dependencies current; CodeQL analyses the repo; publishing happens only from a green `main` run, and `scripts/release/registry-smoke.sh` installs the published artifact from GitHub Packages and asserts the consumer contract before anyone else does.
 
 ## Host-app responsibilities
 
