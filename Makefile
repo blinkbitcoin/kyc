@@ -44,6 +44,12 @@ check-code: lint typecheck format-check ## Lint + typecheck + format check
 shellcheck: ## shellcheck every repo shell script (scripts/**)
 	shellcheck -x scripts/*.sh scripts/*/*.sh
 
+# osv-scanner over every lockfile (npm + the RN demo's Gemfile.lock); a
+# local binary (the flake's) or the pinned container. Accepted findings are in
+# osv-scanner.toml.
+audit: ## Dependency audit (accepted findings in osv-scanner.toml)
+	bash scripts/ci/osv-scanner.sh
+
 check-ci: shellcheck ## Lint the CI itself: actionlint (workflows) + shellcheck (scripts)
 	actionlint
 
@@ -234,7 +240,7 @@ help: ## List available targets
 		awk 'BEGIN {FS = ":.*##"} {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: install hooks pods release release-rc version registry-smoke unit coverage coverage-badge typecheck lint format format-check check-code \
-	shellcheck check-ci codegen-check test build codegen diagrams-check docs-check codeql start ios android backend web db-up db-down migrate \
+	shellcheck audit check-ci codegen-check test build codegen diagrams-check docs-check codeql start ios android backend web db-up db-down migrate \
 	diagrams test-db-up test-db-down e2e-backend e2e-web e2e-web-proxy \
 	e2e-server-demos e2e-backend-up e2e-backend-down e2e-metro-up e2e-metro-down android-build e2e-android e2e-android-local e2e-fake-native ios-build e2e-ios e2e-ios-local \
 	sumsub-env sumsub-check test-live e2e-live live-web live-ios live-android docker-build docker-smoke deploy-check clean reset help
