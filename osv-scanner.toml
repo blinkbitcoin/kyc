@@ -9,3 +9,12 @@
 id = "GHSA-g7r4-m6w7-qqqr"
 ignoreUntil = 2027-01-01
 reason = "esbuild dev-server only (tsup/vite pin 0.27.x below the 0.28.1 fix)"
+
+# deepmerge prototype pollution (low). The package has no fixed release and
+# is present only in Jest and React Native CLI development tooling. Blink does
+# not pass untrusted merge options to either tool; revisit when those upstreams
+# remove deepmerge or a patched release becomes available.
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+ignoreUntil = 2027-01-01
+reason = "no fixed release; dev-only Jest/RN CLI use with no untrusted merge options"
